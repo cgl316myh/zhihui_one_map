@@ -11,6 +11,8 @@ const BASEMAP_ZOOM_DEFAULTS = {
   'amap-img': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '高德影像底图' },
   'esri-street': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: 'ESRI 城市地图' },
   'esri-img': { minZoom: 3, maxZoom: 17, maxNativeZoom: 17, label: 'ESRI 影像地图' },
+  'tdt-vec': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '天地图矢量' },
+  'tdt-img': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '天地图影像' },
 };
 
 const layerGroups = {
@@ -27,8 +29,7 @@ const markers = {
 };
 
 function normalizeBasemapId(id) {
-  if (id === 'tdt-vec') return 'osm-street';
-  if (id === 'tdt-img' || id === 'osm-hot') return 'amap-img';
+  if (id === 'osm-hot') return 'amap-img';
   return id;
 }
 
@@ -125,6 +126,31 @@ function createBasemapLayers(id) {
         L.tileLayer(
           'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
           { ...common, attribution: 'Esri' }
+        ),
+      ],
+    };
+  }
+  if (id === 'tdt-vec' || id === 'tdt-img') {
+    const tk = String(mapConfig.tiandituTk || '').trim();
+    if (!tk) {
+      return {
+        error:
+          '天地图需在 map-config.json 填写 tiandituTk（申请地址：https://console.tianditu.gov.cn/）',
+      };
+    }
+    const layer = id === 'tdt-img' ? 'img' : 'vec';
+    const anno = id === 'tdt-img' ? 'cia' : 'cva';
+    const subdomains = ['0', '1', '2', '3', '4', '5', '6', '7'];
+    return {
+      zoom: z,
+      layers: [
+        L.tileLayer(
+          `https://t{s}.tianditu.gov.cn/${layer}_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${tk}`,
+          { ...common, subdomains, attribution: '天地图' }
+        ),
+        L.tileLayer(
+          `https://t{s}.tianditu.gov.cn/${anno}_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${anno}&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${tk}`,
+          { ...common, subdomains, attribution: '天地图注记' }
         ),
       ],
     };

@@ -40,6 +40,13 @@ import {
   revokeSlopeClear,
   resetAllSlopeClears,
 } from './modules/slopeEval.js';
+import {
+  initReserves,
+  applyDailyMined,
+  resetReserves,
+  getReserves,
+} from './modules/reserves.js';
+import { initRole, setRole, getRole, roleLabel } from './modules/role.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
@@ -136,6 +143,27 @@ function bindNavTabs() {
   });
 }
 
+function syncRoleUI() {
+  const tag = document.getElementById('user-tag');
+  const sel = document.getElementById('role-select');
+  if (tag) tag.textContent = roleLabel();
+  if (sel) sel.value = getRole();
+}
+
+function bindRoleSwitch() {
+  const sel = document.getElementById('role-select');
+  if (!sel) return;
+  sel.addEventListener('change', () => {
+    setRole(sel.value);
+    syncRoleUI();
+    refreshThresholdForm();
+    refreshReservesPanel();
+    if (window.__lastSlopeData) {
+      renderSlopePanel(window.__lastSlopeData, selectedSlopeId, slopeActionHandlers());
+    }
+  });
+}
+
 function refreshEnvironment() {
   if (!mockData?.environment) return;
   mockData.environment = applyEnvThresholds(mockData.environment, getEnvThresholds());
@@ -159,6 +187,35 @@ function refreshThresholdForm() {
       refreshThresholdForm();
     },
   });
+}
+
+function refreshReservesPanel(flash) {
+  const reserves = getReserves();
+  mockData.reserves = reserves;
+  renderReserves(reserves, {
+    onApply: (payload) => {
+      const result = applyDailyMined(payload);
+      if (result.ok) {
+        mockData.reserves = result.reserves;
+        refreshReservesPanel({
+          ok: true,
+          text: `已写入 ${payload.date}，剩余 ${result.reserves.remaining} ${result.reserves.unit}`,
+        });
+      }
+      return result;
+    },
+    onReset: () => {
+      mockData.reserves = resetReserves();
+      refreshReservesPanel({ ok: true, text: '已恢复为 mock 初始值' });
+    },
+  });
+  if (flash?.text) {
+    const msg = document.getElementById('reserve-form-msg');
+    if (msg) {
+      msg.className = flash.ok ? 'poll-ok' : 'poll-err';
+      msg.textContent = flash.text;
+    }
+  }
 }
 
 function refreshAlerts(slopeOverride) {
@@ -222,6 +279,9 @@ function onSlopeError(err) {
 async function boot() {
   tickClock();
   setInterval(tickClock, 1000);
+  initRole();
+  syncRoleUI();
+  bindRoleSwitch();
   bindLayerToggles();
   bindLayerBoxToggle();
   bindSlopeListClicks();
@@ -240,6 +300,7 @@ async function boot() {
   }
 
   initEnvThresholds(mockData.envThresholds);
+  initReserves(mockData.reserves);
 
   const center = mockData.slopePoints.mapCenter || [102.445768, 24.786112];
   const zoom = mockData.slopePoints.mapZoom || 15;
@@ -265,7 +326,7 @@ async function boot() {
   refreshEnvironment();
   refreshThresholdForm();
   renderProduction(mockData.production);
-  renderReserves(mockData.reserves);
+  refreshReservesPanel();
   renderVideo(mockData.video);
   renderVideoMarkers(mockData.video);
   renderProductionMarkers(mockData.production, mockData.slopePoints);

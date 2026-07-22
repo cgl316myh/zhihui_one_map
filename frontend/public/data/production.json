@@ -37,5 +37,13 @@
       "status": "warn"
     }
   ],
+  "processFlow": [
+    { "id": "DIG", "name": "采掘", "bind": "CRUSH" },
+    { "id": "HAUL", "name": "运输", "bind": "CRUSH" },
+    { "id": "COARSE", "name": "粗碎", "bindDevice": "C-01", "bind": "CRUSH" },
+    { "id": "FINE", "name": "中细碎", "bindDevice": "C-02", "bind": "CRUSH" },
+    { "id": "SCREEN", "name": "振动筛分", "bind": "SCREEN" },
+    { "id": "SILO", "name": "成品料仓", "bind": "SCREEN" }
+  ],
   "processNote": "采掘 → 运输 → 粗碎 → 中细碎 → 振动筛分 → 成品料仓"
 }

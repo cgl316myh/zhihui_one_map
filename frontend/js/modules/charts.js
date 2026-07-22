@@ -198,6 +198,69 @@ export function renderReserveCharts(reserves) {
       },
     ],
   });
+
+  renderReserveCalendar(reserves);
+}
+
+/** 日采出日历热力（ECharts calendar） */
+export function renderReserveCalendar(reserves) {
+  const el = document.getElementById('chart-reserve-calendar');
+  if (!el || typeof echarts === 'undefined') return;
+  const daily = Array.isArray(reserves?.daily) ? reserves.daily : [];
+  const unit = reserves?.unit || '万吨';
+  const data = daily.map((d) => [d.date, Number(d.mined) || 0]);
+  let range = ['2026-07-01', '2026-07-31'];
+  if (data.length) {
+    const dates = data.map((d) => d[0]).sort();
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    const [y, m] = last.split('-').map(Number);
+    const endDay = new Date(y, m, 0).getDate();
+    const end = `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    range = [`${first.slice(0, 7)}-01`, end];
+  }
+  const maxV = data.reduce((m, d) => Math.max(m, d[1]), 0.01);
+  ensureChart('chart-reserve-calendar', {
+    backgroundColor: 'transparent',
+    tooltip: {
+      formatter: (p) => {
+        const v = Array.isArray(p.data) ? p.data[1] : p.value;
+        const day = Array.isArray(p.data) ? p.data[0] : p.value?.[0];
+        return `${day}<br/>日采出 <b>${v}</b> ${unit}`;
+      },
+    },
+    visualMap: {
+      min: 0,
+      max: maxV,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 2,
+      itemWidth: 12,
+      itemHeight: 8,
+      textStyle: { color: 'rgba(200,220,255,0.75)', fontSize: 10 },
+      inRange: { color: ['#0b2a40', '#1a6b8a', '#3dd6ff', '#ffc857'] },
+    },
+    calendar: {
+      top: 36,
+      left: 28,
+      right: 8,
+      bottom: 28,
+      cellSize: ['auto', 16],
+      range,
+      itemStyle: { borderWidth: 0.5, borderColor: 'rgba(80,140,220,0.25)' },
+      yearLabel: { show: false },
+      monthLabel: { color: 'rgba(200,220,255,0.7)', fontSize: 10 },
+      dayLabel: { color: 'rgba(200,220,255,0.55)', fontSize: 9, nameMap: 'cn' },
+      splitLine: { lineStyle: { color: 'rgba(80,140,220,0.25)' } },
+    },
+    series: [
+      {
+        type: 'heatmap',
+        coordinateSystem: 'calendar',
+        data,
+      },
+    ],
+  });
 }
 
 export function renderPopupSeries(domId, point, options = {}) {

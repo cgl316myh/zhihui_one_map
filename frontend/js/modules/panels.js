@@ -9,6 +9,8 @@ import {
   getActivePeriodKey,
   getDefaultEnvThresholds,
 } from './envThresholds.js';
+import { getTodayStr } from './reserves.js';
+import { isAdmin } from './role.js';
 
 function statusClass(status) {
   if (status === 'alarm' || status === 'fault') return 'st-alarm';
@@ -29,6 +31,35 @@ function statusText(status) {
   return map[status] || status || '—';
 }
 
+function worstStatus(list) {
+  const rank = { alarm: 3, fault: 3, warn: 2, offline: 2, running: 1, normal: 0 };
+  let best = 'normal';
+  let score = -1;
+  (list || []).forEach((s) => {
+    const r = rank[s] ?? 0;
+    if (r > score) {
+      score = r;
+      best = s;
+    }
+  });
+  return best;
+}
+
+function resolveFlowNodeStatus(node, prod) {
+  const lines = prod?.lines || [];
+  if (node.bindDevice) {
+    for (const line of lines) {
+      const d = (line.devices || []).find((x) => x.id === node.bindDevice);
+      if (d) return d.status || line.status || 'normal';
+    }
+  }
+  if (node.bind) {
+    const line = lines.find((l) => l.id === node.bind);
+    if (line) return line.status || 'normal';
+  }
+  return 'normal';
+}
+
 export function setEnvPollStatus(ok, message) {
   const el = document.getElementById('env-poll-status');
   if (!el) return;
@@ -36,10 +67,6 @@ export function setEnvPollStatus(ok, message) {
   el.textContent = message;
 }
 
-/**
- * @param {object} env
- * @param {string|null} selectedId
- */
 export function renderEnvironment(env, selectedId = null) {
   const box = document.getElementById('panel-environment');
   if (!box || !env) return null;
@@ -99,6 +126,11 @@ export function renderEnvironment(env, selectedId = null) {
 export function renderEnvThresholdForm(thresholds, handlers = {}) {
   const box = document.getElementById('panel-env-thresholds');
   if (!box) return;
+  if (!isAdmin()) {
+    box.innerHTML =
+      '<div class="metric-loc">值班员角色：阈值只读。切换为管理员后可编辑。</div>';
+    return;
+  }
   const th = thresholds || getEnvThresholds();
   const period = getActivePeriodKey();
   const periodLabel = period === 'day' ? '当前昼间' : '当前夜间';
@@ -176,10 +208,46 @@ function metricLabel(key) {
   return map[key] || key;
 }
 
+function renderProcessFlow(prod) {
+  const nodes =
+    Array.isArray(prod?.processFlow) && prod.processFlow.length
+      ? prod.processFlow
+      : [
+          { id: 'DIG', name: '采掘', bind: 'CRUSH' },
+          { id: 'HAUL', name: '运输', bind: 'CRUSH' },
+          { id: 'COARSE', name: '粗碎', bindDevice: 'C-01', bind: 'CRUSH' },
+          { id: 'FINE', name: '中细碎', bindDevice: 'C-02', bind: 'CRUSH' },
+          { id: 'SCREEN', name: '振动筛分', bind: 'SCREEN' },
+          { id: 'SILO', name: '成品料仓', bind: 'SCREEN' },
+        ];
+
+  const parts = [];
+  nodes.forEach((node, i) => {
+    const st = resolveFlowNodeStatus(node, prod);
+    parts.push(`
+      <div class="flow-node ${statusClass(st)}" title="${statusText(st)}">
+        <span class="flow-name">${node.name}</span>
+        <em>${statusText(st)}</em>
+      </div>`);
+    if (i < nodes.length - 1) {
+      const nextSt = resolveFlowNodeStatus(nodes[i + 1], prod);
+      const linkSt = worstStatus([st, nextSt]);
+      parts.push(`<div class="flow-arrow ${statusClass(linkSt)}" aria-hidden="true">→</div>`);
+    }
+  });
+
+  return `
+    <div class="process-flow" role="img" aria-label="${prod?.processNote || '工艺流程'}">
+      <div class="process-flow-hd">工艺流程示意（非 SCADA）</div>
+      <div class="process-flow-track">${parts.join('')}</div>
+      <div class="metric-loc">${prod?.processNote || ''}</div>
+    </div>`;
+}
+
 export function renderProduction(prod) {
   const box = document.getElementById('panel-production');
   if (!box || !prod) return;
-  box.innerHTML = (prod.lines || [])
+  const linesHtml = (prod.lines || [])
     .map((line) => {
       const devices = (line.devices || [])
         .map((d) => {
@@ -209,6 +277,7 @@ export function renderProduction(prod) {
         </div>`;
     })
     .join('');
+  box.innerHTML = renderProcessFlow(prod) + linesHtml;
 }
 
 export function renderAlerts(alerts) {
@@ -276,9 +345,7 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
       .map((p) => {
         const active = focus && p.id === focus.id ? 'active' : '';
         const th = p.threshold || {};
-        const cleared = p.cleared
-          ? `<span class="cleared-tag">已消警</span>`
-          : '';
+        const cleared = p.cleared ? `<span class="cleared-tag">已消警</span>` : '';
         return `
         <button type="button" class="slope-item ${statusClass(p.status)} ${active}" data-slope-id="${p.id}">
           <div class="metric-head">
@@ -298,7 +365,7 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
   }
 
   if (actions) {
-    if (focus) {
+    if (focus && isAdmin()) {
       const needClear =
         !focus.cleared &&
         (focus.computedStatus === 'warn' || focus.computedStatus === 'alarm');
@@ -327,6 +394,9 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
       actions.querySelector('#btn-slope-reset-clears')?.addEventListener('click', () => {
         handlers.onResetClears?.();
       });
+    } else if (focus && !isAdmin()) {
+      actions.innerHTML =
+        '<div class="metric-loc">值班员角色：消警操作不可用</div>';
     } else {
       actions.innerHTML = '';
     }
@@ -336,9 +406,10 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
   return focus ? focus.id : null;
 }
 
-export function renderReserves(reserves) {
+export function renderReserves(reserves, handlers = {}) {
   const box = document.getElementById('panel-reserve-summary');
-  if (!box || !reserves) return;
+  const formBox = document.getElementById('panel-reserve-form');
+  if (!reserves) return;
   const days = Number(reserves.remainingDays);
   const warnYears = Number(reserves.warningYears);
   const yearsLeft =
@@ -350,13 +421,68 @@ export function renderReserves(reserves) {
     : yearsLeft != null && Number.isFinite(warnYears)
       ? `<div class="reserve-ok" role="status">服务年限约 <b>${yearsLeft}</b> 年（预警阈值 ${warnYears} 年）</div>`
       : '';
-  box.innerHTML = `
+
+  if (box) {
+    box.innerHTML = `
     ${tip}
     <div class="reserve-kpis">
       <div><label>初始保有</label><b>${reserves.initialReserve}</b><i>${reserves.unit}</i></div>
       <div><label>剩余保有</label><b>${reserves.remaining}</b><i>${reserves.unit}</i></div>
       <div><label>预计可采</label><b>${reserves.remainingDays}</b><i>天</i></div>
-    </div>`;
+    </div>
+    <div class="metric-loc">已开采 ${reserves.mined} ${reserves.unit} · 损失率 ${(Number(reserves.lossRate) * 100).toFixed(0)}%</div>`;
+  }
+
+  if (formBox) {
+    if (isAdmin()) {
+      const today = getTodayStr();
+      const last = (reserves.daily || []).slice(-1)[0];
+      formBox.innerHTML = `
+        <div class="thresh-hd">
+          <strong>日采出录入</strong>
+          <span class="sub">本地扣减 · 形状对齐将来 API</span>
+        </div>
+        <div class="reserve-form">
+          <label class="thresh-field">
+            <span>日期</span>
+            <input type="date" id="reserve-date" value="${today}" />
+          </label>
+          <label class="thresh-field">
+            <span>采出量（${reserves.unit}）</span>
+            <input type="number" id="reserve-mined" step="0.01" min="0" value="${last?.mined ?? 0.35}" />
+          </label>
+          <label class="thresh-field" style="grid-column:1/-1">
+            <span>备注</span>
+            <input type="text" id="reserve-note" placeholder="可选" />
+          </label>
+        </div>
+        <div class="thresh-actions">
+          <button type="button" class="tool-btn" id="btn-reserve-apply">录入并扣减</button>
+          <button type="button" class="tool-btn ghost" id="btn-reserve-reset">恢复 mock</button>
+        </div>
+        <div class="metric-loc" id="reserve-form-msg"></div>`;
+      formBox.querySelector('#btn-reserve-apply')?.addEventListener('click', () => {
+        const date = formBox.querySelector('#reserve-date')?.value;
+        const mined = formBox.querySelector('#reserve-mined')?.value;
+        const note = formBox.querySelector('#reserve-note')?.value;
+        const result = handlers.onApply?.({ date, mined, note });
+        if (result && !result.ok) {
+          const msg = document.getElementById('reserve-form-msg');
+          if (msg) {
+            msg.textContent = result.message || '录入失败';
+            msg.className = 'poll-err';
+          }
+        }
+      });
+      formBox.querySelector('#btn-reserve-reset')?.addEventListener('click', () => {
+        handlers.onReset?.();
+      });
+    } else {
+      formBox.innerHTML =
+        '<div class="metric-loc">值班员角色：储量录入不可用</div>';
+    }
+  }
+
   renderReserveCharts(reserves);
 }
 

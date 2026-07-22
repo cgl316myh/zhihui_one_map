@@ -25,7 +25,13 @@
       </nav>
       <div class="top-meta">
         <span id="clock">--</span>
-        <span class="user-tag">演示账号 · 管理员</span>
+        <label class="role-switch" title="演示角色切换（非生产认证）">
+          <select id="role-select" aria-label="演示角色">
+            <option value="admin">管理员</option>
+            <option value="user">值班员</option>
+          </select>
+        </label>
+        <span class="user-tag" id="user-tag">演示账号 · 管理员</span>
       </div>
     </header>
 
@@ -48,7 +54,7 @@
         <section class="panel" id="sec-prod">
           <div class="panel-hd">
             <h2>生产工段监控</h2>
-            <span class="sub">破碎 / 筛分</span>
+            <span class="sub">工艺示意 / 破碎筛分</span>
           </div>
           <div class="panel-bd" id="panel-production"></div>
         </section>
@@ -119,6 +125,16 @@
                     <span class="basemap-label">ESRI 影像地图</span>
                     <span class="basemap-zoom" data-zoom-for="esri-img">Z≤17</span>
                   </label>
+                  <label class="basemap-option" data-basemap="tdt-vec">
+                    <input type="radio" name="basemap" value="tdt-vec" />
+                    <span class="basemap-label">天地图矢量</span>
+                    <span class="basemap-zoom" data-zoom-for="tdt-vec">Z≤18</span>
+                  </label>
+                  <label class="basemap-option" data-basemap="tdt-img">
+                    <input type="radio" name="basemap" value="tdt-img" />
+                    <span class="basemap-label">天地图影像</span>
+                    <span class="basemap-zoom" data-zoom-for="tdt-img">Z≤18</span>
+                  </label>
                   <div class="tool-tip" id="basemap-zoom-tip">当前底图最大切片等级：—</div>
                   <div class="tool-tip warn" id="basemap-tip" hidden></div>
                 </div>
@@ -152,12 +168,15 @@
         <section class="panel" id="sec-reserve">
           <div class="panel-hd">
             <h2>矿区储量分析</h2>
-            <span class="sub">动态扣减示意</span>
+            <span class="sub">录入 · 日历 · 扣减</span>
           </div>
           <div class="panel-bd">
             <div id="panel-reserve-summary"></div>
+            <div class="thresh-box" id="panel-reserve-form"></div>
             <div class="chart-box sm" id="chart-reserve-pie"></div>
             <div class="chart-box sm" id="chart-reserve-trend"></div>
+            <div class="chart-caption">日采出日历</div>
+            <div class="chart-box calendar" id="chart-reserve-calendar"></div>
           </div>
         </section>
 

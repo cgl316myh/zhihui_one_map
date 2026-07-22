@@ -1,6 +1,7 @@
 {
   "defaultBasemap": "osm-street",
   "mapMinZoom": 3,
+  "tiandituTk": "",
   "basemaps": {
     "osm-street": {
       "label": "OSM 城市底图",
@@ -25,6 +26,18 @@
       "minZoom": 3,
       "maxZoom": 17,
       "maxNativeZoom": 17
+    },
+    "tdt-vec": {
+      "label": "天地图矢量",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "tdt-img": {
+      "label": "天地图影像",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
     }
   }
 }

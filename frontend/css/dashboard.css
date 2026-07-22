@@ -593,6 +593,71 @@ button.slope-item.active {
   margin-top: 6px;
 }
 .chart-box.sm { height: 130px; }
+.chart-box.calendar { height: 180px; }
+
+.process-flow {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(64, 140, 220, 0.22);
+  background: rgba(255,255,255,0.02);
+}
+.process-flow-hd {
+  font-size: 12px;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.process-flow-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.flow-node {
+  flex: 1 1 72px;
+  min-width: 64px;
+  padding: 6px 4px;
+  border: 1px solid rgba(64, 140, 220, 0.3);
+  text-align: center;
+  border-radius: 4px;
+}
+.flow-node .flow-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.flow-node em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 10px;
+}
+.flow-node.st-ok { border-color: rgba(46, 230, 166, 0.45); }
+.flow-node.st-warn { border-color: rgba(255, 200, 87, 0.55); background: rgba(255, 200, 87, 0.08); }
+.flow-node.st-alarm { border-color: rgba(255, 77, 79, 0.55); background: rgba(255, 77, 79, 0.1); }
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 0 2px;
+}
+.flow-arrow.st-warn { color: var(--warn); }
+.flow-arrow.st-alarm { color: var(--alarm); }
+
+.reserve-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.role-switch select {
+  background: rgba(0, 20, 40, 0.65);
+  border: 1px solid rgba(64, 140, 220, 0.4);
+  color: var(--text);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
 
 .reserve-warn {
   margin-bottom: 10px;

@@ -262,17 +262,30 @@ function bindBasemapRadios() {
     input.checked = input.value === current;
     input.addEventListener('change', () => {
       if (!input.checked) return;
+      const prev = getBasemapId();
       const ok = setBasemap(input.value, lastMapConfig);
+      const tip = document.getElementById('basemap-tip');
+      if (!ok.ok) {
+        // 失败时回退（如天地图未配置 tk）
+        document.querySelectorAll('input[name="basemap"]').forEach((r) => {
+          r.checked = r.value === prev;
+        });
+        setBasemap(prev, lastMapConfig);
+        if (tip) {
+          tip.textContent = ok.message || '底图切换失败';
+          tip.hidden = false;
+        }
+        return;
+      }
       try {
         localStorage.setItem(BASEMAP_KEY, input.value);
       } catch {
         /* ignore */
       }
       updateBasemapZoomUI(input.value, ok.zoom);
-      const tip = document.getElementById('basemap-tip');
       if (tip) {
-        tip.textContent = ok.ok ? '' : ok.message || '底图切换失败';
-        tip.hidden = !!ok.ok;
+        tip.textContent = '';
+        tip.hidden = true;
       }
     });
   });
@@ -341,9 +354,12 @@ export function initMapToolbar(mapConfig) {
   } catch {
     /* ignore */
   }
-  // 旧版选项迁移
-  if (preferred === 'tdt-vec') preferred = 'osm-street';
-  if (preferred === 'tdt-img' || preferred === 'osm-hot') preferred = 'amap-img';
+  if (preferred === 'osm-hot') preferred = 'amap-img';
+  // 无 tk 时天地图不可用，回退
+  const hasTk = Boolean(String(mapConfig?.tiandituTk || '').trim());
+  if (!hasTk && (preferred === 'tdt-vec' || preferred === 'tdt-img')) {
+    preferred = 'osm-street';
+  }
 
   const result = setBasemap(preferred, mapConfig);
   if (!result.ok) {
@@ -358,8 +374,14 @@ export function initMapToolbar(mapConfig) {
   });
   const tip = document.getElementById('basemap-tip');
   if (tip) {
-    tip.hidden = true;
-    tip.textContent = '';
+    if (!hasTk) {
+      tip.hidden = false;
+      tip.textContent =
+        '天地图可选：在 map-config.json 填写 tiandituTk 后可用';
+    } else {
+      tip.hidden = true;
+      tip.textContent = '';
+    }
   }
 
   document.querySelectorAll('[data-measure]').forEach((btn) => {
