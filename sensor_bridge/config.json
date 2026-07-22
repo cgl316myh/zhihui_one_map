@@ -3,7 +3,8 @@
     "host": "0.0.0.0",
     "port": 5173,
     "pushPath": "/api/push",
-    "staticDir": "../frontend"
+    "staticDir": "../frontend",
+    "enabled": true
   },
   "mqtt": {
     "enabled": true,
@@ -16,6 +17,16 @@
     "keepalive": 60,
     "reconnectDelaySec": 30
   },
+  "tcp": {
+    "enabled": false,
+    "host": "0.0.0.0",
+    "port": 9000,
+    "frameHint": "JSON 行 / 长度前缀（预留）"
+  },
+  "frontend": {
+    "apiBaseUrl": "",
+    "pollIntervalMs": 30000
+  },
   "pollHintSec": 30,
   "environmentStations": [
     {
@@ -24,14 +35,16 @@
       "location": "行政生活区与生产过渡区",
       "lng": 102.4458,
       "lat": 24.7861,
-      "clientIds": ["Pczd8HKi3MdgGTW6SAeB"],
+      "clientIds": [
+        "Pczd8HKi3MdgGTW6SAeB"
+      ],
       "deviceSns": []
     },
     {
       "id": "ENV-02",
       "name": "2# 环境监测点",
       "location": "破碎/筛分车间下风向边界",
-      "lng": 102.4460,
+      "lng": 102.446,
       "lat": 24.7878,
       "clientIds": [],
       "deviceSns": []
@@ -41,17 +54,37 @@
       "name": "3# 环境监测点",
       "location": "矿区边界临近村庄（厂界）",
       "lng": 102.4461,
-      "lat": 24.7870,
+      "lat": 24.787,
       "clientIds": [],
       "deviceSns": []
     }
   ],
   "slopeDevices": {
-    "17625038478": { "id": "5759", "name": "25038478(堆石平台)", "type": "displacement" },
-    "17625038476": { "id": "5760", "name": "25038476(堆石平台)", "type": "displacement" },
-    "17625038475": { "id": "5761", "name": "25038475(禁采区)", "type": "displacement" },
-    "17625038477": { "id": "5758", "name": "25038477(采石场汇聚处_GJ)", "type": "displacement" },
-    "17525030953": { "id": "5762", "name": "雨量", "type": "rainfall" }
+    "17625038478": {
+      "id": "5759",
+      "name": "25038478(堆石平台)",
+      "type": "displacement"
+    },
+    "17625038476": {
+      "id": "5760",
+      "name": "25038476(堆石平台)",
+      "type": "displacement"
+    },
+    "17625038475": {
+      "id": "5761",
+      "name": "25038475(禁采区)",
+      "type": "displacement"
+    },
+    "17625038477": {
+      "id": "5758",
+      "name": "25038477(采石场汇聚处_GJ)",
+      "type": "displacement"
+    },
+    "17525030953": {
+      "id": "5762",
+      "name": "雨量",
+      "type": "rainfall"
+    }
   },
   "thresholds": {
     "noiseDay": 60,

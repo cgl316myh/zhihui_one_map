@@ -25,6 +25,13 @@ import {
   toPersistedMapConfig,
 } from './auth/mapConfigStore.js';
 import {
+  mergeSensorConfig,
+  saveSensorConfigOverride,
+  clearSensorConfigOverride,
+  downloadSensorConfigJson,
+  syncSensorConfigToGateway,
+} from './auth/sensorConfigStore.js';
+import {
   initEnvThresholds,
   getEnvThresholds,
   getDefaultEnvThresholds,
@@ -35,8 +42,10 @@ import {
 
 let session = null;
 let fileMapConfig = {};
+let fileSensorConfig = {};
 let fileThresholds = null;
 let selectedDictType = 'point_status';
+let sensorDraft = null;
 
 function $(id) {
   return document.getElementById(id);
@@ -80,6 +89,7 @@ function showPanel(name) {
     thresholds: renderThresholds,
     dict: renderDict,
     maps: renderMaps,
+    sensors: renderSensors,
     audit: renderAudit,
     perms: renderPerms,
   };
@@ -760,6 +770,285 @@ function renderMaps() {
   });
 }
 
+/* —— 数据接入 MQTT / HTTP·TCP —— */
+function field(label, html) {
+  return `<label class="thresh-field"><span>${label}</span><div class="thresh-input-wrap">${html}</div></label>`;
+}
+
+function collectSensorForm(box) {
+  const g = (name) => box.querySelector(`[name="${name}"]`);
+  const num = (name, fallback) => {
+    const n = Number(g(name)?.value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    frontend: {
+      apiBaseUrl: (g('fe-base')?.value || '').trim(),
+      pollIntervalMs: Math.max(30000, num('fe-poll', 30000)),
+    },
+    http: {
+      enabled: g('http-enabled')?.checked !== false,
+      host: (g('http-host')?.value || '').trim() || '0.0.0.0',
+      port: num('http-port', 5173),
+      pushPath: (g('http-path')?.value || '').trim() || '/api/push',
+      staticDir: (g('http-static')?.value || '').trim() || '../frontend',
+    },
+    tcp: {
+      enabled: Boolean(g('tcp-enabled')?.checked),
+      host: (g('tcp-host')?.value || '').trim() || '0.0.0.0',
+      port: num('tcp-port', 9000),
+      frameHint: (g('tcp-hint')?.value || '').trim(),
+    },
+    mqtt: {
+      enabled: g('mqtt-enabled')?.checked !== false,
+      host: (g('mqtt-host')?.value || '').trim(),
+      port: num('mqtt-port', 1883),
+      username: (g('mqtt-user')?.value || '').trim(),
+      password: g('mqtt-pass')?.value || '',
+      clientId: (g('mqtt-client')?.value || '').trim() || 'mine-onemap-bridge',
+      topic: (g('mqtt-topic')?.value || '').trim() || '#',
+      keepalive: Math.max(30, num('mqtt-keep', 60)),
+      reconnectDelaySec: Math.max(30, num('mqtt-reconn', 30)),
+    },
+    pollHintSec: Math.max(30, num('poll-hint', 30)),
+  };
+}
+
+function renderSensors() {
+  const cfg = sensorDraft || mergeSensorConfig(fileSensorConfig);
+  sensorDraft = null;
+  const mqttOn = cfg.mqtt?.enabled !== false;
+  const httpOn = cfg.http?.enabled !== false;
+  const tcpOn = Boolean(cfg.tcp?.enabled);
+  const box = $('panel-sensors');
+  box.innerHTML = `
+    <div class="thresh-page">
+      <div class="thresh-page-hd">
+        <div>
+          <h2>数据接入配置</h2>
+          <p class="muted">统一管理传感器 MQTT 与 HTTP / TCP 推送地址及参数。本地保存后可导出或同步到网关 config.json。</p>
+        </div>
+        <div class="thresh-page-actions">
+          <button type="button" class="btn ghost" id="btn-sensor-reset">清除本地覆盖</button>
+          <button type="button" class="btn ghost" id="btn-sensor-export">导出 JSON</button>
+          <button type="button" class="btn ghost" id="btn-sensor-sync">同步到网关</button>
+          <button type="button" class="btn" id="btn-sensor-save">保存配置</button>
+        </div>
+      </div>
+
+      <div class="thresh-compare">
+        <section class="thresh-period-card ${mqttOn ? 'is-active' : ''}">
+          <header class="thresh-period-hd">
+            <div>
+              <h3>传感器 MQTT 接入</h3>
+              <p>对应说明：传感器 mqtt 数据接入</p>
+            </div>
+            <label class="map-enable" style="margin:0">
+              <input type="checkbox" name="mqtt-enabled" ${mqttOn ? 'checked' : ''} />
+              启用
+            </label>
+          </header>
+          <div class="thresh-metric-list">
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>Broker</strong>
+                <span>主机与端口</span>
+              </div>
+              <div class="thresh-metric-fields map-fields-2">
+                ${field('主机', `<input name="mqtt-host" value="${cfg.mqtt?.host || ''}" placeholder="如 47.97.123.197" />`)}
+                ${field('端口', `<input type="number" name="mqtt-port" value="${cfg.mqtt?.port ?? 1883}" /><i>TCP</i>`)}
+              </div>
+            </article>
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>鉴权</strong>
+                <span>用户名 / 密码</span>
+              </div>
+              <div class="thresh-metric-fields map-fields-2">
+                ${field('用户名', `<input name="mqtt-user" value="${cfg.mqtt?.username || ''}" autocomplete="off" />`)}
+                ${field(
+                  '密码',
+                  `<input type="password" name="mqtt-pass" id="mqtt-pass" value="${cfg.mqtt?.password || ''}" autocomplete="new-password" /><button type="button" class="thresh-affix-btn" id="btn-mqtt-pass">显示</button>`
+                )}
+              </div>
+            </article>
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>订阅</strong>
+                <span>ClientId · Topic</span>
+              </div>
+              <div class="thresh-metric-fields map-fields-2">
+                ${field('ClientId', `<input name="mqtt-client" value="${cfg.mqtt?.clientId || ''}" />`)}
+                ${field('Topic', `<input name="mqtt-topic" value="${cfg.mqtt?.topic || '#'}" />`)}
+              </div>
+            </article>
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>心跳 / 重连</strong>
+                <span>勿低于 30 秒</span>
+              </div>
+              <div class="thresh-metric-fields map-fields-2">
+                ${field('Keepalive', `<input type="number" name="mqtt-keep" value="${cfg.mqtt?.keepalive ?? 60}" /><i>秒</i>`)}
+                ${field('重连间隔', `<input type="number" name="mqtt-reconn" value="${cfg.mqtt?.reconnectDelaySec ?? 30}" /><i>秒</i>`)}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="thresh-period-card ${httpOn || tcpOn ? 'is-active' : ''}">
+          <header class="thresh-period-hd">
+            <div>
+              <h3>HTTP / TCP 推送接口</h3>
+              <p>对应说明：HTTP 或者 TCP 数据推送接口</p>
+            </div>
+          </header>
+          <div class="thresh-metric-list">
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>HTTP 接收</strong>
+                <span>平台 POST JSON 到本机</span>
+                <label class="map-enable">
+                  <input type="checkbox" name="http-enabled" ${httpOn ? 'checked' : ''} />
+                  启用 HTTP
+                </label>
+              </div>
+              <div class="thresh-metric-fields map-fields-grid">
+                ${field('监听地址', `<input name="http-host" value="${cfg.http?.host || '0.0.0.0'}" />`)}
+                ${field('端口', `<input type="number" name="http-port" value="${cfg.http?.port ?? 5173}" /><i>HTTP</i>`)}
+                ${field('推送路径', `<input name="http-path" value="${cfg.http?.pushPath || '/api/push'}" />`)}
+                <label class="thresh-field map-field-wide">
+                  <span>静态目录 staticDir</span>
+                  <div class="thresh-input-wrap">
+                    <input name="http-static" value="${cfg.http?.staticDir || '../frontend'}" />
+                  </div>
+                </label>
+              </div>
+            </article>
+            <article class="thresh-metric map-global-row">
+              <div class="thresh-metric-name">
+                <strong>TCP 接收（预留）</strong>
+                <span>演示可配置；网关可按需扩展监听</span>
+                <label class="map-enable">
+                  <input type="checkbox" name="tcp-enabled" ${tcpOn ? 'checked' : ''} />
+                  启用 TCP
+                </label>
+              </div>
+              <div class="thresh-metric-fields map-fields-grid">
+                ${field('监听地址', `<input name="tcp-host" value="${cfg.tcp?.host || '0.0.0.0'}" />`)}
+                ${field('端口', `<input type="number" name="tcp-port" value="${cfg.tcp?.port ?? 9000}" /><i>TCP</i>`)}
+                <label class="thresh-field map-field-wide">
+                  <span>帧格式说明</span>
+                  <div class="thresh-input-wrap">
+                    <input name="tcp-hint" value="${cfg.tcp?.frameHint || ''}" placeholder="如 JSON 行" />
+                  </div>
+                </label>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <section class="thresh-period-card" style="margin-top:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>前端读取网关</h3>
+            <p>大屏 /api 基址与轮询间隔（≥ 30s）</p>
+          </div>
+        </header>
+        <div class="thresh-metric-list">
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-name">
+              <strong>API 基址</strong>
+              <span>同域代理可留空</span>
+            </div>
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('apiBaseUrl', `<input name="fe-base" value="${cfg.frontend?.apiBaseUrl || ''}" placeholder="如 http://127.0.0.1:5173" />`)}
+              ${field('轮询间隔', `<input type="number" name="fe-poll" value="${cfg.frontend?.pollIntervalMs ?? 30000}" /><i>ms</i>`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-name">
+              <strong>网关提示</strong>
+              <span>pollHintSec</span>
+            </div>
+            <div class="thresh-metric-fields map-fields-1">
+              ${field('建议轮询秒数', `<input type="number" name="poll-hint" value="${cfg.pollHintSec ?? 30}" /><i>秒</i>`)}
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <p class="thresh-foot muted">
+        推送示例：<code>POST http://&lt;host&gt;:&lt;port&gt;&lt;pushPath&gt;</code> ·
+        MQTT keepalive / 重连 / 前端轮询均强制 ≥ 30 秒。同步网关后建议重启 <code>gateway.py</code>。
+      </p>
+    </div>`;
+
+  $('btn-mqtt-pass')?.addEventListener('click', () => {
+    const input = $('mqtt-pass');
+    const btn = $('btn-mqtt-pass');
+    if (!input || !btn) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '隐藏' : '显示';
+  });
+
+  const persistLocal = () => {
+    const next = collectSensorForm(box);
+    saveSensorConfigOverride(next);
+    appendAuditLog({
+      actor: session.username,
+      action: 'sensor_config_save',
+      result: 'ok',
+      summary: `保存数据接入 · MQTT ${next.mqtt.host}:${next.mqtt.port}`,
+    });
+    return next;
+  };
+
+  $('btn-sensor-save')?.addEventListener('click', () => {
+    persistLocal();
+    flash('数据接入配置已保存到本地');
+    renderSensors();
+  });
+  $('btn-sensor-reset')?.addEventListener('click', () => {
+    clearSensorConfigOverride();
+    appendAuditLog({
+      actor: session.username,
+      action: 'sensor_config_reset',
+      result: 'ok',
+      summary: '清除数据接入本地覆盖',
+    });
+    flash('已清除本地覆盖');
+    renderSensors();
+  });
+  $('btn-sensor-export')?.addEventListener('click', () => {
+    const next = collectSensorForm(box);
+    downloadSensorConfigJson(next, 'sensor-bridge-config.json');
+    appendAuditLog({
+      actor: session.username,
+      action: 'sensor_config_export',
+      result: 'ok',
+      summary: '导出数据接入 JSON',
+    });
+    flash('已导出 JSON，可覆盖 sensor_bridge/config.json 对应字段');
+  });
+  $('btn-sensor-sync')?.addEventListener('click', async () => {
+    const next = persistLocal();
+    const base =
+      next.frontend.apiBaseUrl ||
+      `http://127.0.0.1:${next.http.port || 5173}`;
+    flash('正在同步到网关…');
+    const r = await syncSensorConfigToGateway(next, base);
+    appendAuditLog({
+      actor: session.username,
+      action: 'sensor_config_sync',
+      result: r.ok ? 'ok' : 'fail',
+      summary: r.message,
+    });
+    flash(r.message, r.ok);
+  });
+}
+
 /* —— 日志 —— */
 function renderAudit() {
   const box = $('panel-audit');
@@ -780,6 +1069,8 @@ function renderAudit() {
           <option value="threshold_save">threshold_save</option>
           <option value="dict_upsert">dict_upsert</option>
           <option value="map_config_save">map_config_save</option>
+          <option value="sensor_config_save">sensor_config_save</option>
+          <option value="sensor_config_sync">sensor_config_sync</option>
         </select>
       </label>
       <button type="button" class="btn" id="btn-a-filter">筛选</button>
@@ -844,6 +1135,7 @@ function renderPerms() {
           <tr><td>边坡消警</td><td>是</td><td>否</td></tr>
           <tr><td>储量日采出录入</td><td>是</td><td>否</td></tr>
           <tr><td>字典 / 地图源 / 用户管理</td><td>是</td><td>否</td></tr>
+          <tr><td>数据接入（MQTT / HTTP·TCP）</td><td>是</td><td>否</td></tr>
         </tbody>
       </table>
     </div>
@@ -861,6 +1153,14 @@ async function boot() {
     if (res.ok) fileMapConfig = await res.json();
   } catch {
     fileMapConfig = {};
+  }
+  try {
+    const res = await fetch(`./data/sensor-bridge-config.json?_=${Date.now()}`, {
+      cache: 'no-store',
+    });
+    if (res.ok) fileSensorConfig = await res.json();
+  } catch {
+    fileSensorConfig = {};
   }
   try {
     const res = await fetch(`./data/env-thresholds.json?_=${Date.now()}`, { cache: 'no-store' });

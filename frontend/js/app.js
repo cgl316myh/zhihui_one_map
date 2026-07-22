@@ -3,7 +3,11 @@ import {
   startSlopePolling,
   getSlopeApiConfig,
   stopSlopePolling,
+  configureSlopeApi,
 } from './api/slope.js';
+import {
+  configureSensorApi,
+} from './api/sensors.js';
 import {
   initMap,
   setLayerVisible,
@@ -50,6 +54,7 @@ import { appendAuditLog } from './auth/audit.js';
 import { initUserStore } from './auth/users.js';
 import { initDictStore } from './auth/dict.js';
 import { mergeMapConfig } from './auth/mapConfigStore.js';
+import { mergeSensorConfig } from './auth/sensorConfigStore.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
@@ -317,6 +322,21 @@ async function boot() {
   } catch (err) {
     console.error('[toolbar]', err);
   }
+
+  let sensorFileCfg = {};
+  try {
+    const res = await fetch(`./data/sensor-bridge-config.json?_=${Date.now()}`, {
+      cache: 'no-store',
+    });
+    if (res.ok) sensorFileCfg = await res.json();
+  } catch {
+    /* 默认 */
+  }
+  const sensorCfg = mergeSensorConfig(sensorFileCfg);
+  const apiBase = sensorCfg.frontend?.apiBaseUrl || '';
+  const pollMs = Math.max(30000, Number(sensorCfg.frontend?.pollIntervalMs) || 30000);
+  configureSensorApi({ baseUrl: apiBase, intervalMs: pollMs });
+  configureSlopeApi({ baseUrl: apiBase, intervalMs: pollMs });
 
   requestAnimationFrame(() => {
     invalidateMapSize();

@@ -55,6 +55,71 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def save_config(cfg: dict) -> None:
+    """Persist gateway config.json (admin / demo sync)."""
+    text = json.dumps(cfg, ensure_ascii=False, indent=2)
+    CONFIG_PATH.write_text(text + "\n", encoding="utf-8")
+
+
+def merge_gateway_config(current: dict, patch: dict) -> dict:
+    """Deep-merge admin patch into gateway config; enforce safe minima."""
+    out = json.loads(json.dumps(current))  # deep copy via json
+    if not isinstance(patch, dict):
+        return out
+    for key in ("http", "tcp", "mqtt", "frontend"):
+        if isinstance(patch.get(key), dict):
+            out[key] = {**(out.get(key) or {}), **patch[key]}
+    if "pollHintSec" in patch:
+        out["pollHintSec"] = patch["pollHintSec"]
+    # keep existing environmentStations / slopeDevices / thresholds unless provided
+    for key in ("environmentStations", "slopeDevices", "thresholds"):
+        if key in patch:
+            out[key] = patch[key]
+
+    mqtt = out.get("mqtt") or {}
+    try:
+        mqtt["keepalive"] = max(30, int(mqtt.get("keepalive") or 60))
+    except (TypeError, ValueError):
+        mqtt["keepalive"] = 60
+    try:
+        mqtt["reconnectDelaySec"] = max(30, int(mqtt.get("reconnectDelaySec") or 30))
+    except (TypeError, ValueError):
+        mqtt["reconnectDelaySec"] = 30
+    try:
+        mqtt["port"] = int(mqtt.get("port") or 1883)
+    except (TypeError, ValueError):
+        mqtt["port"] = 1883
+    out["mqtt"] = mqtt
+
+    http = out.get("http") or {}
+    try:
+        http["port"] = int(http.get("port") or 5173)
+    except (TypeError, ValueError):
+        http["port"] = 5173
+    http["pushPath"] = http.get("pushPath") or "/api/push"
+    out["http"] = http
+
+    tcp = out.get("tcp") or {}
+    try:
+        tcp["port"] = int(tcp.get("port") or 9000)
+    except (TypeError, ValueError):
+        tcp["port"] = 9000
+    out["tcp"] = tcp
+
+    try:
+        out["pollHintSec"] = max(30, int(out.get("pollHintSec") or 30))
+    except (TypeError, ValueError):
+        out["pollHintSec"] = 30
+
+    fe = out.get("frontend") or {}
+    try:
+        fe["pollIntervalMs"] = max(30000, int(fe.get("pollIntervalMs") or 30000))
+    except (TypeError, ValueError):
+        fe["pollIntervalMs"] = 30000
+    out["frontend"] = fe
+    return out
+
+
 def save_latest() -> None:
     with _lock:
         payload = dict(_state)
@@ -771,7 +836,7 @@ class GatewayHandler(SimpleHTTPRequestHandler):
 
     def _cors(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Cache-Control", "no-store")
 
@@ -788,6 +853,41 @@ class GatewayHandler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self._cors()
         self.end_headers()
+
+    def do_PUT(self) -> None:
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        if path == "/api/config":
+            length = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(length) if length else b"{}"
+            try:
+                patch = json.loads(body.decode("utf-8") if body else "{}")
+            except Exception:
+                self._json(400, {"ok": False, "error": "invalid json"})
+                return
+            if not isinstance(patch, dict):
+                self._json(400, {"ok": False, "error": "json object required"})
+                return
+            try:
+                current = load_config()
+                merged = merge_gateway_config(current, patch)
+                save_config(merged)
+                # hot-update in-memory cfg (MQTT thread still uses start-time params until restart)
+                self.cfg = merged
+                GatewayHandler.cfg = merged
+            except Exception as e:
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+            self._json(
+                200,
+                {
+                    "ok": True,
+                    "message": "config.json 已更新；MQTT 连接参数建议重启 gateway.py 后生效",
+                    "config": merged,
+                },
+            )
+            return
+        self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
@@ -821,6 +921,13 @@ class GatewayHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/status":
             self._json(200, build_status(self.cfg))
+            return
+        if path == "/api/config":
+            # 返回当前文件配置（含密钥，仅演示后台使用）
+            try:
+                self._json(200, {"ok": True, "config": load_config()})
+            except Exception as e:
+                self._json(500, {"ok": False, "error": str(e)})
             return
         if path == "/api/environment":
             self._json(200, build_environment(self.cfg))

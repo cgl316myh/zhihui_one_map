@@ -44,6 +44,8 @@ npm run dev
 | GET | `/api/slope` | GNSS/雨量；无实时时回退 `frontend/data/slope.json` |
 | GET | `/api/status` | MQTT/推送连接状态 |
 | GET | `/api/sensors` | 原始汇聚快照 |
+| GET | `/api/config` | 读取当前 `config.json`（后台管理用） |
+| PUT | `/api/config` | 合并写入 `config.json`（MQTT 建议重启网关后生效） |
 
 ## 模拟推送
 
