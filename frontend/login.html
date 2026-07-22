@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · 智慧矿山一张图</title>
+  <link rel="stylesheet" href="./css/auth.css" />
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <h1>智慧矿山一张图</h1>
+      <p>安宁隆瑞采石场 · 登录</p>
+    </div>
+    <p class="auth-msg" id="auth-msg" role="status"></p>
+    <form class="auth-form" id="login-form" autocomplete="on">
+      <label>
+        <span>账号</span>
+        <input type="text" id="username" name="username" required maxlength="20" placeholder="用户名" autocomplete="username" />
+      </label>
+      <label>
+        <span>密码</span>
+        <div class="pwd-row">
+          <input type="password" id="password" name="password" required maxlength="64" placeholder="密码" autocomplete="current-password" />
+          <button type="button" class="btn-toggle-pwd" id="toggle-pwd" title="显示/隐藏密码">显示</button>
+        </div>
+      </label>
+      <label>
+        <span>验证码</span>
+        <div class="captcha-row">
+          <input type="text" id="captcha" name="captcha" required maxlength="8" placeholder="输入右侧字符" autocomplete="off" />
+          <canvas id="captcha-canvas" width="120" height="40" title="点击刷新验证码" aria-label="验证码，点击刷新"></canvas>
+        </div>
+      </label>
+      <label class="auth-check">
+        <input type="checkbox" id="remember" />
+        记住我（延长本地会话）
+      </label>
+      <div class="auth-actions">
+        <button type="submit" class="auth-btn" id="btn-login">登录</button>
+      </div>
+    </form>
+    <div class="auth-links">
+      <a href="./register.html">没有账号？去注册</a>
+    </div>
+    <div class="auth-hint" id="demo-hint"></div>
+  </div>
+  <script type="module" src="./js/login.js"></script>
+</body>
+</html>

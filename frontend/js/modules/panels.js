@@ -128,7 +128,7 @@ export function renderEnvThresholdForm(thresholds, handlers = {}) {
   if (!box) return;
   if (!isAdmin()) {
     box.innerHTML =
-      '<div class="metric-loc">值班员角色：阈值只读。切换为管理员后可编辑。</div>';
+      '<div class="metric-loc">当前为值班员：阈值只读。阈值改配将迁至管理员后台；请使用管理员账号登录。</div>';
     return;
   }
   const th = thresholds || getEnvThresholds();

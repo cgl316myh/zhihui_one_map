@@ -46,7 +46,10 @@ import {
   resetReserves,
   getReserves,
 } from './modules/reserves.js';
-import { initRole, setRole, getRole, roleLabel } from './modules/role.js';
+import { initRoleFromSession, roleLabel } from './modules/role.js';
+import { requireSession, logout, getSession } from './auth/session.js';
+import { appendAuditLog } from './auth/audit.js';
+import { initUserStore } from './auth/users.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
@@ -57,6 +60,7 @@ let mockData = null;
 let selectedSlopeId = null;
 let selectedEnvId = null;
 let rawSlopeData = null;
+let currentSession = null;
 
 function tickClock() {
   const el = document.getElementById('clock');
@@ -143,24 +147,21 @@ function bindNavTabs() {
   });
 }
 
-function syncRoleUI() {
+function syncUserUI() {
   const tag = document.getElementById('user-tag');
-  const sel = document.getElementById('role-select');
-  if (tag) tag.textContent = roleLabel();
-  if (sel) sel.value = getRole();
+  if (tag) tag.textContent = roleLabel(currentSession || getSession());
 }
 
-function bindRoleSwitch() {
-  const sel = document.getElementById('role-select');
-  if (!sel) return;
-  sel.addEventListener('change', () => {
-    setRole(sel.value);
-    syncRoleUI();
-    refreshThresholdForm();
-    refreshReservesPanel();
-    if (window.__lastSlopeData) {
-      renderSlopePanel(window.__lastSlopeData, selectedSlopeId, slopeActionHandlers());
-    }
+function bindLogout() {
+  document.getElementById('btn-logout')?.addEventListener('click', () => {
+    const s = getSession();
+    appendAuditLog({
+      actor: s?.username || 'anonymous',
+      action: 'logout',
+      result: 'ok',
+      summary: '退出登录',
+    });
+    logout('./login.html');
   });
 }
 
@@ -277,11 +278,16 @@ function onSlopeError(err) {
 }
 
 async function boot() {
+  await initUserStore();
+  currentSession = requireSession('./login.html');
+  if (!currentSession) return;
+
+  initRoleFromSession(currentSession);
+  syncUserUI();
+  bindLogout();
+
   tickClock();
   setInterval(tickClock, 1000);
-  initRole();
-  syncRoleUI();
-  bindRoleSwitch();
   bindLayerToggles();
   bindLayerBoxToggle();
   bindSlopeListClicks();

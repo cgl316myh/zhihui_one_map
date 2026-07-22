@@ -25,13 +25,8 @@
       </nav>
       <div class="top-meta">
         <span id="clock">--</span>
-        <label class="role-switch" title="演示角色切换（非生产认证）">
-          <select id="role-select" aria-label="演示角色">
-            <option value="admin">管理员</option>
-            <option value="user">值班员</option>
-          </select>
-        </label>
-        <span class="user-tag" id="user-tag">演示账号 · 管理员</span>
+        <span class="user-tag" id="user-tag">未登录</span>
+        <button type="button" class="tool-btn ghost top-logout" id="btn-logout" title="退出登录">退出</button>
       </div>
     </header>
 
@@ -40,7 +35,7 @@
         <section class="panel" id="sec-env">
           <div class="panel-hd">
             <h2>环境在线监测</h2>
-            <span class="sub">历史曲线 · 阈值演示</span>
+            <span class="sub">历史曲线 · 阈值只读</span>
           </div>
           <div class="panel-bd">
             <div id="env-poll-status" class="poll-ok">环境接口初始化…</div>

@@ -1,12 +1,9 @@
 /**
- * 演示级角色：Admin 可编辑阈值/储量/消警；User 只读。
- * 非生产认证，将来由 Spring Security 承接。
+ * 角色：与登录会话同步。Admin 可编辑阈值/储量/消警；User 只读。
  */
 
-const STORAGE_KEY = 'mine-one-map-demo-role';
-
 /** @type {'admin'|'user'} */
-let _role = 'admin';
+let _role = 'user';
 
 export function getRole() {
   return _role;
@@ -17,26 +14,30 @@ export function isAdmin() {
 }
 
 export function setRole(role) {
-  _role = role === 'user' ? 'user' : 'admin';
-  try {
-    localStorage.setItem(STORAGE_KEY, _role);
-  } catch {
-    /* ignore */
-  }
+  _role = role === 'admin' ? 'admin' : 'user';
   document.body.dataset.role = _role;
   return _role;
 }
 
-export function initRole() {
-  let saved = 'admin';
-  try {
-    saved = localStorage.getItem(STORAGE_KEY) || 'admin';
-  } catch {
-    /* ignore */
+/** 由登录会话初始化角色（不再使用顶栏下拉切换） */
+export function initRoleFromSession(session) {
+  if (!session) {
+    setRole('user');
+    return getRole();
   }
-  return setRole(saved);
+  return setRole(session.role);
 }
 
-export function roleLabel(role = _role) {
-  return role === 'user' ? '演示账号 · 值班员' : '演示账号 · 管理员';
+export function roleLabel(sessionOrRole) {
+  if (sessionOrRole && typeof sessionOrRole === 'object') {
+    const name = sessionOrRole.displayName || sessionOrRole.username || '';
+    const role = sessionOrRole.role === 'admin' ? '管理员' : '值班员';
+    return `${name} · ${role}`;
+  }
+  return sessionOrRole === 'admin' || _role === 'admin' ? '管理员' : '值班员';
+}
+
+/** @deprecated 保留空实现，避免旧调用报错 */
+export function initRole() {
+  return getRole();
 }

@@ -658,6 +658,11 @@ button.slope-item.active {
   padding: 2px 6px;
   border-radius: 3px;
 }
+.top-logout {
+  margin-left: 4px;
+  padding: 2px 8px !important;
+  font-size: 12px !important;
+}
 
 .reserve-warn {
   margin-bottom: 10px;
