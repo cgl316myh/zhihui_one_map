@@ -29,8 +29,6 @@ import { buildAlertsFromMock } from './modules/alerts.js';
 import {
   initEnvThresholds,
   applyEnvThresholds,
-  saveEnvThresholds,
-  resetEnvThresholds,
   getEnvThresholds,
   getActivePeriodKey,
 } from './modules/envThresholds.js';
@@ -46,10 +44,12 @@ import {
   resetReserves,
   getReserves,
 } from './modules/reserves.js';
-import { initRoleFromSession, roleLabel } from './modules/role.js';
+import { initRoleFromSession, roleLabel, isAdmin } from './modules/role.js';
 import { requireSession, logout, getSession } from './auth/session.js';
 import { appendAuditLog } from './auth/audit.js';
 import { initUserStore } from './auth/users.js';
+import { initDictStore } from './auth/dict.js';
+import { mergeMapConfig } from './auth/mapConfigStore.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
@@ -150,6 +150,8 @@ function bindNavTabs() {
 function syncUserUI() {
   const tag = document.getElementById('user-tag');
   if (tag) tag.textContent = roleLabel(currentSession || getSession());
+  const adminLink = document.getElementById('link-admin');
+  if (adminLink) adminLink.hidden = !isAdmin();
 }
 
 function bindLogout() {
@@ -176,18 +178,7 @@ function refreshEnvironment() {
 }
 
 function refreshThresholdForm() {
-  renderEnvThresholdForm(getEnvThresholds(), {
-    onSave: (partial) => {
-      saveEnvThresholds(partial);
-      refreshEnvironment();
-      refreshThresholdForm();
-    },
-    onReset: () => {
-      resetEnvThresholds();
-      refreshEnvironment();
-      refreshThresholdForm();
-    },
-  });
+  renderEnvThresholdForm();
 }
 
 function refreshReservesPanel(flash) {
@@ -279,6 +270,7 @@ function onSlopeError(err) {
 
 async function boot() {
   await initUserStore();
+  initDictStore();
   currentSession = requireSession('./login.html');
   if (!currentSession) return;
 
@@ -319,6 +311,7 @@ async function boot() {
   } catch {
     /* 使用默认配置 */
   }
+  mapConfig = mergeMapConfig(mapConfig);
   try {
     initMapToolbar(mapConfig);
   } catch (err) {

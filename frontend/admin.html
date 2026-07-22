@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理员后台 · 智慧矿山一张图</title>
+  <link rel="stylesheet" href="./css/admin.css" />
+</head>
+<body class="admin-page">
+  <header class="admin-top">
+    <div class="brand">
+      <strong>智慧矿山 · 管理后台</strong>
+      <span class="muted">演示原型 · 本地配置</span>
+    </div>
+    <div class="admin-top-actions">
+      <span id="admin-user">—</span>
+      <a class="btn ghost" href="./index.html">打开一张图</a>
+      <button type="button" class="btn ghost" id="btn-logout">退出</button>
+    </div>
+  </header>
+  <div class="admin-layout">
+    <aside class="admin-nav" id="admin-nav">
+      <button type="button" class="nav-item active" data-panel="overview">概览</button>
+      <button type="button" class="nav-item" data-panel="users">用户</button>
+      <button type="button" class="nav-item" data-panel="thresholds">阈值配置</button>
+      <button type="button" class="nav-item" data-panel="dict">字典管理</button>
+      <button type="button" class="nav-item" data-panel="maps">地图源与密钥</button>
+      <button type="button" class="nav-item" data-panel="audit">操作日志</button>
+      <button type="button" class="nav-item" data-panel="perms">权限说明</button>
+    </aside>
+    <main class="admin-main">
+      <p class="flash" id="flash" hidden></p>
+      <section class="panel-view" id="panel-overview"></section>
+      <section class="panel-view" id="panel-users" hidden></section>
+      <section class="panel-view" id="panel-thresholds" hidden></section>
+      <section class="panel-view" id="panel-dict" hidden></section>
+      <section class="panel-view" id="panel-maps" hidden></section>
+      <section class="panel-view" id="panel-audit" hidden></section>
+      <section class="panel-view" id="panel-perms" hidden></section>
+    </main>
+  </div>
+  <script type="module" src="./js/admin.js"></script>
+</body>
+</html>

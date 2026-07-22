@@ -1,5 +1,5 @@
 /**
- * 轻量操作日志（登录/注册等），供后续管理后台展示。
+ * 轻量操作日志（登录/注册/后台变更等）。
  */
 
 const LOG_KEY = 'mine-one-map-audit-log-v1';
@@ -15,13 +15,7 @@ export function appendAuditLog(entry) {
     result: entry.result || 'ok',
     summary: entry.summary || '',
   };
-  let list = [];
-  try {
-    list = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-    if (!Array.isArray(list)) list = [];
-  } catch {
-    list = [];
-  }
+  let list = listAuditLogs();
   list.unshift(row);
   if (list.length > MAX) list = list.slice(0, MAX);
   try {
@@ -30,4 +24,31 @@ export function appendAuditLog(entry) {
     /* ignore */
   }
   return row;
+}
+
+export function listAuditLogs() {
+  try {
+    const list = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearAuditLogs() {
+  try {
+    localStorage.removeItem(LOG_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function filterAuditLogs({ actor, action, from, to } = {}) {
+  return listAuditLogs().filter((row) => {
+    if (actor && !String(row.actor).includes(actor)) return false;
+    if (action && row.action !== action) return false;
+    if (from && row.at < from) return false;
+    if (to && row.at > to) return false;
+    return true;
+  });
 }

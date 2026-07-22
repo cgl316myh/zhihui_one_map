@@ -13,7 +13,7 @@ function setMsg(text, ok = false) {
 }
 
 async function boot() {
-  if (redirectIfLoggedIn('./index.html', './index.html')) return;
+  if (redirectIfLoggedIn('./index.html', './admin.html')) return;
   await initUserStore();
 
   document.getElementById('toggle-pwd')?.addEventListener('click', () => {

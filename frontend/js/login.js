@@ -20,12 +20,11 @@ function setMsg(text, ok = false) {
 }
 
 function homeForRole(role) {
-  // 管理后台尚未实现，管理员与普通用户均进大屏
-  return './index.html';
+  return role === 'admin' ? './admin.html' : './index.html';
 }
 
 async function boot() {
-  if (redirectIfLoggedIn('./index.html', './index.html')) return;
+  if (redirectIfLoggedIn('./index.html', './admin.html')) return;
   await initUserStore();
 
   const captcha = createCaptcha(canvas, 4);

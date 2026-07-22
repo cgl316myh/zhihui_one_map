@@ -58,28 +58,148 @@ function publicUser(u) {
 export async function initUserStore() {
   let list = loadRaw();
   if (!list || !list.length) {
-    list = [];
-    const now = new Date().toISOString();
-    for (const s of SEED) {
-      list.push({
-        id: `u-${s.username}`,
-        username: s.username,
-        displayName: s.displayName,
-        phone: s.phone,
-        role: s.role,
-        enabled: s.enabled !== false,
-        passwordHash: await hashPassword(s.password),
-        createdAt: now,
-        lastLoginAt: null,
-      });
-    }
+    list = await buildSeedUsers();
     saveRaw(list);
   }
   return listUsers();
 }
 
+async function buildSeedUsers() {
+  const list = [];
+  const now = new Date().toISOString();
+  for (const s of SEED) {
+    list.push({
+      id: `u-${s.username}`,
+      username: s.username,
+      displayName: s.displayName,
+      phone: s.phone,
+      role: s.role,
+      enabled: s.enabled !== false,
+      passwordHash: await hashPassword(s.password),
+      createdAt: now,
+      lastLoginAt: null,
+    });
+  }
+  return list;
+}
+
 export function listUsers() {
   return (loadRaw() || []).map(publicUser);
+}
+
+export function countEnabledAdmins(excludeId) {
+  return (loadRaw() || []).filter(
+    (u) => u.role === 'admin' && u.enabled !== false && u.id !== excludeId
+  ).length;
+}
+
+/**
+ * 管理员创建用户
+ */
+export async function adminCreateUser({
+  username,
+  displayName,
+  phone,
+  password,
+  role,
+  enabled = true,
+}) {
+  await initUserStore();
+  const name = String(username || '').trim();
+  const phoneStr = String(phone || '').trim();
+  const pwd = String(password || '');
+  const r = role === 'admin' ? 'admin' : 'user';
+
+  if (!isValidUsername(name)) return { ok: false, message: '用户名须为 3～20 位字母/数字/下划线' };
+  if (!isValidPhone(phoneStr)) return { ok: false, message: '请填写有效手机号' };
+  if (pwd.length < 6) return { ok: false, message: '密码至少 6 位' };
+  if (findUserByUsername(name)) return { ok: false, message: '用户名已存在' };
+  if (findUserByPhone(phoneStr)) return { ok: false, message: '手机号已被注册' };
+
+  const list = loadRaw() || [];
+  const user = {
+    id: `u-${Date.now()}`,
+    username: name,
+    displayName: String(displayName || '').trim() || name,
+    phone: phoneStr,
+    role: r,
+    enabled: enabled !== false,
+    passwordHash: await hashPassword(pwd),
+    createdAt: new Date().toISOString(),
+    lastLoginAt: null,
+  };
+  list.push(user);
+  saveRaw(list);
+  return { ok: true, user: publicUser(user) };
+}
+
+/**
+ * 管理员更新用户（不含密码）
+ */
+export function adminUpdateUser(id, patch, actorUsername) {
+  const list = loadRaw() || [];
+  const idx = list.findIndex((u) => u.id === id);
+  if (idx < 0) return { ok: false, message: '用户不存在' };
+  const cur = list[idx];
+  const next = { ...cur };
+
+  if (patch.displayName != null) next.displayName = String(patch.displayName).trim() || next.username;
+  if (patch.phone != null) {
+    const phoneStr = String(patch.phone).trim();
+    if (!isValidPhone(phoneStr)) return { ok: false, message: '手机号格式无效' };
+    const other = findUserByPhone(phoneStr);
+    if (other && other.id !== id) return { ok: false, message: '手机号已被占用' };
+    next.phone = phoneStr;
+  }
+  if (patch.role != null) next.role = patch.role === 'admin' ? 'admin' : 'user';
+  if (patch.enabled != null) next.enabled = Boolean(patch.enabled);
+
+  // 不可把自己禁用；不可去掉最后一个可用 admin
+  if (cur.username === actorUsername && next.enabled === false) {
+    return { ok: false, message: '不能禁用当前登录账号' };
+  }
+  if (
+    (cur.role === 'admin' && cur.enabled !== false) &&
+    (next.role !== 'admin' || next.enabled === false) &&
+    countEnabledAdmins(cur.id) < 1
+  ) {
+    return { ok: false, message: '须至少保留一名启用中的管理员' };
+  }
+
+  list[idx] = next;
+  saveRaw(list);
+  return { ok: true, user: publicUser(next) };
+}
+
+export async function adminResetPassword(id, newPassword) {
+  const pwd = String(newPassword || '123456');
+  if (pwd.length < 6) return { ok: false, message: '密码至少 6 位' };
+  const list = loadRaw() || [];
+  const idx = list.findIndex((u) => u.id === id);
+  if (idx < 0) return { ok: false, message: '用户不存在' };
+  list[idx].passwordHash = await hashPassword(pwd);
+  saveRaw(list);
+  return { ok: true, user: publicUser(list[idx]) };
+}
+
+export function adminDeleteUser(id, actorUsername) {
+  const list = loadRaw() || [];
+  const idx = list.findIndex((u) => u.id === id);
+  if (idx < 0) return { ok: false, message: '用户不存在' };
+  const cur = list[idx];
+  if (cur.username === actorUsername) return { ok: false, message: '不能删除当前登录账号' };
+  if (cur.role === 'admin' && cur.enabled !== false && countEnabledAdmins(cur.id) < 1) {
+    return { ok: false, message: '不能删除最后一名启用管理员' };
+  }
+  list.splice(idx, 1);
+  saveRaw(list);
+  return { ok: true };
+}
+
+export async function resetUsersToSeed() {
+  const list = await buildSeedUsers();
+  saveRaw(list);
+  return listUsers();
 }
 
 export function findUserByUsername(username) {

@@ -376,8 +376,8 @@ export function initMapToolbar(mapConfig) {
   if (tip) {
     if (!hasTk) {
       tip.hidden = false;
-      tip.textContent =
-        '天地图可选：在 map-config.json 填写 tiandituTk 后可用';
+        tip.textContent =
+          '天地图需密钥：请管理员在「管理后台 → 地图源与密钥」填写 tiandituTk';
     } else {
       tip.hidden = true;
       tip.textContent = '';

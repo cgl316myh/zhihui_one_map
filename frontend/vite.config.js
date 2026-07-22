@@ -44,6 +44,7 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
         login: path.resolve(__dirname, 'login.html'),
         register: path.resolve(__dirname, 'register.html'),
+        admin: path.resolve(__dirname, 'admin.html'),
       },
     },
   },

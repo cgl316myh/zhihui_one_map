@@ -4,13 +4,10 @@ import {
   renderReserveCharts,
   renderEnvHistory,
 } from './charts.js';
-import {
-  getEnvThresholds,
-  getActivePeriodKey,
-  getDefaultEnvThresholds,
-} from './envThresholds.js';
+import { getActivePeriodKey } from './envThresholds.js';
 import { getTodayStr } from './reserves.js';
 import { isAdmin } from './role.js';
+import { getDictLabel } from '../auth/dict.js';
 
 function statusClass(status) {
   if (status === 'alarm' || status === 'fault') return 'st-alarm';
@@ -20,7 +17,7 @@ function statusClass(status) {
 }
 
 function statusText(status) {
-  const map = {
+  const fallback = {
     normal: '正常',
     warn: '预警',
     alarm: '报警',
@@ -28,7 +25,7 @@ function statusText(status) {
     fault: '故障',
     offline: '离线',
   };
-  return map[status] || status || '—';
+  return getDictLabel('point_status', status, fallback[status] || status || '—');
 }
 
 function worstStatus(list) {
@@ -123,77 +120,17 @@ export function renderEnvironment(env, selectedId = null) {
   return focus ? focus.id : null;
 }
 
-export function renderEnvThresholdForm(thresholds, handlers = {}) {
+export function renderEnvThresholdForm() {
   const box = document.getElementById('panel-env-thresholds');
-  if (!box) return;
-  if (!isAdmin()) {
-    box.innerHTML =
-      '<div class="metric-loc">当前为值班员：阈值只读。阈值改配将迁至管理员后台；请使用管理员账号登录。</div>';
-    return;
+  const tip = document.getElementById('env-threshold-tip');
+  if (tip) {
+    const period = getActivePeriodKey() === 'day' ? '昼间' : '夜间';
+    tip.textContent = `阈值由管理员后台维护 · 当前按${period}阈值判定状态`;
   }
-  const th = thresholds || getEnvThresholds();
-  const period = getActivePeriodKey();
-  const periodLabel = period === 'day' ? '当前昼间' : '当前夜间';
-  const fields = [
-    { key: 'noise', label: '噪声' },
-    { key: 'pm10', label: 'PM10' },
-    { key: 'pm25', label: 'PM2.5' },
-    { key: 'dust', label: '粉尘' },
-  ];
-
-  const row = (mode, title) => `
-    <div class="thresh-period ${mode === period ? 'is-active' : ''}">
-      <div class="thresh-period-hd">${title}${mode === period ? ' · 生效中' : ''}</div>
-      <div class="thresh-grid">
-        ${fields
-          .map((f) => {
-            const rule = (th[mode] && th[mode][f.key]) || {};
-            const unit = rule.unit || '';
-            return `
-            <label class="thresh-field">
-              <span>${f.label}预警 ${unit}</span>
-              <input type="number" step="0.1" data-mode="${mode}" data-metric="${f.key}" data-bound="warn" value="${rule.warn ?? ''}" />
-            </label>
-            <label class="thresh-field">
-              <span>${f.label}报警 ${unit}</span>
-              <input type="number" step="0.1" data-mode="${mode}" data-metric="${f.key}" data-bound="alarm" value="${rule.alarm ?? ''}" />
-            </label>`;
-          })
-          .join('')}
-      </div>
-    </div>`;
-
-  box.innerHTML = `
-    <div class="thresh-hd">
-      <strong>阈值配置（演示）</strong>
-      <span class="sub">${periodLabel} · 仅本地存储</span>
-    </div>
-    ${row('day', '昼间 06–22')}
-    ${row('night', '夜间 22–06')}
-    <div class="thresh-actions">
-      <button type="button" class="tool-btn" id="btn-thresh-save">应用阈值</button>
-      <button type="button" class="tool-btn ghost" id="btn-thresh-reset">恢复默认</button>
-    </div>`;
-
-  box.querySelector('#btn-thresh-save')?.addEventListener('click', () => {
-    const next = { day: {}, night: {} };
-    box.querySelectorAll('input[data-metric]').forEach((input) => {
-      const mode = input.dataset.mode;
-      const metric = input.dataset.metric;
-      const bound = input.dataset.bound;
-      if (!next[mode][metric]) {
-        const base = (th[mode] && th[mode][metric]) || {};
-        next[mode][metric] = { ...base };
-      }
-      const n = Number(input.value);
-      if (Number.isFinite(n)) next[mode][metric][bound] = n;
-    });
-    handlers.onSave?.(next);
-  });
-
-  box.querySelector('#btn-thresh-reset')?.addEventListener('click', () => {
-    handlers.onReset?.(getDefaultEnvThresholds());
-  });
+  if (box) {
+    box.innerHTML =
+      '<div class="metric-loc">阈值配置已迁至管理员后台。管理员可在「管理后台 → 阈值配置」修改。</div>';
+  }
 }
 
 function metricLabel(key) {
