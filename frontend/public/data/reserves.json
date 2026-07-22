@@ -1,0 +1,26 @@
+{
+  "updatedAt": "2026-07-14T22:20:00+08:00",
+  "unit": "万吨",
+  "initialReserve": 860,
+  "mined": 218.6,
+  "remaining": 641.4,
+  "designRecoverable": 790,
+  "lossRate": 0.08,
+  "warningYears": 3,
+  "remainingDays": 1820,
+  "trend": [
+    { "month": "2026-02", "remaining": 682.1 },
+    { "month": "2026-03", "remaining": 674.5 },
+    { "month": "2026-04", "remaining": 665.8 },
+    { "month": "2026-05", "remaining": 656.2 },
+    { "month": "2026-06", "remaining": 648.0 },
+    { "month": "2026-07", "remaining": 641.4 }
+  ],
+  "forecast": [
+    { "month": "2026-08", "remaining": 632.0 },
+    { "month": "2026-10", "remaining": 612.5 },
+    { "month": "2026-12", "remaining": 593.8 },
+    { "month": "2027-03", "remaining": 565.0 },
+    { "month": "2027-07", "remaining": 528.4 }
+  ]
+}

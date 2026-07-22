@@ -1,0 +1,2173 @@
+{
+  "TXtData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "state": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "状态",
+      "no": 3,
+      "unit": "1:在线  0:离线"
+    }
+  },
+  "TResStress": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "stress": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "应力",
+      "no": 3,
+      "unit": "mpa"
+    },
+    "temp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "温度",
+      "no": 4,
+      "unit": "°C"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "stressMpa": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "应力",
+      "no": 5,
+      "unit": "kpa"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    }
+  },
+  "DaqQXZData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "date": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "年月日",
+      "no": 4,
+      "unit": ""
+    },
+    "rain": {
+      "chartType": "bar",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "降雨量",
+      "no": 6,
+      "unit": ""
+    },
+    "city": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "城市",
+      "no": 3,
+      "unit": ""
+    },
+    "created": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "创建时间",
+      "no": 11,
+      "unit": ""
+    },
+    "windLevel": {
+      "chartType": "line",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "风向等级",
+      "no": 8,
+      "unit": "级"
+    },
+    "temperature": {
+      "chartType": "line",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "温度",
+      "no": 10,
+      "unit": "°C"
+    },
+    "humidity": {
+      "chartType": "line",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "湿度",
+      "no": 9,
+      "unit": "%"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "time": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "小时",
+      "no": 5,
+      "unit": ""
+    },
+    "jy": {
+      "chartType": "bar",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "降雨量",
+      "no": 6,
+      "unit": "mm"
+    },
+    "wind": {
+      "chartType": "line",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "风向",
+      "no": 7,
+      "unit": ""
+    }
+  },
+  "TResHsl": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "hs": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "含水率",
+      "no": 3,
+      "unit": "%"
+    }
+  },
+  "TSmxbData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "acceleratedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "加速度",
+      "no": 6,
+      "unit": ""
+    },
+    "totalLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计量",
+      "no": 4,
+      "unit": ""
+    },
+    "speedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "速率",
+      "no": 5,
+      "unit": ""
+    },
+    "azimuth": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "方位角",
+      "no": 7,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测时间间隔",
+      "no": 6,
+      "unit": ""
+    }
+  },
+  "TResImg": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "img": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "图片",
+      "no": 3,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    }
+  },
+  "TResLive": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "live": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "视频",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResLf": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "acceleratedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "加速度",
+      "no": 7,
+      "unit": "mm/h^2"
+    },
+    "acceleratedLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2加速度",
+      "no": 8,
+      "unit": "mm/h^2"
+    },
+    "acceleratedLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3加速度",
+      "no": 3,
+      "unit": "mm/h^2"
+    },
+    "totalLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3累计变形量",
+      "no": 12,
+      "unit": "mm"
+    },
+    "totalLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2累计变形量",
+      "no": 11,
+      "unit": "mm"
+    },
+    "totalLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计变形量",
+      "no": 2,
+      "unit": "mm"
+    },
+    "speedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "速率",
+      "no": 4,
+      "unit": "mm/h"
+    },
+    "speedLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2速率",
+      "no": 5,
+      "unit": "mm/h"
+    },
+    "speedLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3速率",
+      "no": 6,
+      "unit": "mm/h"
+    },
+    "lf1": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 13,
+      "unit": "mm"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TDlspData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "adjoin": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "相邻时间",
+      "no": 8,
+      "unit": ""
+    },
+    "x": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X",
+      "no": 3,
+      "unit": ""
+    },
+    "h": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "高程",
+      "no": 5,
+      "unit": ""
+    },
+    "y": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y",
+      "no": 4,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "pmwy": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计平面位移",
+      "no": 6,
+      "unit": ""
+    },
+    "gc": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "gc",
+      "no": 7,
+      "unit": ""
+    }
+  },
+  "TOriDryBeach": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "altitude": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "泥水位",
+      "no": 4,
+      "unit": "m"
+    },
+    "altitudeSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化速率",
+      "no": 5,
+      "unit": "m/10min"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "altitudeAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化加速度",
+      "no": 6,
+      "unit": "m/10min²"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResJsd": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "totalAccY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y轴加速度",
+      "no": 6,
+      "unit": ""
+    },
+    "totalAccZ": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z轴加速度",
+      "no": 8,
+      "unit": ""
+    },
+    "totalAccX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "X轴加速度",
+      "no": 5,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResQpy": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "dispX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X轴累计位移",
+      "no": 9,
+      "unit": ""
+    },
+    "totalPlane": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计平面位移",
+      "no": 4,
+      "unit": ""
+    },
+    "dispY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y轴累计位移",
+      "no": 10,
+      "unit": ""
+    },
+    "x": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X",
+      "no": 5,
+      "unit": ""
+    },
+    "y": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y",
+      "no": 6,
+      "unit": ""
+    },
+    "z": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z",
+      "no": 8,
+      "unit": ""
+    },
+    "dispZ": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z轴累计位移",
+      "no": 11,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResRain": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "yl60f": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "1小时雨量",
+      "no": 5,
+      "unit": "mm"
+    },
+    "total": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "累积雨量",
+      "no": 8,
+      "unit": "mm"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "观测雨量",
+      "no": 5,
+      "unit": ""
+    },
+    "yl24h": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "日降雨量",
+      "no": 7,
+      "unit": "mm"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "uploadTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "观测时间",
+      "no": 8,
+      "unit": ""
+    },
+    "yl10f": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "10分钟雨量",
+      "no": 4,
+      "unit": "mm"
+    },
+    "yl12h": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "12小时雨量",
+      "no": 6,
+      "unit": "mm"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResTps": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "totalX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X累计变形量",
+      "no": 5,
+      "unit": "mm"
+    },
+    "totalH": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "H累计变形量",
+      "no": 117,
+      "unit": "mm"
+    },
+    "totalY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y累计变形量",
+      "no": 6,
+      "unit": "mm"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "totalPlaneDisplacement": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计平面位移量",
+      "no": 4,
+      "unit": "mm"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TSbwyData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "created": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "zCount": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "z轴累计值",
+      "no": 11,
+      "unit": ""
+    },
+    "yChange": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "y轴变化值",
+      "no": 7,
+      "unit": ""
+    },
+    "yCount": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "y轴累计值",
+      "no": 10,
+      "unit": ""
+    },
+    "pmwy": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "平面位移",
+      "no": 12,
+      "unit": ""
+    },
+    "xChange": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "x轴变化值",
+      "no": 6,
+      "unit": ""
+    },
+    "adjoin": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "相邻时间",
+      "no": 13,
+      "unit": ""
+    },
+    "x": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "x轴",
+      "no": 3,
+      "unit": ""
+    },
+    "y": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "y轴",
+      "no": 4,
+      "unit": ""
+    },
+    "z": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "z轴",
+      "no": 5,
+      "unit": ""
+    },
+    "zChange": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "z轴变化值",
+      "no": 8,
+      "unit": ""
+    },
+    "xCount": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "x轴累计值",
+      "no": 9,
+      "unit": ""
+    }
+  },
+  "TResNw": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "altitude": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "泥水位",
+      "no": 4,
+      "unit": "m"
+    },
+    "hydraulicPressure": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水压",
+      "no": 7,
+      "unit": "kPa"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "altitudeSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化速率",
+      "no": 5,
+      "unit": "m/10min"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "altitudeAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化加速度",
+      "no": 6,
+      "unit": "m/10min²"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResGnss": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "totalH": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "H累计变形量",
+      "no": 11,
+      "unit": "mm"
+    },
+    "speedY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "Y速率",
+      "no": 5,
+      "unit": "mm/h"
+    },
+    "speedX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "X速率",
+      "no": 4,
+      "unit": "mm/h"
+    },
+    "h": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "h",
+      "no": 0,
+      "unit": ""
+    },
+    "planeAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "平面位移加速度",
+      "no": 10,
+      "unit": "mm/h²"
+    },
+    "azimuth": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "方位角",
+      "no": 14,
+      "unit": "mm"
+    },
+    "totalX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X累计变形量",
+      "no": 12,
+      "unit": "mm"
+    },
+    "totalY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y累计变形量",
+      "no": 13,
+      "unit": "mm"
+    },
+    "totalProjection": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "累计不利方向投影位移量",
+      "no": 8,
+      "unit": "mm"
+    },
+    "planeSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "平面位移速率",
+      "no": 9,
+      "unit": "mm/h"
+    },
+    "speedH": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "H速率",
+      "no": 6,
+      "unit": "mm/h"
+    },
+    "projectionSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "不利方向投影平面位移速率",
+      "no": 15,
+      "unit": "mm/h"
+    },
+    "projectionAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "不利方向投影平面位移加速度",
+      "no": 16,
+      "unit": "mm/h²"
+    },
+    "x": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "x",
+      "no": 0,
+      "unit": ""
+    },
+    "y": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "y",
+      "no": 0,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "totalPlaneDisplacement": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计平面位移量",
+      "no": 7,
+      "unit": "mm"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResQlf": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "acceleratedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "LF1加速度",
+      "no": 7,
+      "unit": "mm/h^2"
+    },
+    "acceleratedLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2加速度",
+      "no": 8,
+      "unit": "mm/h^2"
+    },
+    "acceleratedLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3加速度",
+      "no": 3,
+      "unit": "mm/h^2"
+    },
+    "totalLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3累计变形量",
+      "no": 12,
+      "unit": "mm"
+    },
+    "totalLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2累计变形量",
+      "no": 11,
+      "unit": "mm"
+    },
+    "totalLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "LF1累计变形量",
+      "no": 2,
+      "unit": "mm"
+    },
+    "speedLf1": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "LF1速率",
+      "no": 4,
+      "unit": "mm/h"
+    },
+    "speedLf2": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF2速率",
+      "no": 5,
+      "unit": "mm/h"
+    },
+    "speedLf3": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "LF3速率",
+      "no": 6,
+      "unit": "mm/h"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResflow": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "flowRise": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "流量(L/s)",
+      "no": 5,
+      "unit": "L/s"
+    },
+    "flowSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "流量速率",
+      "no": 8,
+      "unit": ""
+    },
+    "level": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水位",
+      "no": 6,
+      "unit": "m"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "flowCube": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "流量(m³/s)",
+      "no": 4,
+      "unit": "m³/s"
+    },
+    "currentSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "流速",
+      "no": 7,
+      "unit": "m/s"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TJlszData": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "sunSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "累计沉降速率",
+      "no": 5,
+      "unit": "mm/d"
+    },
+    "temp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "温度",
+      "no": 8,
+      "unit": "°C"
+    },
+    "sinkingAccumulation": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "累计沉降",
+      "no": 4,
+      "unit": "mm"
+    },
+    "deviceData": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "液位高度",
+      "no": 3,
+      "unit": "mm"
+    },
+    "sinkingData": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "即时形变",
+      "no": 6,
+      "unit": "mm"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "sinkingSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "即时形变速率",
+      "no": 7,
+      "unit": "mm/h"
+    }
+  },
+  "TResDx": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "观测值",
+      "no": 4,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResDxs": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "altitude": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "水位",
+      "no": 4,
+      "unit": "m"
+    },
+    "hydraulicPressure": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水压",
+      "no": 7,
+      "unit": "kPa"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "altitudeSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化速率",
+      "no": 5,
+      "unit": "m/h"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "altitudeAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "变化加速度",
+      "no": 6,
+      "unit": "mm/h²"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "JKswDto": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "ll": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "流量",
+      "no": 5,
+      "unit": ""
+    },
+    "adjoin": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "相邻时间",
+      "no": 6,
+      "unit": ""
+    },
+    "jjsw": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "警戒水位",
+      "no": 5,
+      "unit": ""
+    },
+    "created": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "ck": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "出库",
+      "no": 5,
+      "unit": ""
+    },
+    "rk": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "入库",
+      "no": 5,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期2",
+      "no": 7,
+      "unit": ""
+    },
+    "ksw": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "水位",
+      "no": 5,
+      "unit": ""
+    },
+    "status": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "水势",
+      "no": 5,
+      "unit": ""
+    }
+  },
+  "TResCs": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备编号",
+      "no": 1,
+      "unit": ""
+    },
+    "p": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "瞬时声压",
+      "no": 3,
+      "unit": ""
+    },
+    "pe": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "有效声压",
+      "no": 4,
+      "unit": ""
+    },
+    "f": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "频率",
+      "no": 5,
+      "unit": ""
+    },
+    "md": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "密度",
+      "no": 7,
+      "unit": ""
+    },
+    "stft": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时频",
+      "no": 8,
+      "unit": ""
+    },
+    "glp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "功率谱",
+      "no": 6,
+      "unit": ""
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    }
+  },
+  "TResQx": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "temp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "温度",
+      "no": 6,
+      "unit": "°"
+    },
+    "humidity": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "湿度",
+      "no": 7,
+      "unit": "RH"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "windDirection": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "风向",
+      "no": 5,
+      "unit": "°"
+    },
+    "pressure": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "气压",
+      "no": 8,
+      "unit": "Kpa"
+    },
+    "windSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "风速",
+      "no": 4,
+      "unit": "m/s"
+    }
+  },
+  "TResAngleAcc": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "angleRate": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "倾斜率千分比",
+      "no": 12,
+      "unit": "‰"
+    },
+    "speedZ": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z轴速率",
+      "no": 15,
+      "unit": "mm/h"
+    },
+    "totalPlane": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "平面位移角度",
+      "no": 5,
+      "unit": "°"
+    },
+    "speedY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y轴速率",
+      "no": 14,
+      "unit": "mm/h"
+    },
+    "speedX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X轴速率",
+      "no": 13,
+      "unit": "mm/h"
+    },
+    "x": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X",
+      "no": 6,
+      "unit": "°"
+    },
+    "angle": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "angle",
+      "no": 4,
+      "unit": "°"
+    },
+    "y": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y",
+      "no": 7,
+      "unit": "°"
+    },
+    "z": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z",
+      "no": 8,
+      "unit": "°"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "totalAngleZ": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Z轴累计变化量",
+      "no": 11,
+      "unit": "°"
+    },
+    "totalAngleY": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "Y轴累计变化量",
+      "no": 10,
+      "unit": "°"
+    },
+    "totalAngleX": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "X轴累计变化量",
+      "no": 9,
+      "unit": "°"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResJR": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "altitude": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "水位",
+      "no": 4,
+      "unit": "m"
+    },
+    "hydraulicPressure": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水压",
+      "no": 7,
+      "unit": "kPa"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "altitudeSpeed": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水位变化速率",
+      "no": 5,
+      "unit": "m/h"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "altitudeAccelerated": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "水位变化加速度",
+      "no": 6,
+      "unit": "m/h²"
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    }
+  },
+  "TResGp": {
+    "devId": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "设备ID",
+      "no": 1,
+      "unit": ""
+    },
+    "gpRatio": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "气压比",
+      "no": 6,
+      "unit": "表压/标准气压"
+    },
+    "observation": {
+      "chartType": "",
+      "isColShow": false,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测量",
+      "no": 0,
+      "unit": ""
+    },
+    "totleGp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": true,
+      "isDataShow": true,
+      "name": "气压累计变化量",
+      "no": 4,
+      "unit": "kPa"
+    },
+    "gassPressure": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "表压",
+      "no": 5,
+      "unit": "kPa"
+    },
+    "speedGp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "气压变化速率",
+      "no": 7,
+      "unit": "kPa/h"
+    },
+    "calculatingTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "观测日期",
+      "no": 2,
+      "unit": ""
+    },
+    "intervalTime": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": false,
+      "name": "时间间隔",
+      "no": 3,
+      "unit": ""
+    },
+    "accGp": {
+      "chartType": "",
+      "isColShow": true,
+      "isDataDefault": false,
+      "isDataShow": true,
+      "name": "气压变化加速度",
+      "no": 8,
+      "unit": "kPa/h²"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+# 依赖与构建产物
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# data 联接目录（真实数据在 public/data，避免重复入库）
+frontend/data/
+
+# 传感器网关运行时
+sensor_bridge/store/
+**/__pycache__/
+*.pyc
+.env
+.env.*
+
+# 敏感 / 调试临时文件
+frontend/assets/_token.txt
+frontend/assets/cap_*.txt
+frontend/assets/cap_*.png
+frontend/assets/captcha*.png
+frontend/assets/_*.js
+frontend/assets/_*.html
+frontend/assets/_*.txt
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.swp
+*~

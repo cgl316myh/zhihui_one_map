@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-07-14T22:20:00+08:00",
+  "lines": [
+    {
+      "id": "CRUSH",
+      "name": "破碎工段",
+      "status": "running",
+      "devices": [
+        { "id": "C-01", "name": "粗碎机", "status": "running", "currentA": 186, "bearingTemp": 52.3, "freqHz": 48.5 },
+        { "id": "C-02", "name": "细碎机", "status": "running", "currentA": 142, "bearingTemp": 49.8, "freqHz": 47.2 }
+      ]
+    },
+    {
+      "id": "SCREEN",
+      "name": "筛分工段",
+      "status": "warn",
+      "devices": [
+        { "id": "S-01", "name": "振动筛", "status": "running", "vibrateHz": 16.2, "flowTph": 186 },
+        { "id": "B-01", "name": "1# 皮带", "status": "warn", "speedRpm": 118, "alarm": "轻微跑偏" },
+        { "id": "B-02", "name": "2# 皮带", "status": "running", "speedRpm": 122, "alarm": null }
+      ]
+    }
+  ],
+  "processNote": "采掘 → 运输 → 粗碎 → 中细碎 → 振动筛分 → 成品料仓"
+}

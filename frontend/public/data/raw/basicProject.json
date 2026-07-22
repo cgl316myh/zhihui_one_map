@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "addr": "",
+      "charge": "",
+      "cityId": 530100000000,
+      "cityName": "昆明市",
+      "contractor": "WXHJ",
+      "created": "2025-03-27 17:10:41",
+      "deviceCount": 5,
+      "deviceSubCount": 0,
+      "districtId": 530181000000,
+      "districtName": "安宁市",
+      "endTime": "2028-03-27 00:00:00",
+      "id": 398,
+      "implemented": "BDLX",
+      "industry": 15,
+      "onsiteTime": "2028-03-27 00:00:00",
+      "pointCount": 5,
+      "projectName": "安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统",
+      "provinceId": 53,
+      "provinceName": "云南省",
+      "remark": "",
+      "users": [
+        {
+          "created": "2025-05-30 13:23:00",
+          "id": 1948,
+          "mobile": "",
+          "name": "",
+          "projectId": 398,
+          "type": 1
+        },
+        {
+          "created": "2025-05-30 13:23:00",
+          "id": 1949,
+          "mobile": "15925118626",
+          "name": "李智明",
+          "projectId": 398,
+          "type": 2
+        },
+        {
+          "created": "2025-05-30 13:23:00",
+          "id": 1950,
+          "mobile": "",
+          "name": "",
+          "projectId": 398,
+          "type": 3
+        }
+      ]
+    }
+  ],
+  "totalElements": 1
+}

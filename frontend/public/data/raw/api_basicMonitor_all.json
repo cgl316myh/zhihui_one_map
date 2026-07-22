@@ -1,0 +1,37 @@
+[
+  {
+    "addr": "",
+    "alt": 1.0,
+    "areaName": "云南省昆明市安宁市县街街道",
+    "cityId": 530100000000,
+    "cityName": "昆明市",
+    "contractor": "WXHJ",
+    "created": "2025-03-27 17:13:14",
+    "districtId": 530181000000,
+    "districtName": "安宁市",
+    "id": 721,
+    "implemented": "BDLX",
+    "industry": "150",
+    "industryName": "地质",
+    "lat": 24.78942,
+    "liabler": "WXHJ",
+    "lng": 102.438408,
+    "monitorName": "安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统",
+    "monitorNumber": "ANLRCS",
+    "monitorType": 100,
+    "monitorTypeName": "滑坡",
+    "pointCount": 0,
+    "projectId": 398,
+    "projectName": "安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统",
+    "provinceId": 53,
+    "provinceName": "云南省",
+    "remark": "",
+    "taskType": 1,
+    "taskTypeName": "自动化智能监测预警平台",
+    "townId": 530181009000,
+    "townName": "县街街道",
+    "users": [
+      " ;"
+    ]
+  }
+]

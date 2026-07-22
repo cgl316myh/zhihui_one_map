@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>安宁隆瑞边坡监控系统 · 接口说明</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --line: #2a3b55;
+      --text: #e6eefc;
+      --muted: #9fb0c9;
+      --accent: #3dd6ff;
+      --ok: #2ee6a6;
+      --warn: #ffc857;
+      --code: #0a1524;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #10182a, var(--bg));
+      color: var(--text);
+      line-height: 1.55;
+      padding: 24px;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; color: var(--accent); }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+    h3 { margin: 16px 0 8px; font-size: 15px; color: #cfe9ff; }
+    .sub { color: var(--muted); margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 10px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .tag.method { color: #061018; background: var(--ok); border-color: transparent; font-weight: 700; }
+    .tag.post { background: var(--warn); }
+    .tag.get { background: var(--ok); }
+    .tag.path { color: var(--accent); border-color: rgba(61,214,255,.35); }
+    .tag.used { color: var(--ok); border-color: rgba(46,230,166,.45); }
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+    }
+    pre {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 8px 0 0;
+      color: #d7e7ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: rgba(61,214,255,.08); color: var(--accent); }
+    a { color: var(--accent); }
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+    .toc a { display: inline-block; margin: 0 10px 8px 0; }
+    .ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>安宁隆瑞边坡位移监控系统 · 接口说明</h1>
+    <p class="sub">
+      对应站点：<a href="http://bdlx.jgtop1.com/" target="_blank" rel="noreferrer">http://bdlx.jgtop1.com/</a>
+      · API 基址：<code>http://wtapi.jgtop1.com</code>
+      · 项目：安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统
+      · 文档用途：智慧矿山一张图前端本地取数 / 后期对接
+    </p>
+
+    <div class="card toc">
+      <strong>目录</strong><br />
+      <a href="#auth">1. 认证</a>
+      <a href="#basic">2. 基础台账</a>
+      <a href="#analysis">3. 数据分析（核心）</a>
+      <a href="#other">4. 其它</a>
+      <a href="#local">5. 本项目本地接口约定</a>
+      <a href="#script">6. 拉数脚本</a>
+    </div>
+
+    <h2>通用约定</h2>
+    <div class="card">
+      <table>
+        <tr><th>项</th><th>说明</th></tr>
+        <tr>
+          <td>Base URL</td>
+          <td><code>http://wtapi.jgtop1.com</code>（前端 localStorage <code>baseApi</code>）</td>
+        </tr>
+        <tr>
+          <td>鉴权</td>
+          <td>请求头 <code>Authorization: Bearer &lt;token&gt;</code>。登录成功后 Cookie 也可能写入 <code>EL-ADMIN-TOEKN</code>。</td>
+        </tr>
+        <tr>
+          <td>常用头</td>
+          <td>
+            <code>Accept: application/json</code>；
+            <code>Content-Type: application/json;charset=UTF-8</code>；
+            <code>Origin / Referer: http://bdlx.jgtop1.com</code>
+          </td>
+        </tr>
+        <tr>
+          <td>关键 ID</td>
+          <td>
+            projectId = <code>398</code>；
+            monitorId = <code>721</code>；
+            GNSS 点位 id：<code>5759 / 5760 / 5761</code>（另有 5758）；
+            雨量点位 id：<code>5762</code>
+          </td>
+        </tr>
+        <tr>
+          <td>设备类型 type</td>
+          <td>GNSS = <code>204</code>（TXtData）；雨量 = <code>201</code>（TResRain）</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 id="auth">1. 认证</h2>
+
+    <div class="card">
+      <h3>获取验证码</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/auth/code</span>
+        <span class="tag used">登录必需</span>
+      </div>
+      <p class="note">返回算术验证码图片（base64）与 uuid，登录时一并提交。</p>
+<pre>{
+  "uuid": "code-key-xxxx",
+  "img": "data:image/png;base64,...."
+}</pre>
+    </div>
+
+    <div class="card">
+      <h3>登录</h3>
+      <div class="meta">
+        <span class="tag method post">POST</span>
+        <span class="tag path">/auth/login</span>
+        <span class="tag used">登录必需</span>
+      </div>
+<pre>{
+  "username": "15925118626",
+  "password": "********",
+  "code": "11",
+  "uuid": "code-key-xxxx"
+}</pre>
+      <p class="note">成功时返回 <code>token</code>（JWT）。后续请求放在 Authorization 头。</p>
+    </div>
+
+    <div class="card">
+      <h3>当前用户权限</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/auth/info</span>
+      </div>
+      <p class="note">返回角色权限列表，如 <code>basicPoint:list</code> 等。</p>
+    </div>
+
+    <h2 id="basic">2. 基础台账</h2>
+
+    <div class="card">
+      <h3>监测点列表（含坐标、最新时间）</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/basicPoint</span>
+        <span class="tag used">已用于 slope-points.json</span>
+      </div>
+      <p class="note">返回 <code>{ content: [...], totalElements }</code>。本项目关键字段：</p>
+      <table>
+        <tr><th>字段</th><th>说明</th></tr>
+        <tr><td>id</td><td>点位主键（拉历史数据用）</td></tr>
+        <tr><td>pointName</td><td>如 <code>25038476(堆石平台)</code>、<code>雨量</code></td></tr>
+        <tr><td>type</td><td>204=GNSS，201=雨量</td></tr>
+        <tr><td>lng / lat / alt</td><td>坐标</td></tr>
+        <tr><td>lastTime</td><td>最新数据时间</td></tr>
+        <tr><td>monitorId / monitorName</td><td>所属监测对象</td></tr>
+        <tr><td>sn / iccid 等</td><td>设备通信信息</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>字段字典（按设备类型）</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/basicPoint/getDataType</span>
+        <span class="tag used">字段释义</span>
+      </div>
+      <p class="note">
+        返回各设备类型字段元数据。例如 <code>TXtData</code>（卫星定位/GNSS）、
+        <code>TResRain</code>（雨量：total / yl24h / yl60f / observation 等）。
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>项目 / 监测对象</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/basicProject</span>
+      </div>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/basicMonitor</span>
+      </div>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/basicMonitor/all</span>
+      </div>
+      <p class="note">本项目监测对象 id=<code>721</code>，项目 id=<code>398</code>。</p>
+    </div>
+
+    <h2 id="analysis">3. 数据分析（核心）</h2>
+
+    <div class="card">
+      <h3 class="ok">历史时序数据（GNSS / 雨量）★</h3>
+      <div class="meta">
+        <span class="tag method post">POST</span>
+        <span class="tag path">/api/analysis/getHistoryData</span>
+        <span class="tag used">一张图主数据源</span>
+      </div>
+      <p><strong>说明：</strong>对应网页「数据分析 → 基础分析 → 查询」后 Network 中的 <code>getHistoryData</code>。一张图的位移与雨量由此接口生成 <code>data/slope.json</code>。</p>
+
+      <h3>请求体（实测可用）</h3>
+<pre>{
+  "ids": [5759, 5760, 5761],
+  "startTime": "2026-06-25 01:03:08",
+  "endTime": "2026-07-15 01:03:08"
+}</pre>
+<pre>{
+  "ids": [5762],
+  "startTime": "2026-06-25 01:03:08",
+  "endTime": "2026-07-15 01:03:08"
+}</pre>
+      <p class="note"><code>ids</code> 为 <code>/api/basicPoint</code> 返回的点位 id；时间格式为 <code>yyyy-MM-dd HH:mm:ss</code>。</p>
+
+      <h3>响应结构（摘录）</h3>
+      <p class="note">顶层 key 形如 <code>"点位名,类型"</code> 或 <code>"雨量,201,5762"</code>，值为时序数组。</p>
+<pre>{
+  "25038476(堆石平台),204": [
+    {
+      "devId": "17625038476",
+      "calculatingTime": "2026-06-25 02:04:51",
+      "totalX": -3.9,
+      "totalY": -0.4,
+      "totalH": -6.0,
+      "totalPlaneDisplacement": 3.9,
+      "speedX": 0.1,
+      "speedY": -0.3,
+      "planeSpeed": 0.2,
+      "planeAccelerated": -0.1,
+      "azimuth": 120.5,
+      "id": 90826110
+    }
+  ],
+  "雨量,201,5762": [
+    {
+      "devId": "17525030953",
+      "calculatingTime": "2026-06-25 02:00:02",
+      "uploadTime": "2026-06-25 02:00:02",
+      "observation": 0.4,
+      "id": 18863380
+    }
+  ]
+}</pre>
+      <table>
+        <tr><th>设备</th><th>关键字段</th><th>一张图映射</th></tr>
+        <tr>
+          <td>GNSS (204)</td>
+          <td>totalX / totalY / totalH / totalPlaneDisplacement</td>
+          <td>points[].x/y/h/plane + series</td>
+        </tr>
+        <tr>
+          <td>雨量 (201)</td>
+          <td>observation（时段雨量）；可能还有 total / yl24h 等</td>
+          <td>rainfall.valueMm / cumulativeMm</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>行政区树</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/analysis/getCountyList</span>
+      </div>
+<pre>[{ "id": 53, "label": "云南省", "children": [{ "id": 398, "label": "安宁隆瑞..." }] }]</pre>
+    </div>
+
+    <div class="card">
+      <h3>监测对象列表</h3>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">/api/analysis/getMonitorList?projectId=398</span>
+      </div>
+<pre>[{ "id": 721, "label": "安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统" }]</pre>
+    </div>
+
+    <h2 id="other">4. 其它接口</h2>
+    <div class="card">
+      <table>
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        <tr><td>POST</td><td>/api/area</td><td>城市列表（非监测数据）</td></tr>
+        <tr><td>GET</td><td>/api/menus/build</td><td>菜单路由</td></tr>
+        <tr><td>GET</td><td>/api/config</td><td>系统配置</td></tr>
+        <tr><td>GET</td><td>/api/analysis/watermark</td><td>水印</td></tr>
+        <tr><td>POST</td><td>/api/basicPoint/exportExcel</td><td>导出表格（参数较严，优先用 getHistoryData）</td></tr>
+        <tr><td>DELETE</td><td>/api/device/data</td><td>删除设备数据（勿在生产误用）</td></tr>
+      </table>
+    </div>
+
+    <h2 id="local">5. 本项目本地接口约定</h2>
+    <div class="card">
+      <p>一张图前端不直连边坡站（避免跨域/验证码），而是定时读本地文件：</p>
+      <div class="meta">
+        <span class="tag method get">GET</span>
+        <span class="tag path">./data/slope.json</span>
+        <span class="tag used">frontend/js/api/slope.js 每 60s 轮询</span>
+      </div>
+      <table>
+        <tr><th>文件</th><th>说明</th></tr>
+        <tr><td>data/slope.json</td><td>位移 + 雨量（已由 getHistoryData 转换）</td></tr>
+        <tr><td>data/slope-points.json</td><td>点位元数据/坐标（来自 basicPoint）</td></tr>
+        <tr><td>data/raw/getHistoryData.json</td><td>GNSS 原始响应</td></tr>
+        <tr><td>data/raw/getHistoryData_rain.json</td><td>雨量原始响应</td></tr>
+      </table>
+<pre>{
+  "updatedAt": "ISO时间",
+  "rainfall": {
+    "id": "5762",
+    "name": "雨量",
+    "valueMm": 0.0,
+    "cumulativeMm": 171.8,
+    "status": "normal",
+    "series": [{ "t": "...", "value": 0.4 }]
+  },
+  "points": [
+    {
+      "id": "5760",
+      "name": "25038476(堆石平台)",
+      "x": -4.5, "y": -0.6, "h": -7.6, "plane": 4.5,
+      "status": "normal",
+      "series": [{ "t": "...", "x": 0, "y": 0, "h": 0, "plane": 0 }]
+    }
+  ]
+}</pre>
+      <p class="note">后期若有后端，只需把 <code>frontend/js/api/slope.js</code> 中的 <code>SLOPE_API.baseUrl</code> 改为真实服务地址，保持上述 DTO 即可。</p>
+    </div>
+
+    <h2 id="script">6. 拉数脚本</h2>
+    <div class="card">
+      <p>脚本路径：<code>frontend/assets/pull_history.py</code></p>
+      <ul>
+        <li>调用 <code>POST /api/analysis/getHistoryData</code> 分别拉取 GNSS（5759/5760/5761）与雨量（5762）</li>
+        <li>写入 <code>data/raw/*.json</code> 与 <code>data/slope.json</code></li>
+        <li>Token 缓存在 <code>frontend/assets/_token.txt</code>（过期后需重新登录写入）</li>
+      </ul>
+<pre>cd frontend/assets
+python pull_history.py</pre>
+    </div>
+
+    <div class="card">
+      <strong>更新记录</strong>
+      <p class="note" style="margin:0">
+        2026-07-15：确认主接口 getHistoryData；完成 GNSS + 雨量落盘；本说明页建立。<br />
+        关联前端：智慧矿山一张图 <code>frontend/index.html</code>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

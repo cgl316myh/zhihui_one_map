@@ -1,0 +1,30 @@
+{
+  "defaultBasemap": "osm-street",
+  "mapMinZoom": 3,
+  "basemaps": {
+    "osm-street": {
+      "label": "OSM 城市底图",
+      "minZoom": 3,
+      "maxZoom": 19,
+      "maxNativeZoom": 19
+    },
+    "amap-img": {
+      "label": "高德影像底图",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "esri-street": {
+      "label": "ESRI 城市地图",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "esri-img": {
+      "label": "ESRI 影像地图",
+      "minZoom": 3,
+      "maxZoom": 17,
+      "maxNativeZoom": 17
+    }
+  }
+}

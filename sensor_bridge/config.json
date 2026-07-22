@@ -1,0 +1,62 @@
+{
+  "http": {
+    "host": "0.0.0.0",
+    "port": 5173,
+    "pushPath": "/api/push",
+    "staticDir": "../frontend"
+  },
+  "mqtt": {
+    "enabled": true,
+    "host": "47.97.123.197",
+    "port": 1883,
+    "username": "mqtt_test",
+    "password": "test1234",
+    "clientId": "mine-onemap-bridge",
+    "topic": "#",
+    "keepalive": 60,
+    "reconnectDelaySec": 30
+  },
+  "pollHintSec": 30,
+  "environmentStations": [
+    {
+      "id": "ENV-01",
+      "name": "1# 环境监测点",
+      "location": "行政生活区与生产过渡区",
+      "lng": 102.4458,
+      "lat": 24.7861,
+      "clientIds": ["Pczd8HKi3MdgGTW6SAeB"],
+      "deviceSns": []
+    },
+    {
+      "id": "ENV-02",
+      "name": "2# 环境监测点",
+      "location": "破碎/筛分车间下风向边界",
+      "lng": 102.4460,
+      "lat": 24.7878,
+      "clientIds": [],
+      "deviceSns": []
+    },
+    {
+      "id": "ENV-03",
+      "name": "3# 环境监测点",
+      "location": "矿区边界临近村庄（厂界）",
+      "lng": 102.4461,
+      "lat": 24.7870,
+      "clientIds": [],
+      "deviceSns": []
+    }
+  ],
+  "slopeDevices": {
+    "17625038478": { "id": "5759", "name": "25038478(堆石平台)", "type": "displacement" },
+    "17625038476": { "id": "5760", "name": "25038476(堆石平台)", "type": "displacement" },
+    "17625038475": { "id": "5761", "name": "25038475(禁采区)", "type": "displacement" },
+    "17625038477": { "id": "5758", "name": "25038477(采石场汇聚处_GJ)", "type": "displacement" },
+    "17525030953": { "id": "5762", "name": "雨量", "type": "rainfall" }
+  },
+  "thresholds": {
+    "noiseDay": 60,
+    "noiseNight": 50,
+    "pm25": 75,
+    "pm10": 150
+  }
+}

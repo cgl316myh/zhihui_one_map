@@ -1,0 +1,14 @@
+{
+  "name": "smart-mine-onemap",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5174"
+  },
+  "devDependencies": {
+    "vite": "^5.4.11"
+  }
+}
