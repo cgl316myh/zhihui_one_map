@@ -1,4 +1,4 @@
-import { renderSlopeTrend, renderReserveCharts } from './charts.js';
+import { renderSlopeTrend, renderRainTrend, renderReserveCharts } from './charts.js';
 
 function statusClass(status) {
   if (status === 'alarm' || status === 'fault') return 'st-alarm';
@@ -31,8 +31,8 @@ export function renderEnvironment(env) {
   if (!box || !env) return;
   const liveTag = env.live
     ? '<div class="poll-ok" style="margin-bottom:8px">实时接入 · MQTT/HTTP</div>'
-    : env.source === 'fallback-mock'
-      ? '<div class="poll-err" style="margin-bottom:8px">暂无推送，显示本地示例</div>'
+    : env.source === 'fallback-mock' || env.source === 'local-mock'
+      ? '<div class="poll-ok" style="margin-bottom:8px">演示 · 本地 mock</div>'
       : '';
   box.innerHTML =
     liveTag +
@@ -154,6 +154,7 @@ export function renderSlopePanel(slopeData, selectedId) {
         </div>
         ${r.updatedAt ? `<div class="metric-loc">更新 ${formatTime(r.updatedAt)}</div>` : ''}
       </div>`;
+    renderRainTrend(r);
   }
 
   if (list) {
@@ -189,7 +190,19 @@ export function renderSlopePanel(slopeData, selectedId) {
 export function renderReserves(reserves) {
   const box = document.getElementById('panel-reserve-summary');
   if (!box || !reserves) return;
+  const days = Number(reserves.remainingDays);
+  const warnYears = Number(reserves.warningYears);
+  const yearsLeft =
+    Number.isFinite(days) && days >= 0 ? +(days / 365).toFixed(1) : null;
+  const underWarn =
+    yearsLeft != null && Number.isFinite(warnYears) && yearsLeft <= warnYears;
+  const tip = underWarn
+    ? `<div class="reserve-warn" role="status">服务年限约 <b>${yearsLeft}</b> 年，已达/低于预警阈值 <b>${warnYears}</b> 年，请关注采掘节奏与储量接续。</div>`
+    : yearsLeft != null && Number.isFinite(warnYears)
+      ? `<div class="reserve-ok" role="status">服务年限约 <b>${yearsLeft}</b> 年（预警阈值 ${warnYears} 年）</div>`
+      : '';
   box.innerHTML = `
+    ${tip}
     <div class="reserve-kpis">
       <div><label>初始保有</label><b>${reserves.initialReserve}</b><i>${reserves.unit}</i></div>
       <div><label>剩余保有</label><b>${reserves.remaining}</b><i>${reserves.unit}</i></div>

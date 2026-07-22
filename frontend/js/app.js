@@ -5,11 +5,6 @@ import {
   stopSlopePolling,
 } from './api/slope.js';
 import {
-  startSensorPolling,
-  stopSensorPolling,
-  getSensorApiConfig,
-} from './api/sensors.js';
-import {
   initMap,
   setLayerVisible,
   renderEnvironmentMarkers,
@@ -29,8 +24,12 @@ import {
   setSlopePollStatus,
   setEnvPollStatus,
 } from './modules/panels.js';
+import { buildAlertsFromMock } from './modules/alerts.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
+
+/** 演示原型：环境/边坡/报警均以本地 mock 为准，不接真实 MQTT/HTTP */
+const DEMO_MOCK_ONLY = true;
 
 let mockData = null;
 let selectedSlopeId = null;
@@ -113,6 +112,18 @@ function applyEnvironment(env) {
   renderEnvironmentMarkers(env);
 }
 
+function refreshAlerts(slopeOverride) {
+  if (!mockData) return;
+  const alerts = buildAlertsFromMock({
+    environment: mockData.environment,
+    slope: slopeOverride || window.__lastSlopeData,
+    production: mockData.production,
+    video: mockData.video,
+  });
+  mockData.alerts = alerts;
+  renderAlerts(alerts);
+}
+
 function applySlope(data) {
   if (!data) return;
   window.__lastSlopeData = data;
@@ -120,62 +131,21 @@ function applySlope(data) {
   if (mockData?.slopePoints) {
     renderSlopeMarkers(data, mockData.slopePoints.points || []);
   }
-}
-
-function onSensorBundle(bundle) {
-  const status = bundle?.status || {};
-  const mqttOk = status.mqtt?.connected;
-  const env = bundle?.environment;
-  const slope = bundle?.slope;
-
-  if (env) applyEnvironment(env);
-
-  // 边坡：网关有 live MQTT 数据时优先用网关；否则由独立 slope 轮询兜底
-  if (slope && slope.live) {
-    applySlope(slope);
-    setSlopePollStatus(
-      true,
-      `边坡 MQTT 在线 · ${Math.round(getSensorApiConfig().intervalMs / 1000)}s 读取`
-    );
-  }
-
-  const envLive = Boolean(env?.live);
-  const parts = [];
-  parts.push(envLive ? '环境实时' : '环境本地兜底');
-  if (mqttOk) parts.push('MQTT已连接');
-  else if (status.mqtt?.error) parts.push(`MQTT:${status.mqtt.error}`.slice(0, 28));
-  else parts.push('MQTT未连');
-  const pushN = status.httpPush?.count || 0;
-  if (pushN) parts.push(`推送${pushN}次`);
-  parts.push(`${Math.round(getSensorApiConfig().intervalMs / 1000)}s轮询`);
-  setEnvPollStatus(envLive || mqttOk, parts.join(' · '));
-}
-
-function onSensorError(err) {
-  setEnvPollStatus(
-    false,
-    `传感器网关暂不可用，使用本地数据 · ${err.message || err}`
-  );
+  refreshAlerts(data);
 }
 
 function onSlopeData(data) {
-  // 若传感器网关已提供 live 边坡，则忽略本地兜底刷新，避免覆盖
-  const last = window.__lastSensorBundle;
-  if (last?.slope?.live) return;
   applySlope(data);
   const cfg = getSlopeApiConfig();
-  const live = Boolean(data.live);
   setSlopePollStatus(
     true,
-    live
-      ? `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
-      : `边坡本地快照 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
+    DEMO_MOCK_ONLY || !data.live
+      ? `边坡本地 mock · ${Math.round(cfg.intervalMs / 1000)}s 读取`
+      : `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
   );
 }
 
 function onSlopeError(err) {
-  const last = window.__lastSensorBundle;
-  if (last?.slope?.live) return;
   setSlopePollStatus(false, `边坡刷新失败，保留上次数据 · ${err.message || err}`);
 }
 
@@ -198,7 +168,7 @@ async function boot() {
     return;
   }
 
-  const center = mockData.slopePoints.mapCenter || [102.4785, 24.8512];
+  const center = mockData.slopePoints.mapCenter || [102.445768, 24.786112];
   const zoom = mockData.slopePoints.mapZoom || 15;
   initMap(center, zoom);
 
@@ -222,26 +192,21 @@ async function boot() {
   // 首屏本地数据
   applyEnvironment(mockData.environment);
   renderProduction(mockData.production);
-  renderAlerts(mockData.alerts);
+  refreshAlerts(null);
   renderReserves(mockData.reserves);
   renderVideo(mockData.video);
   renderVideoMarkers(mockData.video);
   renderProductionMarkers(mockData.production, mockData.slopePoints);
 
+  setEnvPollStatus(true, '演示原型 · 环境/报警本地 mock（不接实时推送）');
+
   ['environment', 'slope', 'video', 'production'].forEach((k) => setLayerVisible(k, true));
 
-  // 传感器网关：30s 读取环境 +（若 live）边坡
-  startSensorPolling((bundle) => {
-    window.__lastSensorBundle = bundle;
-    onSensorBundle(bundle);
-  }, onSensorError);
-
-  // 边坡兜底轮询：30s（网关 live 时自动跳过覆盖）
+  // 边坡：preferMock 时读 ./data/slope.json，保留轮询形态
   startSlopePolling(onSlopeData, onSlopeError);
 
   window.__sensorDebug = {
     stop: () => {
-      stopSensorPolling();
       stopSlopePolling();
     },
   };

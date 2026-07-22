@@ -1,12 +1,14 @@
 /**
  * 边坡监测数据接口层。
- * 优先走传感器网关 /api/slope（MQTT GNSS/雨量）；失败时回退本地 slope.json。
+ * 演示原型默认 preferMock：直接读本地 slope.json；保留 /api/slope 形状供后续接入。
  * 轮询间隔 ≥ 30 秒。
  */
 const SLOPE_API = {
   baseUrl: '',
   path: '/api/slope',
   fallbackUrl: './data/slope.json',
+  /** 演示原型：优先本地 mock，不连真实网关 */
+  preferMock: true,
   intervalMs: 30_000,
 };
 
@@ -53,16 +55,19 @@ async function fetchJson(u) {
  */
 export async function fetchSlopeData() {
   let json;
-  try {
-    json = await fetchJson(slopeUrl());
-  } catch (err) {
-    // 网关未启动时回退本地快照
-    const fb = SLOPE_API.fallbackUrl;
-    if (!fb) throw err;
+  const fb = SLOPE_API.fallbackUrl;
+  if (SLOPE_API.preferMock && fb) {
     json = await fetchJson(`${fb}?_=${Date.now()}`);
+  } else {
+    try {
+      json = await fetchJson(slopeUrl());
+    } catch (err) {
+      if (!fb) throw err;
+      json = await fetchJson(`${fb}?_=${Date.now()}`);
+    }
   }
   const data = normalizeSlopePayload(json);
-  data.live = Boolean(json.live);
+  data.live = Boolean(json.live) && !SLOPE_API.preferMock;
   _lastData = data;
   return data;
 }

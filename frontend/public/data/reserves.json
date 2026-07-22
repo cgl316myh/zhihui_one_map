@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-14T22:20:00+08:00",
+  "updatedAt": "2026-07-21T10:00:00+08:00",
   "unit": "万吨",
   "initialReserve": 860,
   "mined": 218.6,
@@ -7,7 +7,7 @@
   "designRecoverable": 790,
   "lossRate": 0.08,
   "warningYears": 3,
-  "remainingDays": 1820,
+  "remainingDays": 980,
   "trend": [
     { "month": "2026-02", "remaining": 682.1 },
     { "month": "2026-03", "remaining": 674.5 },

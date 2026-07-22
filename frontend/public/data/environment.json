@@ -1,12 +1,13 @@
 {
-  "updatedAt": "2026-07-14T22:20:00+08:00",
+  "updatedAt": "2026-07-21T10:00:00+08:00",
+  "source": "local-mock",
   "points": [
     {
       "id": "ENV-01",
       "name": "1# 环境监测点",
       "location": "行政生活区与生产过渡区",
-      "lng": 102.4768,
-      "lat": 24.8508,
+      "lng": 102.4449,
+      "lat": 24.7856,
       "status": "normal",
       "metrics": {
         "temperature": 24.6,
@@ -27,8 +28,8 @@
       "id": "ENV-02",
       "name": "2# 环境监测点",
       "location": "破碎/筛分车间下风向边界",
-      "lng": 102.4792,
-      "lat": 24.8498,
+      "lng": 102.4466,
+      "lat": 24.7855,
       "status": "warn",
       "metrics": {
         "temperature": 26.1,
@@ -51,8 +52,8 @@
       "id": "ENV-03",
       "name": "3# 环境监测点",
       "location": "矿区边界临近村庄（厂界）",
-      "lng": 102.4805,
-      "lat": 24.8518,
+      "lng": 102.4472,
+      "lat": 24.7876,
       "status": "normal",
       "metrics": {
         "noise": 48.6,

@@ -20,6 +20,48 @@ const axisStyle = {
   splitLine: { lineStyle: { color: 'rgba(80,140,220,0.12)' } },
 };
 
+/** 雨量独立趋势：取近期点，过密时抽样，避免折线糊成一团 */
+export function renderRainTrend(rainfall) {
+  if (!rainfall) return;
+  const raw = Array.isArray(rainfall.series) ? rainfall.series : [];
+  const maxPts = 48;
+  const step = raw.length > maxPts ? Math.ceil(raw.length / maxPts) : 1;
+  const series = raw.filter((_, i) => i % step === 0 || i === raw.length - 1);
+  const times = series.map((s) => (s.t || '').slice(5, 16));
+  ensureChart('chart-rain-trend', {
+    backgroundColor: 'transparent',
+    grid: { top: 28, right: 12, bottom: 22, left: 40 },
+    legend: {
+      data: ['时段雨量'],
+      textStyle: { color: 'rgba(200,220,255,0.8)', fontSize: 10 },
+      top: 0,
+      right: 0,
+      itemWidth: 10,
+      itemHeight: 6,
+    },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: times, ...axisStyle },
+    yAxis: {
+      type: 'value',
+      name: 'mm',
+      nameTextStyle: { color: 'rgba(200,220,255,0.55)', fontSize: 10 },
+      ...axisStyle,
+    },
+    series: [
+      {
+        name: '时段雨量',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        areaStyle: { color: 'rgba(61,214,255,0.12)' },
+        data: series.map((s) => s.value),
+        lineStyle: { color: '#3dd6ff', width: 2 },
+        itemStyle: { color: '#3dd6ff' },
+      },
+    ],
+  });
+}
+
 export function renderSlopeTrend(point) {
   if (!point) return;
   const times = (point.series || []).map((s) =>

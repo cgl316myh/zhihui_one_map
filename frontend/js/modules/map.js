@@ -280,12 +280,27 @@ export function renderProductionMarkers(prod, slopePointsMeta) {
   if (!g) return;
   g.clearLayers();
   markers.production.clear();
-  // 生产点位：放在破碎/筛分附近相对坐标（基于矿区中心偏移）
-  const center = slopePointsMeta?.mapCenter || [102.4785, 24.8512];
-  const spots = [
-    { id: 'CRUSH', name: '破碎工段', lat: center[1] - 0.001, lng: center[0] + 0.0006, status: 'running' },
-    { id: 'SCREEN', name: '筛分工段', lat: center[1] - 0.0014, lng: center[0] + 0.0012, status: 'warn' },
-  ];
+  // 优先用 production.mapSpots（已按 slope-points 矿区校准）；否则相对矿区中心偏移
+  const center = slopePointsMeta?.mapCenter || [102.445768, 24.786112];
+  const spots =
+    Array.isArray(prod?.mapSpots) && prod.mapSpots.length
+      ? prod.mapSpots
+      : [
+          {
+            id: 'CRUSH',
+            name: '破碎工段',
+            lat: center[1] - 0.001,
+            lng: center[0] + 0.0006,
+            status: 'running',
+          },
+          {
+            id: 'SCREEN',
+            name: '筛分工段',
+            lat: center[1] - 0.0014,
+            lng: center[0] + 0.0012,
+            status: 'warn',
+          },
+        ];
   const lineStatus = {};
   (prod.lines || []).forEach((l) => {
     lineStatus[l.id] = l.status;
