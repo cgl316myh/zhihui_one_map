@@ -1,4 +1,4 @@
-import { renderPopupSeries } from './charts.js';
+import { renderPopupSeries, renderPopupEnvHistory } from './charts.js';
 
 let map = null;
 let baseLayerGroup = null;
@@ -246,12 +246,23 @@ export function renderEnvironmentMarkers(env) {
           `<li>${k}: <b>${v}</b>${(p.units && p.units[k]) || ''}</li>`
       )
       .join('');
-    m.bindPopup(`
-      <div class="popup-card">
+    const chartId = `popup-env-${p.id}`;
+    const hasHist = Array.isArray(p.history) && p.history.length;
+    m.bindPopup(
+      `
+      <div class="popup-card ${hasHist ? 'wide' : ''}">
         <h4>${p.name}</h4>
-        <p>${p.location || ''}</p>
+        <p>${p.location || ''} · ${p.status || ''}</p>
         <ul>${metrics}</ul>
-      </div>`);
+        ${hasHist ? `<div class="popup-chart-label">近 24h</div><div id="${chartId}" class="popup-chart"></div>` : ''}
+      </div>`,
+      { maxWidth: hasHist ? 320 : 260 }
+    );
+    if (hasHist) {
+      m.on('popupopen', () => {
+        setTimeout(() => renderPopupEnvHistory(chartId, p), 30);
+      });
+    }
     markers.environment.set(p.id, m);
   });
 }
@@ -332,16 +343,20 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
     }).addTo(g);
 
     const chartId = `popup-chart-${p.id}`;
+    const th = p.threshold || {};
+    const cleared = p.cleared ? ' · 已消警' : '';
     m.bindPopup(
       `<div class="popup-card wide">
         <h4>${p.name}</h4>
-        <p>X ${p.x} / Y ${p.y} / H ${p.h} ${p.unit || 'mm'}</p>
+        <p>X ${p.x} / Y ${p.y} / H ${p.h} ${p.unit || 'mm'} · 幅值 ${p.magnitude ?? '—'}${cleared}</p>
+        <p class="popup-th">阈值 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'} · 计算态 ${p.computedStatus || p.status}</p>
+        <div class="popup-chart-label">短历史（近 12 点）</div>
         <div id="${chartId}" class="popup-chart"></div>
       </div>`,
       { maxWidth: 320 }
     );
     m.on('popupopen', () => {
-      setTimeout(() => renderPopupSeries(chartId, p), 30);
+      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 30);
     });
     markers.slope.set(p.id, m);
   });

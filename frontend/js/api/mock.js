@@ -13,7 +13,7 @@ async function loadJson(name) {
  * 一次性加载非边坡类本地测试数据
  */
 export async function loadMockBundle() {
-  const [environment, production, video, reserves, alerts, slopePoints] =
+  const [environment, production, video, reserves, alerts, slopePoints, envThresholds] =
     await Promise.all([
       loadJson('environment.json'),
       loadJson('production.json'),
@@ -21,6 +21,7 @@ export async function loadMockBundle() {
       loadJson('reserves.json'),
       loadJson('alerts.json'),
       loadJson('slope-points.json'),
+      loadJson('env-thresholds.json').catch(() => null),
     ]);
 
   return {
@@ -30,5 +31,6 @@ export async function loadMockBundle() {
     reserves,
     alerts,
     slopePoints,
+    envThresholds,
   };
 }

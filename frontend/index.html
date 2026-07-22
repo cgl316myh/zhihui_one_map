@@ -34,11 +34,14 @@
         <section class="panel" id="sec-env">
           <div class="panel-hd">
             <h2>环境在线监测</h2>
-            <span class="sub">3 个独立点位 · 30s</span>
+            <span class="sub">历史曲线 · 阈值演示</span>
           </div>
           <div class="panel-bd">
             <div id="env-poll-status" class="poll-ok">环境接口初始化…</div>
             <div id="panel-environment"></div>
+            <div class="chart-caption" id="env-chart-caption">历史曲线</div>
+            <div class="chart-box" id="chart-env-history"></div>
+            <div class="thresh-box" id="panel-env-thresholds"></div>
           </div>
         </section>
 
@@ -140,7 +143,9 @@
             <div id="panel-rainfall"></div>
             <div class="chart-box sm" id="chart-rain-trend" title="雨量趋势"></div>
             <div id="panel-slope-list"></div>
+            <div class="chart-caption">位移短历史（近端）</div>
             <div class="chart-box" id="chart-slope-trend"></div>
+            <div id="panel-slope-actions"></div>
           </div>
         </section>
 

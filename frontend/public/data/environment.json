@@ -22,7 +22,33 @@
         "noise": "dB",
         "pm25": "μg/m³",
         "pm10": "μg/m³"
-      }
+      },
+      "history": [
+        { "t": "07-20 11:00", "temperature": 23.8, "humidity": 61, "noise": 49.2, "pm25": 24, "pm10": 40 },
+        { "t": "07-20 12:00", "temperature": 24.1, "humidity": 60, "noise": 50.5, "pm25": 26, "pm10": 42 },
+        { "t": "07-20 13:00", "temperature": 24.8, "humidity": 57, "noise": 53.1, "pm25": 29, "pm10": 46 },
+        { "t": "07-20 14:00", "temperature": 25.2, "humidity": 55, "noise": 54.0, "pm25": 31, "pm10": 48 },
+        { "t": "07-20 15:00", "temperature": 25.0, "humidity": 54, "noise": 53.6, "pm25": 30, "pm10": 47 },
+        { "t": "07-20 16:00", "temperature": 24.7, "humidity": 55, "noise": 52.8, "pm25": 28, "pm10": 45 },
+        { "t": "07-20 17:00", "temperature": 24.3, "humidity": 56, "noise": 51.4, "pm25": 27, "pm10": 43 },
+        { "t": "07-20 18:00", "temperature": 23.9, "humidity": 58, "noise": 50.2, "pm25": 25, "pm10": 41 },
+        { "t": "07-20 19:00", "temperature": 23.4, "humidity": 60, "noise": 48.8, "pm25": 24, "pm10": 39 },
+        { "t": "07-20 20:00", "temperature": 23.0, "humidity": 62, "noise": 47.5, "pm25": 22, "pm10": 37 },
+        { "t": "07-20 21:00", "temperature": 22.7, "humidity": 63, "noise": 46.9, "pm25": 21, "pm10": 36 },
+        { "t": "07-20 22:00", "temperature": 22.4, "humidity": 64, "noise": 45.8, "pm25": 20, "pm10": 34 },
+        { "t": "07-20 23:00", "temperature": 22.1, "humidity": 65, "noise": 44.6, "pm25": 19, "pm10": 33 },
+        { "t": "07-21 00:00", "temperature": 21.8, "humidity": 66, "noise": 43.9, "pm25": 18, "pm10": 32 },
+        { "t": "07-21 01:00", "temperature": 21.6, "humidity": 66, "noise": 43.2, "pm25": 18, "pm10": 31 },
+        { "t": "07-21 02:00", "temperature": 21.4, "humidity": 67, "noise": 42.8, "pm25": 17, "pm10": 30 },
+        { "t": "07-21 03:00", "temperature": 21.3, "humidity": 67, "noise": 42.5, "pm25": 17, "pm10": 30 },
+        { "t": "07-21 04:00", "temperature": 21.5, "humidity": 66, "noise": 43.0, "pm25": 18, "pm10": 31 },
+        { "t": "07-21 05:00", "temperature": 21.9, "humidity": 64, "noise": 44.2, "pm25": 19, "pm10": 33 },
+        { "t": "07-21 06:00", "temperature": 22.6, "humidity": 62, "noise": 46.5, "pm25": 21, "pm10": 36 },
+        { "t": "07-21 07:00", "temperature": 23.4, "humidity": 60, "noise": 48.9, "pm25": 24, "pm10": 39 },
+        { "t": "07-21 08:00", "temperature": 24.0, "humidity": 59, "noise": 51.2, "pm25": 26, "pm10": 42 },
+        { "t": "07-21 09:00", "temperature": 24.4, "humidity": 58, "noise": 52.0, "pm25": 27, "pm10": 44 },
+        { "t": "07-21 10:00", "temperature": 24.6, "humidity": 58, "noise": 52.3, "pm25": 28, "pm10": 45 }
+      ]
     },
     {
       "id": "ENV-02",
@@ -46,7 +72,33 @@
         "pm25": "μg/m³",
         "pm10": "μg/m³",
         "dust": "mg/m³"
-      }
+      },
+      "history": [
+        { "t": "07-20 11:00", "temperature": 25.2, "humidity": 54, "noise": 62.1, "pm25": 48, "pm10": 78, "dust": 1.2 },
+        { "t": "07-20 12:00", "temperature": 25.6, "humidity": 53, "noise": 64.5, "pm25": 52, "pm10": 84, "dust": 1.3 },
+        { "t": "07-20 13:00", "temperature": 26.0, "humidity": 51, "noise": 67.2, "pm25": 58, "pm10": 92, "dust": 1.5 },
+        { "t": "07-20 14:00", "temperature": 26.4, "humidity": 50, "noise": 69.0, "pm25": 64, "pm10": 101, "dust": 1.7 },
+        { "t": "07-20 15:00", "temperature": 26.5, "humidity": 49, "noise": 70.2, "pm25": 66, "pm10": 105, "dust": 1.9 },
+        { "t": "07-20 16:00", "temperature": 26.3, "humidity": 50, "noise": 68.8, "pm25": 63, "pm10": 99, "dust": 1.8 },
+        { "t": "07-20 17:00", "temperature": 25.9, "humidity": 51, "noise": 66.4, "pm25": 58, "pm10": 91, "dust": 1.6 },
+        { "t": "07-20 18:00", "temperature": 25.4, "humidity": 53, "noise": 63.0, "pm25": 52, "pm10": 82, "dust": 1.4 },
+        { "t": "07-20 19:00", "temperature": 24.8, "humidity": 55, "noise": 59.5, "pm25": 46, "pm10": 74, "dust": 1.2 },
+        { "t": "07-20 20:00", "temperature": 24.2, "humidity": 57, "noise": 56.2, "pm25": 42, "pm10": 68, "dust": 1.0 },
+        { "t": "07-20 21:00", "temperature": 23.7, "humidity": 58, "noise": 54.0, "pm25": 38, "pm10": 62, "dust": 0.9 },
+        { "t": "07-20 22:00", "temperature": 23.3, "humidity": 59, "noise": 52.1, "pm25": 35, "pm10": 58, "dust": 0.8 },
+        { "t": "07-20 23:00", "temperature": 23.0, "humidity": 60, "noise": 50.4, "pm25": 33, "pm10": 54, "dust": 0.7 },
+        { "t": "07-21 00:00", "temperature": 22.7, "humidity": 61, "noise": 49.0, "pm25": 31, "pm10": 51, "dust": 0.7 },
+        { "t": "07-21 01:00", "temperature": 22.5, "humidity": 61, "noise": 48.2, "pm25": 30, "pm10": 49, "dust": 0.6 },
+        { "t": "07-21 02:00", "temperature": 22.3, "humidity": 62, "noise": 47.5, "pm25": 29, "pm10": 48, "dust": 0.6 },
+        { "t": "07-21 03:00", "temperature": 22.2, "humidity": 62, "noise": 47.0, "pm25": 28, "pm10": 47, "dust": 0.6 },
+        { "t": "07-21 04:00", "temperature": 22.4, "humidity": 61, "noise": 48.0, "pm25": 29, "pm10": 49, "dust": 0.7 },
+        { "t": "07-21 05:00", "temperature": 22.8, "humidity": 60, "noise": 50.5, "pm25": 32, "pm10": 53, "dust": 0.8 },
+        { "t": "07-21 06:00", "temperature": 23.6, "humidity": 57, "noise": 55.8, "pm25": 38, "pm10": 62, "dust": 1.0 },
+        { "t": "07-21 07:00", "temperature": 24.5, "humidity": 55, "noise": 60.2, "pm25": 46, "pm10": 74, "dust": 1.2 },
+        { "t": "07-21 08:00", "temperature": 25.3, "humidity": 53, "noise": 64.8, "pm25": 54, "pm10": 86, "dust": 1.5 },
+        { "t": "07-21 09:00", "temperature": 25.8, "humidity": 52, "noise": 67.1, "pm25": 59, "pm10": 94, "dust": 1.7 },
+        { "t": "07-21 10:00", "temperature": 26.1, "humidity": 51, "noise": 68.4, "pm25": 62, "pm10": 98, "dust": 1.8 }
+      ]
     },
     {
       "id": "ENV-03",
@@ -64,7 +116,33 @@
         "noise": "dB",
         "pm10": "μg/m³",
         "dust": "mg/m³"
-      }
+      },
+      "history": [
+        { "t": "07-20 11:00", "noise": 46.2, "pm10": 48, "dust": 0.5 },
+        { "t": "07-20 12:00", "noise": 47.5, "pm10": 50, "dust": 0.5 },
+        { "t": "07-20 13:00", "noise": 49.0, "pm10": 54, "dust": 0.6 },
+        { "t": "07-20 14:00", "noise": 50.2, "pm10": 56, "dust": 0.7 },
+        { "t": "07-20 15:00", "noise": 49.8, "pm10": 55, "dust": 0.6 },
+        { "t": "07-20 16:00", "noise": 48.9, "pm10": 53, "dust": 0.6 },
+        { "t": "07-20 17:00", "noise": 47.6, "pm10": 51, "dust": 0.5 },
+        { "t": "07-20 18:00", "noise": 46.4, "pm10": 49, "dust": 0.5 },
+        { "t": "07-20 19:00", "noise": 45.1, "pm10": 47, "dust": 0.4 },
+        { "t": "07-20 20:00", "noise": 44.0, "pm10": 45, "dust": 0.4 },
+        { "t": "07-20 21:00", "noise": 43.2, "pm10": 44, "dust": 0.4 },
+        { "t": "07-20 22:00", "noise": 42.5, "pm10": 42, "dust": 0.3 },
+        { "t": "07-20 23:00", "noise": 41.8, "pm10": 41, "dust": 0.3 },
+        { "t": "07-21 00:00", "noise": 41.2, "pm10": 40, "dust": 0.3 },
+        { "t": "07-21 01:00", "noise": 40.8, "pm10": 39, "dust": 0.3 },
+        { "t": "07-21 02:00", "noise": 40.5, "pm10": 39, "dust": 0.3 },
+        { "t": "07-21 03:00", "noise": 40.4, "pm10": 38, "dust": 0.3 },
+        { "t": "07-21 04:00", "noise": 41.0, "pm10": 39, "dust": 0.3 },
+        { "t": "07-21 05:00", "noise": 42.2, "pm10": 41, "dust": 0.4 },
+        { "t": "07-21 06:00", "noise": 44.0, "pm10": 44, "dust": 0.4 },
+        { "t": "07-21 07:00", "noise": 45.8, "pm10": 47, "dust": 0.5 },
+        { "t": "07-21 08:00", "noise": 47.2, "pm10": 50, "dust": 0.5 },
+        { "t": "07-21 09:00", "noise": 48.0, "pm10": 51, "dust": 0.6 },
+        { "t": "07-21 10:00", "noise": 48.6, "pm10": 52, "dust": 0.6 }
+      ]
     }
   ]
 }

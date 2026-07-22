@@ -1,4 +1,14 @@
-import { renderSlopeTrend, renderRainTrend, renderReserveCharts } from './charts.js';
+import {
+  renderSlopeTrend,
+  renderRainTrend,
+  renderReserveCharts,
+  renderEnvHistory,
+} from './charts.js';
+import {
+  getEnvThresholds,
+  getActivePeriodKey,
+  getDefaultEnvThresholds,
+} from './envThresholds.js';
 
 function statusClass(status) {
   if (status === 'alarm' || status === 'fault') return 'st-alarm';
@@ -26,39 +36,132 @@ export function setEnvPollStatus(ok, message) {
   el.textContent = message;
 }
 
-export function renderEnvironment(env) {
+/**
+ * @param {object} env
+ * @param {string|null} selectedId
+ */
+export function renderEnvironment(env, selectedId = null) {
   const box = document.getElementById('panel-environment');
-  if (!box || !env) return;
+  if (!box || !env) return null;
+  const points = env.points || [];
+  const focus =
+    points.find((p) => p.id === selectedId) ||
+    points.find((p) => p.status === 'warn' || p.status === 'alarm') ||
+    points[0] ||
+    null;
+
   const liveTag = env.live
     ? '<div class="poll-ok" style="margin-bottom:8px">实时接入 · MQTT/HTTP</div>'
     : env.source === 'fallback-mock' || env.source === 'local-mock'
       ? '<div class="poll-ok" style="margin-bottom:8px">演示 · 本地 mock</div>'
       : '';
+
   box.innerHTML =
     liveTag +
-    (env.points || [])
+    points
       .map((p) => {
         const m = p.metrics || {};
         const keys = Object.keys(m);
-        const rows = (keys.length ? keys : []).map(
-          (k) =>
-            `<span>${metricLabel(k)} <b>${m[k]}</b>${(p.units && p.units[k]) || ''}</span>`
-        ).join('');
-        const time = p.detectedTime
-          ? `<div class="metric-loc">采集 ${p.detectedTime}</div>`
+        const rows = keys
+          .map(
+            (k) =>
+              `<span>${metricLabel(k)} <b>${m[k]}</b>${(p.units && p.units[k]) || ''}</span>`
+          )
+          .join('');
+        const hit = p.statusHit
+          ? `<div class="metric-loc">触发 ${metricLabel(p.statusHit.key)} ≥ ${p.statusHit.limit}</div>`
           : '';
+        const active = focus && p.id === focus.id ? 'active' : '';
         return `
-        <div class="metric-card ${statusClass(p.status)}" data-point="${p.id}">
+        <button type="button" class="metric-card ${statusClass(p.status)} ${active}" data-env-id="${p.id}">
           <div class="metric-head">
             <strong>${p.name}</strong>
             <em class="${statusClass(p.status)}">${statusText(p.status)}</em>
           </div>
           <div class="metric-loc">${p.location || ''}</div>
           <div class="metric-grid">${rows || '<span>等待传感器数据…</span>'}</div>
-          ${time}
-        </div>`;
+          ${hit}
+        </button>`;
       })
       .join('');
+
+  const cap = document.getElementById('env-chart-caption');
+  if (cap) {
+    cap.textContent = focus
+      ? `${focus.name} · 近 24h 历史（mock）`
+      : '历史曲线';
+  }
+  if (focus) renderEnvHistory(focus);
+
+  return focus ? focus.id : null;
+}
+
+export function renderEnvThresholdForm(thresholds, handlers = {}) {
+  const box = document.getElementById('panel-env-thresholds');
+  if (!box) return;
+  const th = thresholds || getEnvThresholds();
+  const period = getActivePeriodKey();
+  const periodLabel = period === 'day' ? '当前昼间' : '当前夜间';
+  const fields = [
+    { key: 'noise', label: '噪声' },
+    { key: 'pm10', label: 'PM10' },
+    { key: 'pm25', label: 'PM2.5' },
+    { key: 'dust', label: '粉尘' },
+  ];
+
+  const row = (mode, title) => `
+    <div class="thresh-period ${mode === period ? 'is-active' : ''}">
+      <div class="thresh-period-hd">${title}${mode === period ? ' · 生效中' : ''}</div>
+      <div class="thresh-grid">
+        ${fields
+          .map((f) => {
+            const rule = (th[mode] && th[mode][f.key]) || {};
+            const unit = rule.unit || '';
+            return `
+            <label class="thresh-field">
+              <span>${f.label}预警 ${unit}</span>
+              <input type="number" step="0.1" data-mode="${mode}" data-metric="${f.key}" data-bound="warn" value="${rule.warn ?? ''}" />
+            </label>
+            <label class="thresh-field">
+              <span>${f.label}报警 ${unit}</span>
+              <input type="number" step="0.1" data-mode="${mode}" data-metric="${f.key}" data-bound="alarm" value="${rule.alarm ?? ''}" />
+            </label>`;
+          })
+          .join('')}
+      </div>
+    </div>`;
+
+  box.innerHTML = `
+    <div class="thresh-hd">
+      <strong>阈值配置（演示）</strong>
+      <span class="sub">${periodLabel} · 仅本地存储</span>
+    </div>
+    ${row('day', '昼间 06–22')}
+    ${row('night', '夜间 22–06')}
+    <div class="thresh-actions">
+      <button type="button" class="tool-btn" id="btn-thresh-save">应用阈值</button>
+      <button type="button" class="tool-btn ghost" id="btn-thresh-reset">恢复默认</button>
+    </div>`;
+
+  box.querySelector('#btn-thresh-save')?.addEventListener('click', () => {
+    const next = { day: {}, night: {} };
+    box.querySelectorAll('input[data-metric]').forEach((input) => {
+      const mode = input.dataset.mode;
+      const metric = input.dataset.metric;
+      const bound = input.dataset.bound;
+      if (!next[mode][metric]) {
+        const base = (th[mode] && th[mode][metric]) || {};
+        next[mode][metric] = { ...base };
+      }
+      const n = Number(input.value);
+      if (Number.isFinite(n)) next[mode][metric][bound] = n;
+    });
+    handlers.onSave?.(next);
+  });
+
+  box.querySelector('#btn-thresh-reset')?.addEventListener('click', () => {
+    handlers.onReset?.(getDefaultEnvThresholds());
+  });
 }
 
 function metricLabel(key) {
@@ -111,9 +214,11 @@ export function renderProduction(prod) {
 export function renderAlerts(alerts) {
   const box = document.getElementById('panel-alerts');
   if (!box || !alerts) return;
-  box.innerHTML = (alerts.items || [])
-    .map(
-      (a) => `
+  const items = alerts.items || [];
+  box.innerHTML = items.length
+    ? items
+        .map(
+          (a) => `
       <div class="alert-item level-${a.level}">
         <div class="alert-top">
           <span class="tag">${a.module}</span>
@@ -121,14 +226,16 @@ export function renderAlerts(alerts) {
         </div>
         <p>${a.title}</p>
       </div>`
-    )
-    .join('');
+        )
+        .join('')
+    : '<div class="metric-loc">当前无汇聚报警</div>';
 }
 
-export function renderSlopePanel(slopeData, selectedId) {
+export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
   const list = document.getElementById('panel-slope-list');
   const rain = document.getElementById('panel-rainfall');
   const meta = document.getElementById('slope-updated');
+  const actions = document.getElementById('panel-slope-actions');
   if (!slopeData) return;
 
   if (meta) {
@@ -157,15 +264,26 @@ export function renderSlopePanel(slopeData, selectedId) {
     renderRainTrend(r);
   }
 
+  const points = slopeData.points || [];
+  const focus =
+    points.find((p) => p.id === selectedId) ||
+    points.find((p) => p.computedStatus === 'warn' || p.computedStatus === 'alarm') ||
+    points.find((p) => p.status === 'warn' || p.status === 'alarm') ||
+    points[0];
+
   if (list) {
-    list.innerHTML = (slopeData.points || [])
+    list.innerHTML = points
       .map((p) => {
-        const active = p.id === selectedId ? 'active' : '';
+        const active = focus && p.id === focus.id ? 'active' : '';
+        const th = p.threshold || {};
+        const cleared = p.cleared
+          ? `<span class="cleared-tag">已消警</span>`
+          : '';
         return `
         <button type="button" class="slope-item ${statusClass(p.status)} ${active}" data-slope-id="${p.id}">
           <div class="metric-head">
             <strong>${p.name}</strong>
-            <em class="${statusClass(p.status)}">${statusText(p.status)}</em>
+            <em class="${statusClass(p.status)}">${statusText(p.status)}${cleared}</em>
           </div>
           <div class="xyz">
             <span>X <b>${fmtNum(p.x)}</b></span>
@@ -173,16 +291,47 @@ export function renderSlopePanel(slopeData, selectedId) {
             <span>H <b>${fmtNum(p.h)}</b></span>
             <span class="unit">${p.unit || 'mm'}</span>
           </div>
+          <div class="metric-loc">幅值 ${fmtNum(p.magnitude)} · 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'}</div>
         </button>`;
       })
       .join('');
   }
 
-  const points = slopeData.points || [];
-  const focus =
-    points.find((p) => p.id === selectedId) ||
-    points.find((p) => p.status === 'warn' || p.status === 'alarm') ||
-    points[0];
+  if (actions) {
+    if (focus) {
+      const needClear =
+        !focus.cleared &&
+        (focus.computedStatus === 'warn' || focus.computedStatus === 'alarm');
+      const canRevoke = Boolean(focus.cleared);
+      actions.innerHTML = `
+        <div class="slope-actions">
+          <span class="metric-loc">选中：${focus.name}</span>
+          ${
+            needClear
+              ? `<button type="button" class="tool-btn" id="btn-slope-clear">消警（演示）</button>`
+              : ''
+          }
+          ${
+            canRevoke
+              ? `<button type="button" class="tool-btn ghost" id="btn-slope-revoke">恢复预警态</button>`
+              : ''
+          }
+          <button type="button" class="tool-btn ghost" id="btn-slope-reset-clears">清除全部消警</button>
+        </div>`;
+      actions.querySelector('#btn-slope-clear')?.addEventListener('click', () => {
+        handlers.onClear?.(focus.id, focus.computedStatus);
+      });
+      actions.querySelector('#btn-slope-revoke')?.addEventListener('click', () => {
+        handlers.onRevoke?.(focus.id);
+      });
+      actions.querySelector('#btn-slope-reset-clears')?.addEventListener('click', () => {
+        handlers.onResetClears?.();
+      });
+    } else {
+      actions.innerHTML = '';
+    }
+  }
+
   renderSlopeTrend(focus);
   return focus ? focus.id : null;
 }

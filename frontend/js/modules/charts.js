@@ -64,9 +64,10 @@ export function renderRainTrend(rainfall) {
 
 export function renderSlopeTrend(point) {
   if (!point) return;
-  const times = (point.series || []).map((s) =>
-    (s.t || '').slice(5, 10)
-  );
+  const maxPts = 24;
+  const series = Array.isArray(point.series) ? point.series : [];
+  const short = series.length > maxPts ? series.slice(-maxPts) : series;
+  const times = short.map((s) => (s.t || '').slice(5, 16));
   ensureChart('chart-slope-trend', {
     backgroundColor: 'transparent',
     grid: { top: 28, right: 12, bottom: 22, left: 36 },
@@ -92,7 +93,7 @@ export function renderSlopeTrend(point) {
         type: 'line',
         smooth: true,
         showSymbol: false,
-        data: (point.series || []).map((s) => s.x),
+        data: short.map((s) => s.x),
         lineStyle: { color: '#3dd6ff', width: 2 },
         itemStyle: { color: '#3dd6ff' },
       },
@@ -101,7 +102,7 @@ export function renderSlopeTrend(point) {
         type: 'line',
         smooth: true,
         showSymbol: false,
-        data: (point.series || []).map((s) => s.y),
+        data: short.map((s) => s.y),
         lineStyle: { color: '#7cffb2', width: 2 },
         itemStyle: { color: '#7cffb2' },
       },
@@ -110,7 +111,7 @@ export function renderSlopeTrend(point) {
         type: 'line',
         smooth: true,
         showSymbol: false,
-        data: (point.series || []).map((s) => s.h),
+        data: short.map((s) => s.h),
         lineStyle: { color: '#ffc857', width: 2 },
         itemStyle: { color: '#ffc857' },
       },
@@ -199,23 +200,151 @@ export function renderReserveCharts(reserves) {
   });
 }
 
-export function renderPopupSeries(domId, point) {
+export function renderPopupSeries(domId, point, options = {}) {
   if (!point) return;
-  const times = (point.series || []).map((s) => (s.t || '').slice(5, 10));
+  const maxPts = options.maxPts || 12;
+  const series = Array.isArray(point.series) ? point.series : [];
+  const short = series.length > maxPts ? series.slice(-maxPts) : series;
+  const times = short.map((s) => (s.t || '').slice(5, 16));
   ensureChart(domId, {
     backgroundColor: 'transparent',
-    grid: { top: 20, right: 8, bottom: 20, left: 30 },
+    grid: { top: 22, right: 8, bottom: 22, left: 32 },
     legend: {
       data: ['X', 'Y', 'H'],
-      textStyle: { color: '#334', fontSize: 10 },
+      textStyle: { color: '#456', fontSize: 10 },
       top: 0,
+      itemWidth: 8,
+      itemHeight: 6,
     },
-    xAxis: { type: 'category', data: times, axisLabel: { fontSize: 9 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 9 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: times,
+      axisLabel: { fontSize: 9, color: '#567' },
+      axisLine: { lineStyle: { color: '#bcd' } },
+    },
+    yAxis: {
+      type: 'value',
+      name: 'mm',
+      nameTextStyle: { fontSize: 9, color: '#678' },
+      axisLabel: { fontSize: 9, color: '#567' },
+      splitLine: { lineStyle: { color: '#e4eaf2' } },
+    },
     series: [
-      { name: 'X', type: 'line', data: (point.series || []).map((s) => s.x), showSymbol: false },
-      { name: 'Y', type: 'line', data: (point.series || []).map((s) => s.y), showSymbol: false },
-      { name: 'H', type: 'line', data: (point.series || []).map((s) => s.h), showSymbol: false },
+      {
+        name: 'X',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: short.map((s) => s.x),
+        lineStyle: { color: '#2a8fd6', width: 2 },
+      },
+      {
+        name: 'Y',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: short.map((s) => s.y),
+        lineStyle: { color: '#2e9b6a', width: 2 },
+      },
+      {
+        name: 'H',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: short.map((s) => s.h),
+        lineStyle: { color: '#c48a1a', width: 2 },
+      },
     ],
+  });
+}
+
+const ENV_METRIC_COLORS = {
+  noise: '#3dd6ff',
+  pm10: '#ffc857',
+  pm25: '#ff8f6b',
+  dust: '#b48cff',
+  temperature: '#7cffb2',
+  humidity: '#6aa8ff',
+};
+
+/** 环境点历史折线（mock history） */
+export function renderEnvHistory(point, preferredKeys) {
+  if (!point) return;
+  const hist = Array.isArray(point.history) ? point.history : [];
+  const keys =
+    preferredKeys && preferredKeys.length
+      ? preferredKeys.filter((k) => hist.some((h) => h[k] != null))
+      : ['noise', 'pm10', 'pm25', 'dust'].filter((k) => hist.some((h) => h[k] != null));
+  const times = hist.map((h) => h.t || '');
+  ensureChart('chart-env-history', {
+    backgroundColor: 'transparent',
+    grid: { top: 28, right: 10, bottom: 22, left: 36 },
+    legend: {
+      data: keys.map((k) => metricName(k)),
+      textStyle: { color: 'rgba(200,220,255,0.8)', fontSize: 10 },
+      top: 0,
+      right: 0,
+      itemWidth: 10,
+      itemHeight: 6,
+    },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: times, ...axisStyle },
+    yAxis: { type: 'value', ...axisStyle },
+    series: keys.map((k) => ({
+      name: metricName(k),
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      data: hist.map((h) => h[k]),
+      lineStyle: { color: ENV_METRIC_COLORS[k] || '#3dd6ff', width: 2 },
+      itemStyle: { color: ENV_METRIC_COLORS[k] || '#3dd6ff' },
+    })),
+  });
+}
+
+function metricName(key) {
+  const map = {
+    temperature: '温度',
+    humidity: '湿度',
+    noise: '噪声',
+    pm25: 'PM2.5',
+    pm10: 'PM10',
+    dust: '粉尘',
+  };
+  return map[key] || key;
+}
+
+export function renderPopupEnvHistory(domId, point) {
+  if (!point) return;
+  const hist = Array.isArray(point.history) ? point.history : [];
+  const keys = ['noise', 'pm10', 'pm25', 'dust'].filter((k) =>
+    hist.some((h) => h[k] != null)
+  );
+  ensureChart(domId, {
+    backgroundColor: 'transparent',
+    grid: { top: 22, right: 8, bottom: 22, left: 32 },
+    legend: {
+      data: keys.map((k) => metricName(k)),
+      textStyle: { color: '#456', fontSize: 9 },
+      top: 0,
+      itemWidth: 8,
+      itemHeight: 6,
+    },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: hist.map((h) => h.t || ''),
+      axisLabel: { fontSize: 8, color: '#567' },
+    },
+    yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#567' } },
+    series: keys.map((k) => ({
+      name: metricName(k),
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      data: hist.map((h) => h[k]),
+      lineStyle: { width: 1.5 },
+    })),
   });
 }

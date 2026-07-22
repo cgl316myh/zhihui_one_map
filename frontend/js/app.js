@@ -16,6 +16,7 @@ import {
 } from './modules/map.js';
 import {
   renderEnvironment,
+  renderEnvThresholdForm,
   renderProduction,
   renderAlerts,
   renderSlopePanel,
@@ -25,6 +26,20 @@ import {
   setEnvPollStatus,
 } from './modules/panels.js';
 import { buildAlertsFromMock } from './modules/alerts.js';
+import {
+  initEnvThresholds,
+  applyEnvThresholds,
+  saveEnvThresholds,
+  resetEnvThresholds,
+  getEnvThresholds,
+  getActivePeriodKey,
+} from './modules/envThresholds.js';
+import {
+  applySlopeEvaluation,
+  clearSlopeAlarm,
+  revokeSlopeClear,
+  resetAllSlopeClears,
+} from './modules/slopeEval.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
@@ -33,6 +48,8 @@ const DEMO_MOCK_ONLY = true;
 
 let mockData = null;
 let selectedSlopeId = null;
+let selectedEnvId = null;
+let rawSlopeData = null;
 
 function tickClock() {
   const el = document.getElementById('clock');
@@ -88,8 +105,21 @@ function bindSlopeListClicks() {
     if (!btn) return;
     selectedSlopeId = btn.dataset.slopeId;
     const last = window.__lastSlopeData;
-    if (last) renderSlopePanel(last, selectedSlopeId);
-    focusSlopePoint(selectedSlopeId);
+    if (last) {
+      renderSlopePanel(last, selectedSlopeId, slopeActionHandlers());
+      focusSlopePoint(selectedSlopeId);
+    }
+  });
+}
+
+function bindEnvListClicks() {
+  const box = document.getElementById('panel-environment');
+  if (!box) return;
+  box.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-env-id]');
+    if (!btn || !mockData?.environment) return;
+    selectedEnvId = btn.dataset.envId;
+    selectedEnvId = renderEnvironment(mockData.environment, selectedEnvId);
   });
 }
 
@@ -106,10 +136,29 @@ function bindNavTabs() {
   });
 }
 
-function applyEnvironment(env) {
-  if (!env) return;
-  renderEnvironment(env);
-  renderEnvironmentMarkers(env);
+function refreshEnvironment() {
+  if (!mockData?.environment) return;
+  mockData.environment = applyEnvThresholds(mockData.environment, getEnvThresholds());
+  selectedEnvId = renderEnvironment(mockData.environment, selectedEnvId);
+  renderEnvironmentMarkers(mockData.environment);
+  refreshAlerts();
+  const period = getActivePeriodKey() === 'day' ? '昼间' : '夜间';
+  setEnvPollStatus(true, `演示 · 本地 mock · ${period}阈值生效`);
+}
+
+function refreshThresholdForm() {
+  renderEnvThresholdForm(getEnvThresholds(), {
+    onSave: (partial) => {
+      saveEnvThresholds(partial);
+      refreshEnvironment();
+      refreshThresholdForm();
+    },
+    onReset: () => {
+      resetEnvThresholds();
+      refreshEnvironment();
+      refreshThresholdForm();
+    },
+  });
 }
 
 function refreshAlerts(slopeOverride) {
@@ -124,14 +173,35 @@ function refreshAlerts(slopeOverride) {
   renderAlerts(alerts);
 }
 
+function slopeActionHandlers() {
+  return {
+    onClear: (id, previousStatus) => {
+      clearSlopeAlarm(id, { previousStatus });
+      if (rawSlopeData) applySlope(rawSlopeData);
+    },
+    onRevoke: (id) => {
+      revokeSlopeClear(id);
+      if (rawSlopeData) applySlope(rawSlopeData);
+    },
+    onResetClears: () => {
+      resetAllSlopeClears();
+      if (rawSlopeData) applySlope(rawSlopeData);
+    },
+  };
+}
+
 function applySlope(data) {
   if (!data) return;
-  window.__lastSlopeData = data;
-  selectedSlopeId = renderSlopePanel(data, selectedSlopeId) || selectedSlopeId;
+  rawSlopeData = data;
+  const evaluated = applySlopeEvaluation(data);
+  window.__lastSlopeData = evaluated;
+  selectedSlopeId =
+    renderSlopePanel(evaluated, selectedSlopeId, slopeActionHandlers()) ||
+    selectedSlopeId;
   if (mockData?.slopePoints) {
-    renderSlopeMarkers(data, mockData.slopePoints.points || []);
+    renderSlopeMarkers(evaluated, mockData.slopePoints.points || []);
   }
-  refreshAlerts(data);
+  refreshAlerts(evaluated);
 }
 
 function onSlopeData(data) {
@@ -140,7 +210,7 @@ function onSlopeData(data) {
   setSlopePollStatus(
     true,
     DEMO_MOCK_ONLY || !data.live
-      ? `边坡本地 mock · ${Math.round(cfg.intervalMs / 1000)}s 读取`
+      ? `边坡本地 mock · 阈值计算 · ${Math.round(cfg.intervalMs / 1000)}s`
       : `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
   );
 }
@@ -155,6 +225,7 @@ async function boot() {
   bindLayerToggles();
   bindLayerBoxToggle();
   bindSlopeListClicks();
+  bindEnvListClicks();
   bindNavTabs();
   initResizableSidebars();
 
@@ -167,6 +238,8 @@ async function boot() {
       '本地测试数据加载失败，请使用传感器网关或静态服务打开 frontend 目录（勿直接双击 file://）。';
     return;
   }
+
+  initEnvThresholds(mockData.envThresholds);
 
   const center = mockData.slopePoints.mapCenter || [102.445768, 24.786112];
   const zoom = mockData.slopePoints.mapZoom || 15;
@@ -189,20 +262,16 @@ async function boot() {
     invalidateMapSize();
   });
 
-  // 首屏本地数据
-  applyEnvironment(mockData.environment);
+  refreshEnvironment();
+  refreshThresholdForm();
   renderProduction(mockData.production);
-  refreshAlerts(null);
   renderReserves(mockData.reserves);
   renderVideo(mockData.video);
   renderVideoMarkers(mockData.video);
   renderProductionMarkers(mockData.production, mockData.slopePoints);
 
-  setEnvPollStatus(true, '演示原型 · 环境/报警本地 mock（不接实时推送）');
-
   ['environment', 'slope', 'video', 'production'].forEach((k) => setLayerVisible(k, true));
 
-  // 边坡：preferMock 时读 ./data/slope.json，保留轮询形态
   startSlopePolling(onSlopeData, onSlopeError);
 
   window.__sensorDebug = {
