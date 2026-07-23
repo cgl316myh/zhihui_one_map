@@ -31,6 +31,7 @@ import {
   downloadSensorConfigJson,
   syncSensorConfigToGateway,
 } from './auth/sensorConfigStore.js';
+import { isStaticHosting } from './demoMode.js';
 import {
   initEnvThresholds,
   getEnvThresholds,
@@ -820,18 +821,25 @@ function renderSensors() {
   const mqttOn = cfg.mqtt?.enabled !== false;
   const httpOn = cfg.http?.enabled !== false;
   const tcpOn = Boolean(cfg.tcp?.enabled);
+  const staticDemo = isStaticHosting();
   const box = $('panel-sensors');
   box.innerHTML = `
     <div class="thresh-page">
       <div class="thresh-page-hd">
         <div>
           <h2>数据接入配置</h2>
-          <p class="muted">统一管理传感器 MQTT 与 HTTP / TCP 推送地址及参数。本地保存后可导出或同步到网关 config.json。</p>
+          <p class="muted">${
+            staticDemo
+              ? '静态演示：参数仅保存在本浏览器，用于展示配置界面；大屏数据全部来自本地 mock，无需网关。'
+              : '统一管理传感器 MQTT 与 HTTP / TCP 推送地址及参数。本地保存后可导出或同步到网关 config.json。'
+          }</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn ghost" id="btn-sensor-reset">清除本地覆盖</button>
           <button type="button" class="btn ghost" id="btn-sensor-export">导出 JSON</button>
-          <button type="button" class="btn ghost" id="btn-sensor-sync">同步到网关</button>
+          <button type="button" class="btn ghost" id="btn-sensor-sync" ${
+            staticDemo ? 'title="静态演示无网关，点击将提示说明"' : ''
+          }>同步到网关</button>
           <button type="button" class="btn" id="btn-sensor-save">保存配置</button>
         </div>
       </div>
@@ -979,8 +987,11 @@ function renderSensors() {
       </section>
 
       <p class="thresh-foot muted">
-        推送示例：<code>POST http://&lt;host&gt;:&lt;port&gt;&lt;pushPath&gt;</code> ·
-        MQTT keepalive / 重连 / 前端轮询均强制 ≥ 30 秒。同步网关后建议重启 <code>gateway.py</code>。
+        ${
+          staticDemo
+            ? 'GitHub Pages / 静态演示：改配置可演示后台能力；监测数据仍读 <code>public/data/*.json</code>。'
+            : '推送示例：<code>POST http://&lt;host&gt;:&lt;port&gt;&lt;pushPath&gt;</code> · MQTT keepalive / 重连 / 前端轮询均强制 ≥ 30 秒。同步网关后建议重启 <code>gateway.py</code>。'
+        }
       </p>
     </div>`;
 
@@ -1034,6 +1045,16 @@ function renderSensors() {
   });
   $('btn-sensor-sync')?.addEventListener('click', async () => {
     const next = persistLocal();
+    if (isStaticHosting()) {
+      appendAuditLog({
+        actor: session.username,
+        action: 'sensor_config_sync',
+        result: 'ok',
+        summary: '静态演示：跳过网关同步，仅本地保存',
+      });
+      flash('静态演示无传感器网关：配置已保存在浏览器，可用「导出 JSON」带走');
+      return;
+    }
     const base =
       next.frontend.apiBaseUrl ||
       `http://127.0.0.1:${next.http.port || 5173}`;

@@ -7,6 +7,7 @@ import {
 } from './auth/session.js';
 import { createCaptcha } from './auth/captcha.js';
 import { appendAuditLog } from './auth/audit.js';
+import { isStaticHosting } from './demoMode.js';
 
 const msgEl = document.getElementById('auth-msg');
 const form = document.getElementById('login-form');
@@ -53,7 +54,10 @@ async function boot() {
     const accounts = getDemoAccountsHint()
       .map((a) => `<code>${a.username}</code> / <code>${a.password}</code>（${a.role}）`)
       .join(' · ');
-    hint.innerHTML = `演示账号：${accounts}<br />验证码不区分大小写，点击图片可刷新。`;
+    const staticLine = isStaticHosting()
+      ? '<br />当前为静态演示：全部功能用本地 mock 数据，无需传感器网关。'
+      : '';
+    hint.innerHTML = `演示账号：${accounts}<br />验证码不区分大小写，点击图片可刷新。${staticLine}`;
   }
 
   document.getElementById('toggle-pwd')?.addEventListener('click', () => {

@@ -55,11 +55,12 @@ import { initUserStore } from './auth/users.js';
 import { initDictStore } from './auth/dict.js';
 import { mergeMapConfig } from './auth/mapConfigStore.js';
 import { mergeSensorConfig } from './auth/sensorConfigStore.js';
+import { STATIC_DEMO } from './demoMode.js';
 import { initResizableSidebars } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
 /** 演示原型：环境/边坡/报警均以本地 mock 为准，不接真实 MQTT/HTTP */
-const DEMO_MOCK_ONLY = true;
+const DEMO_MOCK_ONLY = STATIC_DEMO;
 
 let mockData = null;
 let selectedSlopeId = null;
@@ -333,10 +334,14 @@ async function boot() {
     /* 默认 */
   }
   const sensorCfg = mergeSensorConfig(sensorFileCfg);
-  const apiBase = sensorCfg.frontend?.apiBaseUrl || '';
+  const apiBase = DEMO_MOCK_ONLY ? '' : sensorCfg.frontend?.apiBaseUrl || '';
   const pollMs = Math.max(30000, Number(sensorCfg.frontend?.pollIntervalMs) || 30000);
   configureSensorApi({ baseUrl: apiBase, intervalMs: pollMs });
-  configureSlopeApi({ baseUrl: apiBase, intervalMs: pollMs });
+  configureSlopeApi({
+    baseUrl: apiBase,
+    intervalMs: pollMs,
+    ...(DEMO_MOCK_ONLY ? { preferMock: true } : {}),
+  });
 
   requestAnimationFrame(() => {
     invalidateMapSize();
