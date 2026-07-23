@@ -1040,6 +1040,30 @@ button.slope-item.active {
   line-height: 1.5;
 }
 
+.nav-toast {
+  position: fixed;
+  left: 50%;
+  top: 84px;
+  transform: translate(-50%, -8px);
+  z-index: 1400;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(61, 214, 255, 0.45);
+  background: rgba(8, 28, 52, 0.94);
+  color: #d8e7ff;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nav-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 @media (max-width: 1280px) {
   .workspace {
     --left-w: 300px;

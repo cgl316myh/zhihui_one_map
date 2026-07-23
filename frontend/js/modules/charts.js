@@ -1,17 +1,73 @@
 const chartRegistry = new Map();
+let resizeBound = false;
 
+function bindChartResizeOnce() {
+  if (resizeBound) return;
+  resizeBound = true;
+  window.addEventListener('resize', () => {
+    chartRegistry.forEach((chart) => {
+      try {
+        if (chart && !chart.isDisposed?.()) chart.resize();
+      } catch {
+        /* ignore */
+      }
+    });
+  });
+}
+
+/**
+ * 获取或重建 ECharts 实例。
+ * Leaflet 弹窗关闭后 DOM 会被销毁重建，旧实例需 dispose 再挂到新节点。
+ */
 function ensureChart(domId, option) {
   const el = document.getElementById(domId);
   if (!el || typeof echarts === 'undefined') return null;
 
   let chart = chartRegistry.get(domId);
-  if (!chart) {
-    chart = echarts.init(el);
-    chartRegistry.set(domId, chart);
-    window.addEventListener('resize', () => chart.resize());
+  const domAlive = chart && typeof chart.getDom === 'function' && chart.getDom() === el;
+  const disposed = chart && typeof chart.isDisposed === 'function' && chart.isDisposed();
+
+  if (chart && (!domAlive || disposed)) {
+    try {
+      if (!disposed) chart.dispose();
+    } catch {
+      /* ignore */
+    }
+    chartRegistry.delete(domId);
+    chart = null;
   }
+
+  if (!chart) {
+    const existing =
+      typeof echarts.getInstanceByDom === 'function'
+        ? echarts.getInstanceByDom(el)
+        : null;
+    chart = existing || echarts.init(el);
+    chartRegistry.set(domId, chart);
+    bindChartResizeOnce();
+  }
+
   chart.setOption(option, true);
+  requestAnimationFrame(() => {
+    try {
+      if (!chart.isDisposed?.()) chart.resize();
+    } catch {
+      /* ignore */
+    }
+  });
   return chart;
+}
+
+/** 主动释放（弹窗关闭时调用，避免残留失效实例） */
+export function disposeChart(domId) {
+  const chart = chartRegistry.get(domId);
+  if (!chart) return;
+  try {
+    if (!chart.isDisposed?.()) chart.dispose();
+  } catch {
+    /* ignore */
+  }
+  chartRegistry.delete(domId);
 }
 
 const axisStyle = {

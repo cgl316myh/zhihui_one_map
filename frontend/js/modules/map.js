@@ -1,4 +1,4 @@
-import { renderPopupSeries, renderPopupEnvHistory } from './charts.js';
+import { renderPopupSeries, renderPopupEnvHistory, disposeChart } from './charts.js';
 
 let map = null;
 let baseLayerGroup = null;
@@ -257,6 +257,32 @@ export function setLayerVisible(key, visible) {
   }
 }
 
+const ENV_METRIC_LABELS = {
+  temperature: '温度',
+  humidity: '湿度',
+  noise: '噪声',
+  pm25: 'PM2.5',
+  pm10: 'PM10',
+  dust: '粉尘',
+};
+
+const ENV_STATUS_LABELS = {
+  normal: '正常',
+  warn: '预警',
+  alarm: '报警',
+  offline: '离线',
+  fault: '故障',
+};
+
+function envMetricLabel(key) {
+  return ENV_METRIC_LABELS[key] || key;
+}
+
+function envStatusLabel(status) {
+  if (!status) return '';
+  return ENV_STATUS_LABELS[status] || status;
+}
+
 export function renderEnvironmentMarkers(env) {
   const g = layerGroups.environment;
   if (!g) return;
@@ -269,7 +295,7 @@ export function renderEnvironmentMarkers(env) {
     const metrics = Object.entries(p.metrics || {})
       .map(
         ([k, v]) =>
-          `<li>${k}: <b>${v}</b>${(p.units && p.units[k]) || ''}</li>`
+          `<li>${envMetricLabel(k)}: <b>${v}</b>${(p.units && p.units[k]) || ''}</li>`
       )
       .join('');
     const chartId = `popup-env-${p.id}`;
@@ -278,7 +304,7 @@ export function renderEnvironmentMarkers(env) {
       `
       <div class="popup-card ${hasHist ? 'wide' : ''}">
         <h4>${p.name}</h4>
-        <p>${p.location || ''} · ${p.status || ''}</p>
+        <p>${p.location || ''} · ${envStatusLabel(p.status)}</p>
         <ul>${metrics}</ul>
         ${hasHist ? `<div class="popup-chart-label">近 24h</div><div id="${chartId}" class="popup-chart"></div>` : ''}
       </div>`,
@@ -286,7 +312,10 @@ export function renderEnvironmentMarkers(env) {
     );
     if (hasHist) {
       m.on('popupopen', () => {
-        setTimeout(() => renderPopupEnvHistory(chartId, p), 30);
+        setTimeout(() => renderPopupEnvHistory(chartId, p), 40);
+      });
+      m.on('popupclose', () => {
+        disposeChart(chartId);
       });
     }
     markers.environment.set(p.id, m);
@@ -382,7 +411,10 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
       { maxWidth: 320 }
     );
     m.on('popupopen', () => {
-      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 30);
+      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 40);
+    });
+    m.on('popupclose', () => {
+      disposeChart(chartId);
     });
     markers.slope.set(p.id, m);
   });

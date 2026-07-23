@@ -56,7 +56,7 @@ import { initDictStore } from './auth/dict.js';
 import { mergeMapConfig } from './auth/mapConfigStore.js';
 import { mergeSensorConfig } from './auth/sensorConfigStore.js';
 import { STATIC_DEMO } from './demoMode.js';
-import { initResizableSidebars } from './modules/layout.js';
+import { initResizableSidebars, focusWorkspacePanel } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
 
 /** 演示原型：环境/边坡/报警均以本地 mock 为准，不接真实 MQTT/HTTP */
@@ -110,14 +110,36 @@ function bindEnvListClicks() {
   });
 }
 
+function showNavToast(message) {
+  let el = document.getElementById('nav-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'nav-toast';
+    el.className = 'nav-toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.classList.add('is-show');
+  clearTimeout(showNavToast._timer);
+  showNavToast._timer = setTimeout(() => {
+    el.classList.remove('is-show');
+  }, 2200);
+}
+
 function bindNavTabs() {
   document.querySelectorAll('.nav-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       const target = tab.dataset.scroll;
-      if (target) {
-        document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (!target) return;
+      const label = (tab.textContent || '').trim() || '该';
+      const result = focusWorkspacePanel(target);
+      if (result.expanded) {
+        showNavToast(`已展开侧栏并定位到「${label}」`);
+      } else if (result.alreadyVisible) {
+        showNavToast(`当前已在「${label}」模块`);
       }
     });
   });
