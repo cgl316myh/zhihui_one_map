@@ -160,8 +160,36 @@ function syncUserUI() {
   if (adminLink) adminLink.hidden = !isAdmin();
 }
 
+function setUserMenuOpen(open) {
+  const root = document.getElementById('user-menu');
+  const btn = document.getElementById('user-menu-btn');
+  const panel = document.getElementById('user-menu-panel');
+  if (!root || !btn || !panel) return;
+  panel.hidden = !open;
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  root.classList.toggle('is-open', open);
+}
+
+function bindUserMenu() {
+  const root = document.getElementById('user-menu');
+  const btn = document.getElementById('user-menu-btn');
+  const panel = document.getElementById('user-menu-panel');
+  if (!root || !btn || !panel) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setUserMenuOpen(panel.hidden);
+  });
+  panel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => setUserMenuOpen(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setUserMenuOpen(false);
+  });
+}
+
 function bindLogout() {
   document.getElementById('btn-logout')?.addEventListener('click', () => {
+    setUserMenuOpen(false);
     const s = getSession();
     appendAuditLog({
       actor: s?.username || 'anonymous',
@@ -282,6 +310,7 @@ async function boot() {
 
   initRoleFromSession(currentSession);
   syncUserUI();
+  bindUserMenu();
   bindLogout();
 
   tickClock();

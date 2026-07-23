@@ -25,9 +25,24 @@
       </nav>
       <div class="top-meta">
         <span id="clock">--</span>
-        <span class="user-tag" id="user-tag">未登录</span>
-        <a class="tool-btn ghost top-logout" id="link-admin" href="./admin.html" hidden>管理后台</a>
-        <button type="button" class="tool-btn ghost top-logout" id="btn-logout" title="退出登录">退出</button>
+        <div class="user-menu" id="user-menu">
+          <button
+            type="button"
+            class="user-menu-btn"
+            id="user-menu-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-controls="user-menu-panel"
+            title="账号菜单"
+          >
+            <span class="user-tag" id="user-tag">未登录</span>
+            <span class="user-menu-caret" aria-hidden="true"></span>
+          </button>
+          <div class="user-menu-panel" id="user-menu-panel" role="menu" hidden>
+            <a class="user-menu-item" id="link-admin" href="./admin.html" role="menuitem" hidden>管理后台</a>
+            <button type="button" class="user-menu-item is-danger" id="btn-logout" role="menuitem">退出登录</button>
+          </div>
+        </div>
       </div>
     </header>
 
