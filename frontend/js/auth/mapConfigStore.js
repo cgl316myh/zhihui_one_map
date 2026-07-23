@@ -118,7 +118,7 @@ export function toPersistedMapConfig(adminCfg) {
     };
   });
   return {
-    defaultBasemap: adminCfg.defaultBasemap || 'esri-img',
+    defaultBasemap: adminCfg.defaultBasemap || 'amap-img',
     mapMinZoom: Number(adminCfg.mapMinZoom) || 3,
     tiandituTk: String(adminCfg.tiandituTk || ''),
     basemaps,

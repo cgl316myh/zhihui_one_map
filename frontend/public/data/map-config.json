@@ -1,7 +1,7 @@
 {
-  "defaultBasemap": "esri-img",
+  "defaultBasemap": "amap-img",
   "mapMinZoom": 3,
-  "tiandituTk": "",
+  "tiandituTk": "2614f89248e121283410408772c240dc",
   "basemaps": {
     "osm-street": {
       "label": "OSM 城市底图",

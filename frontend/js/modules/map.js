@@ -228,8 +228,8 @@ export function initMap(center, zoom) {
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   baseLayerGroup = L.layerGroup().addTo(map);
-  // 默认 ESRI 影像底图；工具条初始化时再按配置/本地记忆切换
-  setBasemap('esri-img');
+  // 默认高德影像底图；工具条初始化时再按配置/本地记忆切换
+  setBasemap('amap-img');
 
   Object.keys(layerGroups).forEach((key) => {
     layerGroups[key] = L.layerGroup().addTo(map);

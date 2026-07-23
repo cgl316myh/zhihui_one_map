@@ -261,7 +261,7 @@ function bindBasemapSelect() {
   const select = document.getElementById('basemap-select');
   if (!select) return;
 
-  select.value = getBasemapId() || 'esri-img';
+  select.value = getBasemapId() || 'amap-img';
   select.addEventListener('change', () => {
     const next = select.value;
     const prev = getBasemapId();
@@ -350,7 +350,7 @@ export function initMapToolbar(mapConfig) {
   lastMapConfig = mapConfig || {};
   bindToolbarToggle();
 
-  let preferred = mapConfig?.defaultBasemap || 'esri-img';
+  let preferred = mapConfig?.defaultBasemap || 'amap-img';
   try {
     preferred = localStorage.getItem(BASEMAP_KEY) || preferred;
   } catch {
@@ -360,13 +360,13 @@ export function initMapToolbar(mapConfig) {
   // 无 tk 时天地图不可用，回退
   const hasTk = Boolean(String(mapConfig?.tiandituTk || '').trim());
   if (!hasTk && (preferred === 'tdt-vec' || preferred === 'tdt-img')) {
-    preferred = 'esri-img';
+    preferred = 'amap-img';
   }
 
   const result = setBasemap(preferred, mapConfig);
   if (!result.ok) {
-    setBasemap('esri-img', mapConfig);
-    preferred = 'esri-img';
+    setBasemap('amap-img', mapConfig);
+    preferred = 'amap-img';
   }
   syncBasemapZoomLabels();
   bindBasemapSelect();

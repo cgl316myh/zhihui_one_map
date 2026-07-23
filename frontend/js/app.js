@@ -308,7 +308,7 @@ async function boot() {
   const zoom = mockData.slopePoints.mapZoom || 15;
   initMap(center, zoom);
 
-  let mapConfig = { defaultBasemap: 'esri-img' };
+  let mapConfig = { defaultBasemap: 'amap-img' };
   try {
     const res = await fetch(`./data/map-config.json?_=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) mapConfig = { ...mapConfig, ...(await res.json()) };
