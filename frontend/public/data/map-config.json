@@ -1,5 +1,5 @@
 {
-  "defaultBasemap": "osm-street",
+  "defaultBasemap": "esri-img",
   "mapMinZoom": 3,
   "tiandituTk": "",
   "basemaps": {

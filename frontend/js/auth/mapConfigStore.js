@@ -118,7 +118,7 @@ export function toPersistedMapConfig(adminCfg) {
     };
   });
   return {
-    defaultBasemap: adminCfg.defaultBasemap || 'osm-street',
+    defaultBasemap: adminCfg.defaultBasemap || 'esri-img',
     mapMinZoom: Number(adminCfg.mapMinZoom) || 3,
     tiandituTk: String(adminCfg.tiandituTk || ''),
     basemaps,

@@ -388,14 +388,28 @@ body.resizing-sidebars #map {
 .map-overlay {
   position: absolute;
   z-index: 500;
-  top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
 }
-.map-overlay.left { left: 12px; }
-.map-overlay.right { right: 12px; align-items: flex-end; }
+.map-overlay.left {
+  top: 12px;
+  left: 12px;
+}
+.map-overlay.right {
+  top: 12px;
+  right: 12px;
+  align-items: flex-end;
+}
+.map-overlay.bottom-left {
+  left: 12px;
+  bottom: 12px;
+  top: auto;
+  right: auto;
+  max-width: min(280px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+}
 .map-overlay > * { pointer-events: auto; }
 #map.measure-cursor,
 .leaflet-container.measure-cursor {
@@ -417,6 +431,25 @@ body.resizing-sidebars #map {
 }
 .tool-box {
   min-width: 200px;
+  max-width: 100%;
+}
+.control-tools {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+.control-tools .layer-box-body {
+  overflow-y: auto;
+  max-height: min(58vh, 520px);
+  overscroll-behavior: contain;
+}
+.control-tools .layer-box-body label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+  color: var(--muted);
+  cursor: pointer;
 }
 .tool-section {
   margin-top: 8px;
@@ -456,6 +489,36 @@ body.resizing-sidebars #map {
 .tool-btn.ghost {
   width: 100%;
   color: var(--muted);
+}
+.basemap-select-wrap {
+  display: block;
+  margin-top: 4px;
+}
+.basemap-select {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid rgba(61, 214, 255, 0.35);
+  border-radius: 4px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--cyan) 50%) calc(100% - 14px) / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--cyan) 50%, transparent 50%) calc(100% - 9px) / 5px 5px no-repeat,
+    rgba(0, 20, 40, 0.75);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.basemap-select:hover,
+.basemap-select:focus {
+  border-color: rgba(61, 214, 255, 0.7);
+  outline: none;
+}
+.basemap-select option {
+  background: #0a1626;
+  color: var(--text);
 }
 .basemap-option {
   display: flex !important;

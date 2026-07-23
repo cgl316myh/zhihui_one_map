@@ -84,27 +84,29 @@
 
       <section class="center-col" id="sec-map">
         <div class="map-shell">
-          <div class="map-overlay left">
-            <div class="layer-box" id="layer-box">
+          <div class="map-overlay bottom-left">
+            <div class="layer-box tool-box control-tools" id="tool-box">
               <div class="layer-box-hd">
-                <span>图层控制</span>
-                <button type="button" class="layer-box-toggle" id="toggle-layer-box" title="收起图层控制" aria-expanded="true" aria-controls="layer-box-body">−</button>
-              </div>
-              <div class="layer-box-body" id="layer-box-body">
-                <label><input type="checkbox" data-layer="environment" checked /> 环境监测</label>
-                <label><input type="checkbox" data-layer="slope" checked /> 边坡 / 雨量</label>
-                <label><input type="checkbox" data-layer="video" checked /> 视频监控</label>
-                <label><input type="checkbox" data-layer="production" checked /> 生产工段</label>
-              </div>
-            </div>
-          </div>
-          <div class="map-overlay right">
-            <div class="layer-box tool-box" id="tool-box">
-              <div class="layer-box-hd">
-                <span>工具条</span>
-                <button type="button" class="layer-box-toggle" id="toggle-tool-box" title="收起工具条" aria-expanded="true" aria-controls="tool-box-body">−</button>
+                <span>控制和工具</span>
+                <button
+                  type="button"
+                  class="layer-box-toggle"
+                  id="toggle-tool-box"
+                  title="收起控制和工具"
+                  aria-expanded="true"
+                  aria-controls="tool-box-body"
+                >
+                  −
+                </button>
               </div>
               <div class="layer-box-body" id="tool-box-body">
+                <div class="tool-section">
+                  <div class="tool-section-title">图层控制</div>
+                  <label><input type="checkbox" data-layer="environment" checked /> 环境监测</label>
+                  <label><input type="checkbox" data-layer="slope" checked /> 边坡 / 雨量</label>
+                  <label><input type="checkbox" data-layer="video" checked /> 视频监控</label>
+                  <label><input type="checkbox" data-layer="production" checked /> 生产工段</label>
+                </div>
                 <div class="tool-section">
                   <div class="tool-section-title">测量</div>
                   <div class="tool-btn-row">
@@ -116,35 +118,15 @@
                 </div>
                 <div class="tool-section">
                   <div class="tool-section-title">底图切换</div>
-                  <label class="basemap-option" data-basemap="osm-street">
-                    <input type="radio" name="basemap" value="osm-street" />
-                    <span class="basemap-label">OSM 城市底图</span>
-                    <span class="basemap-zoom" data-zoom-for="osm-street">Z≤19</span>
-                  </label>
-                  <label class="basemap-option" data-basemap="amap-img">
-                    <input type="radio" name="basemap" value="amap-img" />
-                    <span class="basemap-label">高德影像底图</span>
-                    <span class="basemap-zoom" data-zoom-for="amap-img">Z≤18</span>
-                  </label>
-                  <label class="basemap-option" data-basemap="esri-street">
-                    <input type="radio" name="basemap" value="esri-street" />
-                    <span class="basemap-label">ESRI 城市地图</span>
-                    <span class="basemap-zoom" data-zoom-for="esri-street">Z≤18</span>
-                  </label>
-                  <label class="basemap-option" data-basemap="esri-img">
-                    <input type="radio" name="basemap" value="esri-img" />
-                    <span class="basemap-label">ESRI 影像地图</span>
-                    <span class="basemap-zoom" data-zoom-for="esri-img">Z≤17</span>
-                  </label>
-                  <label class="basemap-option" data-basemap="tdt-vec">
-                    <input type="radio" name="basemap" value="tdt-vec" />
-                    <span class="basemap-label">天地图矢量</span>
-                    <span class="basemap-zoom" data-zoom-for="tdt-vec">Z≤18</span>
-                  </label>
-                  <label class="basemap-option" data-basemap="tdt-img">
-                    <input type="radio" name="basemap" value="tdt-img" />
-                    <span class="basemap-label">天地图影像</span>
-                    <span class="basemap-zoom" data-zoom-for="tdt-img">Z≤18</span>
+                  <label class="basemap-select-wrap">
+                    <select id="basemap-select" class="basemap-select" title="选择底图">
+                      <option value="osm-street">OSM 城市底图</option>
+                      <option value="amap-img">高德影像底图</option>
+                      <option value="esri-street">ESRI 城市地图</option>
+                      <option value="esri-img" selected>ESRI 影像地图</option>
+                      <option value="tdt-vec">天地图矢量</option>
+                      <option value="tdt-img">天地图影像</option>
+                    </select>
                   </label>
                   <div class="tool-tip" id="basemap-zoom-tip">当前底图最大切片等级：—</div>
                   <div class="tool-tip warn" id="basemap-tip" hidden></div>

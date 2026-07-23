@@ -84,36 +84,6 @@ function bindLayerToggles() {
   });
 }
 
-function bindLayerBoxToggle() {
-  const box = document.getElementById('layer-box');
-  const btn = document.getElementById('toggle-layer-box');
-  if (!box || !btn) return;
-
-  const KEY = 'mine-one-map-layer-box-open';
-  const apply = (open) => {
-    box.classList.toggle('collapsed', !open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    btn.title = open ? '收起图层控制' : '展开图层控制';
-    btn.textContent = open ? '−' : '+';
-    try {
-      localStorage.setItem(KEY, open ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  };
-
-  let open = true;
-  try {
-    const saved = localStorage.getItem(KEY);
-    if (saved === '0') open = false;
-  } catch {
-    /* ignore */
-  }
-  apply(open);
-
-  btn.addEventListener('click', () => apply(box.classList.contains('collapsed')));
-}
-
 function bindSlopeListClicks() {
   const list = document.getElementById('panel-slope-list');
   if (!list) return;
@@ -316,7 +286,6 @@ async function boot() {
   tickClock();
   setInterval(tickClock, 1000);
   bindLayerToggles();
-  bindLayerBoxToggle();
   bindSlopeListClicks();
   bindEnvListClicks();
   bindNavTabs();
@@ -339,7 +308,7 @@ async function boot() {
   const zoom = mockData.slopePoints.mapZoom || 15;
   initMap(center, zoom);
 
-  let mapConfig = { defaultBasemap: 'osm-street' };
+  let mapConfig = { defaultBasemap: 'esri-img' };
   try {
     const res = await fetch(`./data/map-config.json?_=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) mapConfig = { ...mapConfig, ...(await res.json()) };

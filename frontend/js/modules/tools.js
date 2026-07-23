@@ -6,7 +6,8 @@ import {
   getAllBasemapZoomConfigs,
 } from './map.js';
 
-const TOOLBAR_OPEN_KEY = 'mine-one-map-toolbar-open';
+const TOOLBAR_OPEN_KEY = 'mine-one-map-control-tools-open';
+const TOOLBAR_OPEN_KEY_LEGACY = 'mine-one-map-toolbar-open';
 const BASEMAP_KEY = 'mine-one-map-basemap';
 
 /** @type {'idle'|'distance'|'area'} */
@@ -256,53 +257,50 @@ function clearAllMeasures() {
   setTip('已清除测量结果');
 }
 
-function bindBasemapRadios() {
-  const current = getBasemapId();
-  document.querySelectorAll('input[name="basemap"]').forEach((input) => {
-    input.checked = input.value === current;
-    input.addEventListener('change', () => {
-      if (!input.checked) return;
-      const prev = getBasemapId();
-      const ok = setBasemap(input.value, lastMapConfig);
-      const tip = document.getElementById('basemap-tip');
-      if (!ok.ok) {
-        // 失败时回退（如天地图未配置 tk）
-        document.querySelectorAll('input[name="basemap"]').forEach((r) => {
-          r.checked = r.value === prev;
-        });
-        setBasemap(prev, lastMapConfig);
-        if (tip) {
-          tip.textContent = ok.message || '底图切换失败';
-          tip.hidden = false;
-        }
-        return;
-      }
-      try {
-        localStorage.setItem(BASEMAP_KEY, input.value);
-      } catch {
-        /* ignore */
-      }
-      updateBasemapZoomUI(input.value, ok.zoom);
+function bindBasemapSelect() {
+  const select = document.getElementById('basemap-select');
+  if (!select) return;
+
+  select.value = getBasemapId() || 'esri-img';
+  select.addEventListener('change', () => {
+    const next = select.value;
+    const prev = getBasemapId();
+    const ok = setBasemap(next, lastMapConfig);
+    const tip = document.getElementById('basemap-tip');
+    if (!ok.ok) {
+      select.value = prev;
+      setBasemap(prev, lastMapConfig);
       if (tip) {
-        tip.textContent = '';
-        tip.hidden = true;
+        tip.textContent = ok.message || '底图切换失败';
+        tip.hidden = false;
       }
-    });
+      return;
+    }
+    try {
+      localStorage.setItem(BASEMAP_KEY, next);
+    } catch {
+      /* ignore */
+    }
+    updateBasemapZoomUI(next, ok.zoom);
+    if (tip) {
+      tip.textContent = '';
+      tip.hidden = true;
+    }
   });
 }
 
-/** 按配置刷新各底图「最大切片等级」标签与当前提示 */
+/** 按配置刷新下拉项文案与当前缩放提示 */
 function syncBasemapZoomLabels() {
+  const select = document.getElementById('basemap-select');
   const all = getAllBasemapZoomConfigs();
-  Object.keys(all).forEach((id) => {
-    const z = all[id];
-    const badge = document.querySelector(`[data-zoom-for="${id}"]`);
-    if (badge) badge.textContent = `Z≤${z.maxZoom}`;
-    const label = document.querySelector(
-      `.basemap-option[data-basemap="${id}"] .basemap-label`
-    );
-    if (label && z.label) label.textContent = z.label;
-  });
+  if (select) {
+    Array.from(select.options).forEach((opt) => {
+      const z = all[opt.value];
+      if (!z) return;
+      const base = z.label || opt.textContent.replace(/\s*\(Z≤\d+\)\s*$/, '');
+      opt.textContent = `${base}（Z≤${z.maxZoom}）`;
+    });
+  }
   updateBasemapZoomUI(getBasemapId());
 }
 
@@ -322,7 +320,7 @@ function bindToolbarToggle() {
   const apply = (open) => {
     box.classList.toggle('collapsed', !open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    btn.title = open ? '收起工具条' : '展开工具条';
+    btn.title = open ? '收起控制和工具' : '展开控制和工具';
     btn.textContent = open ? '−' : '+';
     try {
       localStorage.setItem(TOOLBAR_OPEN_KEY, open ? '1' : '0');
@@ -333,7 +331,11 @@ function bindToolbarToggle() {
 
   let open = true;
   try {
-    if (localStorage.getItem(TOOLBAR_OPEN_KEY) === '0') open = false;
+    const saved =
+      localStorage.getItem(TOOLBAR_OPEN_KEY) ??
+      localStorage.getItem(TOOLBAR_OPEN_KEY_LEGACY) ??
+      localStorage.getItem('mine-one-map-layer-box-open');
+    if (saved === '0') open = false;
   } catch {
     /* ignore */
   }
@@ -342,13 +344,13 @@ function bindToolbarToggle() {
 }
 
 /**
- * 初始化右上角工具条：测量 + 底图切换
+ * 初始化左下角「控制和工具」：图层 + 测量 + 底图切换
  */
 export function initMapToolbar(mapConfig) {
   lastMapConfig = mapConfig || {};
   bindToolbarToggle();
 
-  let preferred = mapConfig?.defaultBasemap || 'osm-street';
+  let preferred = mapConfig?.defaultBasemap || 'esri-img';
   try {
     preferred = localStorage.getItem(BASEMAP_KEY) || preferred;
   } catch {
@@ -358,26 +360,24 @@ export function initMapToolbar(mapConfig) {
   // 无 tk 时天地图不可用，回退
   const hasTk = Boolean(String(mapConfig?.tiandituTk || '').trim());
   if (!hasTk && (preferred === 'tdt-vec' || preferred === 'tdt-img')) {
-    preferred = 'osm-street';
+    preferred = 'esri-img';
   }
 
   const result = setBasemap(preferred, mapConfig);
   if (!result.ok) {
-    setBasemap('osm-street', mapConfig);
-    preferred = 'osm-street';
+    setBasemap('esri-img', mapConfig);
+    preferred = 'esri-img';
   }
   syncBasemapZoomLabels();
-  bindBasemapRadios();
-  // 同步 radio
-  document.querySelectorAll('input[name="basemap"]').forEach((input) => {
-    input.checked = input.value === getBasemapId();
-  });
+  bindBasemapSelect();
+  const select = document.getElementById('basemap-select');
+  if (select) select.value = getBasemapId();
   const tip = document.getElementById('basemap-tip');
   if (tip) {
     if (!hasTk) {
       tip.hidden = false;
-        tip.textContent =
-          '天地图需密钥：请管理员在「管理后台 → 地图源与密钥」填写 tiandituTk';
+      tip.textContent =
+        '天地图需密钥：请管理员在「管理后台 → 地图源与密钥」填写 tiandituTk';
     } else {
       tip.hidden = true;
       tip.textContent = '';
