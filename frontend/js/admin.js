@@ -474,37 +474,13 @@ function renderReservesAdmin() {
       <div class="thresh-page-hd">
         <div>
           <h2>储量参数</h2>
-          <p class="muted">录入后自动计算可采储量与回采率；大屏仅展示结果。
-            <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">计算方法与数据来源</a>
-          </p>
+          <p class="muted">录入后自动计算可采储量与回采率；大屏仅展示结果。</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn ghost" id="btn-rsv-reset">恢复默认</button>
           <button type="button" class="btn" id="btn-rsv-save">保存并计算</button>
         </div>
       </div>
-
-      <section class="thresh-period-card is-active" style="margin-bottom:14px">
-        <header class="thresh-period-hd">
-          <div>
-            <h3>计算方法与数据来源</h3>
-            <p>${input.dataBasis || '见 docs/储量计算方法与数据来源.html'}</p>
-          </div>
-        </header>
-        <div class="thresh-metric-list" style="padding:12px 14px">
-          <p class="muted" style="margin:0 0 8px">${input.dataBasisNote || ''}</p>
-          <ul class="muted" style="margin:0;padding-left:1.2em;line-height:1.7">
-            <li>可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率</li>
-            <li>剩余可采 = 可采储量 − 累计已采出；预计天数 = 剩余可采 ÷ 日均采出</li>
-            <li>采区回采率 = 采出量 ÷ 动用储量；全矿按采出量加权平均</li>
-            <li>默认台账：2024 年报保有 9825.93 万吨 × 1.0 × 0.95 ≈ 可信储量 9334.63 万吨</li>
-          </ul>
-          <p class="muted" style="margin:10px 0 0">
-            完整对照表与维护说明：
-            <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">打开说明页</a>
-          </p>
-        </div>
-      </section>
 
       <section class="thresh-period-card is-active">
         <header class="thresh-period-hd">

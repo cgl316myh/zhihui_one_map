@@ -332,6 +332,16 @@ table.data .ops { display: flex; flex-wrap: wrap; gap: 4px; }
   font-size: 14px;
   outline: none;
 }
+/* Windows 原生下拉列表多为白底，需单独指定 option 深色字，避免白底白字 */
+.admin-page select option {
+  color: #1a2332;
+  background-color: #ffffff;
+}
+.admin-page select option:checked,
+.admin-page select option:hover {
+  color: #1a2332;
+  background-color: #d8e8f8;
+}
 .thresh-input-wrap i {
   font-style: normal;
   font-size: 11px;
