@@ -1,13 +1,24 @@
 {
-  "updatedAt": "2026-07-21T10:00:00+08:00",
+  "updatedAt": "2026-07-29T21:00:00+08:00",
+  "sensorReserveNote": "电流 / 轴温 / 频率等为模拟预留量，待现场增设传感器后接入监管；当前演示不作为正式监测依据。",
   "lines": [
     {
       "id": "CRUSH",
       "name": "破碎工段",
       "status": "running",
       "devices": [
-        { "id": "C-01", "name": "粗碎机", "status": "running", "currentA": 186, "bearingTemp": 52.3, "freqHz": 48.5 },
-        { "id": "C-02", "name": "细碎机", "status": "running", "currentA": 142, "bearingTemp": 49.8, "freqHz": 47.2 }
+        {
+          "id": "C-01",
+          "name": "粗碎机",
+          "status": "running",
+          "sensorSim": { "currentA": 186, "bearingTemp": 52.3, "freqHz": 48.5 }
+        },
+        {
+          "id": "C-02",
+          "name": "细碎机",
+          "status": "running",
+          "sensorSim": { "currentA": 142, "bearingTemp": 49.8, "freqHz": 47.2 }
+        }
       ]
     },
     {

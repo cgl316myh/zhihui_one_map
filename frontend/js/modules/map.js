@@ -7,10 +7,11 @@ let mapConfig = {};
 
 /** 各底图默认最大切片等级（可被 map-config.json 覆盖） */
 const BASEMAP_ZOOM_DEFAULTS = {
+  'google-sat': { minZoom: 3, maxZoom: 20, maxNativeZoom: 20, label: '谷歌卫星影像' },
   'osm-street': { minZoom: 3, maxZoom: 19, maxNativeZoom: 19, label: 'OSM 城市底图' },
   'amap-img': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '高德影像底图' },
   'esri-street': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: 'ESRI 城市地图' },
-  'esri-img': { minZoom: 3, maxZoom: 17, maxNativeZoom: 17, label: 'ESRI 影像地图' },
+  'esri-img': { minZoom: 3, maxZoom: 19, maxNativeZoom: 19, label: 'ESRI 高清影像' },
   'tdt-vec': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '天地图矢量' },
   'tdt-img': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '天地图影像' },
 };
@@ -89,6 +90,18 @@ function createBasemapLayers(id) {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           ...common,
           attribution: '© OpenStreetMap',
+        }),
+      ],
+    };
+  }
+  if (id === 'google-sat') {
+    return {
+      zoom: z,
+      layers: [
+        L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+          ...common,
+          subdomains: ['0', '1', '2', '3'],
+          attribution: 'Google',
         }),
       ],
     };
@@ -228,8 +241,8 @@ export function initMap(center, zoom) {
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   baseLayerGroup = L.layerGroup().addTo(map);
-  // 默认高德影像底图；工具条初始化时再按配置/本地记忆切换
-  setBasemap('amap-img');
+  // 默认高清卫星；工具条初始化时再按配置/本地记忆切换
+  setBasemap('google-sat');
 
   Object.keys(layerGroups).forEach((key) => {
     layerGroups[key] = L.layerGroup().addTo(map);
@@ -331,12 +344,20 @@ export function renderVideoMarkers(video) {
     const m = L.marker([c.lat, c.lng], {
       icon: pulseIcon(c.online ? '#3dd6ff' : '#ff4d4f', '视'),
     }).addTo(g);
-    m.bindPopup(`
-      <div class="popup-card">
+    const pending =
+      c.nameFinal === false
+        ? '<p class="popup-note">命名待设备安装完成后最终确定</p>'
+        : '';
+    m.bindPopup(
+      `
+      <div class="popup-card video-popup">
         <h4>${c.name}</h4>
         <p>${c.online ? '在线' : '离线'} · ${c.scene || ''}</p>
-        <div class="popup-video-ph">${c.online ? '实时预览占位' : '信号中断'}</div>
-      </div>`);
+        ${pending}
+        <div class="popup-video-ph">${c.online ? '实时预览占位（演示）' : '信号中断'}</div>
+      </div>`,
+      { maxWidth: 440, minWidth: 360, className: 'leaflet-video-popup' }
+    );
     markers.video.set(c.id, m);
   });
 }

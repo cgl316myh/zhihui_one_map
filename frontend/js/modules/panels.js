@@ -5,7 +5,6 @@ import {
   renderEnvHistory,
 } from './charts.js';
 import { getActivePeriodKey } from './envThresholds.js';
-import { getTodayStr } from './reserves.js';
 import { isAdmin } from './role.js';
 import { getDictLabel } from '../auth/dict.js';
 
@@ -184,23 +183,34 @@ function renderProcessFlow(prod) {
 export function renderProduction(prod) {
   const box = document.getElementById('panel-production');
   if (!box || !prod) return;
+  const reserveNote = prod.sensorReserveNote
+    ? `<div class="sensor-reserve-note">${prod.sensorReserveNote}</div>`
+    : '';
   const linesHtml = (prod.lines || [])
     .map((line) => {
       const devices = (line.devices || [])
         .map((d) => {
           const bits = [];
-          if (d.currentA != null) bits.push(`电流 ${d.currentA}A`);
-          if (d.bearingTemp != null) bits.push(`轴温 ${d.bearingTemp}℃`);
-          if (d.freqHz != null) bits.push(`频率 ${d.freqHz}Hz`);
+          // 正式可展示的运行量
           if (d.vibrateHz != null) bits.push(`激振 ${d.vibrateHz}Hz`);
           if (d.flowTph != null) bits.push(`流量 ${d.flowTph}t/h`);
           if (d.speedRpm != null) bits.push(`转速 ${d.speedRpm}rpm`);
           const detail = bits.length ? `<div class="metric-loc">${bits.join(' · ')}</div>` : '';
+          // 电流/轴温/频率：模拟预留，灰显标注
+          const sim = d.sensorSim || {};
+          const simBits = [];
+          if (sim.currentA != null) simBits.push(`电流 ${sim.currentA}A`);
+          if (sim.bearingTemp != null) simBits.push(`轴温 ${sim.bearingTemp}℃`);
+          if (sim.freqHz != null) simBits.push(`频率 ${sim.freqHz}Hz`);
+          const simHtml = simBits.length
+            ? `<div class="metric-loc sensor-sim" title="模拟预留，待传感器接入">${simBits.join(' · ')} <em>模拟预留</em></div>`
+            : '';
           return `
           <li class="${statusClass(d.status)}">
             <span>${d.name}</span>
             <em>${statusText(d.status)}${d.alarm ? ' · ' + d.alarm : ''}</em>
             ${detail}
+            ${simHtml}
           </li>`;
         })
         .join('');
@@ -214,7 +224,7 @@ export function renderProduction(prod) {
         </div>`;
     })
     .join('');
-  box.innerHTML = renderProcessFlow(prod) + linesHtml;
+  box.innerHTML = renderProcessFlow(prod) + reserveNote + linesHtml;
 }
 
 export function renderAlerts(alerts) {
@@ -343,7 +353,7 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
   return focus ? focus.id : null;
 }
 
-export function renderReserves(reserves, handlers = {}) {
+export function renderReserves(reserves) {
   const box = document.getElementById('panel-reserve-summary');
   const formBox = document.getElementById('panel-reserve-form');
   if (!reserves) return;
@@ -359,65 +369,65 @@ export function renderReserves(reserves, handlers = {}) {
       ? `<div class="reserve-ok" role="status">服务年限约 <b>${yearsLeft}</b> 年（预警阈值 ${warnYears} 年）</div>`
       : '';
 
+  const districts = reserves.districts || [];
+  const districtRows = districts.length
+    ? districts
+        .map(
+          (d) => `<tr>
+            <td>${d.name}</td>
+            <td>${d.output}</td>
+            <td>${d.activatedReserve}</td>
+            <td><b>${d.recoveryRatePct}</b></td>
+          </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="4">暂无采区数据</td></tr>';
+
   if (box) {
     box.innerHTML = `
     ${tip}
     <div class="reserve-kpis">
-      <div><label>初始保有</label><b>${reserves.initialReserve}</b><i>${reserves.unit}</i></div>
-      <div><label>剩余保有</label><b>${reserves.remaining}</b><i>${reserves.unit}</i></div>
-      <div><label>预计可采</label><b>${reserves.remainingDays}</b><i>天</i></div>
+      <div><label>可采储量</label><b>${reserves.recoverableReserve}</b><i>${reserves.unit}</i></div>
+      <div><label>剩余可采</label><b>${reserves.remaining}</b><i>${reserves.unit}</i></div>
+      <div><label>全矿回采率</label><b>${reserves.mineRecoveryRatePct}</b><i></i></div>
     </div>
-    <div class="metric-loc">已开采 ${reserves.mined} ${reserves.unit} · 损失率 ${(Number(reserves.lossRate) * 100).toFixed(0)}%</div>`;
+    <div class="metric-loc">
+      评估利用 ${reserves.assessedUtilizedReserve} ${reserves.unit}
+      · 设计回采 ${(Number(reserves.designRecoveryRate) * 100).toFixed(1)}%
+      · 采矿回采 ${(Number(reserves.miningRecoveryRate) * 100).toFixed(1)}%
+      · 已采出 ${reserves.mined} ${reserves.unit}
+      · 预计约 ${reserves.remainingDays} 天
+    </div>
+    <div class="reserve-district-wrap">
+      <div class="metric-loc" style="margin:8px 0 4px">采区回采率</div>
+      <table class="reserve-district-table">
+        <thead><tr><th>采区</th><th>采出</th><th>动用</th><th>回采率</th></tr></thead>
+        <tbody>${districtRows}</tbody>
+      </table>
+    </div>`;
   }
 
   if (formBox) {
-    if (isAdmin()) {
-      const today = getTodayStr();
-      const last = (reserves.daily || []).slice(-1)[0];
-      formBox.innerHTML = `
-        <div class="thresh-hd">
-          <strong>日采出录入</strong>
-          <span class="sub">本地扣减 · 形状对齐将来 API</span>
-        </div>
-        <div class="reserve-form">
-          <label class="thresh-field">
-            <span>日期</span>
-            <input type="date" id="reserve-date" value="${today}" />
-          </label>
-          <label class="thresh-field">
-            <span>采出量（${reserves.unit}）</span>
-            <input type="number" id="reserve-mined" step="0.01" min="0" value="${last?.mined ?? 0.35}" />
-          </label>
-          <label class="thresh-field" style="grid-column:1/-1">
-            <span>备注</span>
-            <input type="text" id="reserve-note" placeholder="可选" />
-          </label>
-        </div>
-        <div class="thresh-actions">
-          <button type="button" class="tool-btn" id="btn-reserve-apply">录入并扣减</button>
-          <button type="button" class="tool-btn ghost" id="btn-reserve-reset">恢复 mock</button>
-        </div>
-        <div class="metric-loc" id="reserve-form-msg"></div>`;
-      formBox.querySelector('#btn-reserve-apply')?.addEventListener('click', () => {
-        const date = formBox.querySelector('#reserve-date')?.value;
-        const mined = formBox.querySelector('#reserve-mined')?.value;
-        const note = formBox.querySelector('#reserve-note')?.value;
-        const result = handlers.onApply?.({ date, mined, note });
-        if (result && !result.ok) {
-          const msg = document.getElementById('reserve-form-msg');
-          if (msg) {
-            msg.textContent = result.message || '录入失败';
-            msg.className = 'poll-err';
-          }
-        }
-      });
-      formBox.querySelector('#btn-reserve-reset')?.addEventListener('click', () => {
-        handlers.onReset?.();
-      });
-    } else {
-      formBox.innerHTML =
-        '<div class="metric-loc">值班员角色：储量录入不可用</div>';
-    }
+    const basis = reserves.dataBasis
+      ? `<div class="metric-loc" style="margin-top:6px">数据来源：${reserves.dataBasis}</div>`
+      : '';
+    const basisNote = reserves.dataBasisNote
+      ? `<div class="metric-loc">${reserves.dataBasisNote}</div>`
+      : '';
+    formBox.innerHTML = `
+      <div class="thresh-hd">
+        <strong>计算说明</strong>
+        <span class="sub">只读 · 参数在管理后台维护</span>
+      </div>
+      <div class="metric-loc">${reserves.formula?.recoverable || ''}</div>
+      <div class="metric-loc">${reserves.formula?.district || ''}</div>
+      <div class="metric-loc">${reserves.formula?.mine || ''}</div>
+      ${basis}
+      ${basisNote}
+      <div class="metric-loc" style="margin-top:6px">
+        <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">查看完整计算方法与数据来源说明</a>
+        · 管理员请在「管理后台 → 储量参数」修改输入值。
+      </div>`;
   }
 
   renderReserveCharts(reserves);
@@ -426,18 +436,23 @@ export function renderReserves(reserves, handlers = {}) {
 export function renderVideo(video) {
   const box = document.getElementById('panel-video');
   if (!box || !video) return;
-  box.innerHTML = (video.cameras || [])
-    .map(
-      (c) => `
+  const note = video.placementNote
+    ? `<div class="metric-loc video-place-note">${video.placementNote}</div>`
+    : '';
+  box.innerHTML =
+    note +
+    (video.cameras || [])
+      .map(
+        (c) => `
       <div class="video-tile ${c.online ? 'online' : 'offline'}">
         <div class="video-screen">
           <span>${c.online ? '● LIVE' : '○ OFFLINE'}</span>
           <p>${c.scene || ''}</p>
         </div>
-        <div class="video-name">${c.name}</div>
+        <div class="video-name">${c.name}${c.nameFinal === false ? ' <em class="name-pending">待定名</em>' : ''}</div>
       </div>`
-    )
-    .join('');
+      )
+      .join('');
 }
 
 export function setSlopePollStatus(ok, message) {

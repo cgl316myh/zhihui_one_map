@@ -261,7 +261,7 @@ function bindBasemapSelect() {
   const select = document.getElementById('basemap-select');
   if (!select) return;
 
-  select.value = getBasemapId() || 'amap-img';
+  select.value = getBasemapId() || 'google-sat';
   select.addEventListener('change', () => {
     const next = select.value;
     const prev = getBasemapId();
@@ -350,7 +350,7 @@ export function initMapToolbar(mapConfig) {
   lastMapConfig = mapConfig || {};
   bindToolbarToggle();
 
-  let preferred = mapConfig?.defaultBasemap || 'amap-img';
+  let preferred = mapConfig?.defaultBasemap || 'google-sat';
   try {
     preferred = localStorage.getItem(BASEMAP_KEY) || preferred;
   } catch {
@@ -360,13 +360,13 @@ export function initMapToolbar(mapConfig) {
   // 无 tk 时天地图不可用，回退
   const hasTk = Boolean(String(mapConfig?.tiandituTk || '').trim());
   if (!hasTk && (preferred === 'tdt-vec' || preferred === 'tdt-img')) {
-    preferred = 'amap-img';
+    preferred = 'google-sat';
   }
 
   const result = setBasemap(preferred, mapConfig);
   if (!result.ok) {
-    setBasemap('amap-img', mapConfig);
-    preferred = 'amap-img';
+    setBasemap('esri-img', mapConfig);
+    preferred = 'esri-img';
   }
   syncBasemapZoomLabels();
   bindBasemapSelect();

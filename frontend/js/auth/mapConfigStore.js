@@ -5,6 +5,11 @@
 const MAP_KEY = 'mine-one-map-map-config-v1';
 
 const HARDCODED_URLS = {
+  'google-sat': {
+    url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    subdomains: '0123',
+    attribution: 'Google',
+  },
   'osm-street': {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     subdomains: 'abc',
@@ -118,7 +123,7 @@ export function toPersistedMapConfig(adminCfg) {
     };
   });
   return {
-    defaultBasemap: adminCfg.defaultBasemap || 'amap-img',
+    defaultBasemap: adminCfg.defaultBasemap || 'google-sat',
     mapMinZoom: Number(adminCfg.mapMinZoom) || 3,
     tiandituTk: String(adminCfg.tiandituTk || ''),
     basemaps,

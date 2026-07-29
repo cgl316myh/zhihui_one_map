@@ -4,6 +4,7 @@
   "monitorId": 721,
   "sourceUrl": "http://bdlx.jgtop1.com/",
   "apiBase": "http://wtapi.jgtop1.com/",
+  "placementNote": "边坡 / 雨量点位经纬度为监测平台 GNSS 实测坐标，一张图按实测落点示意。",
   "mapCenter": [
     102.445768,
     24.786112

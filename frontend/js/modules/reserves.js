@@ -1,35 +1,108 @@
 /**
- * 储量：本地 mock + localStorage 覆盖；日采出录入与简单扣减。
- * 公式（演示）：
- *   remaining = remaining - minedToday
- *   mined = mined + minedToday
- *   当月 trend 末点同步；remainingDays ≈ remaining / 近 N 日均采出
+ * 储量计算（对齐资源评估常用口径）
+ *
+ * 可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率
+ * 采区回采率 = 采区采出量 / 采区动用储量
+ * 全矿回采率 = Σ(采区回采率 × 采区采出量) / Σ(采区采出量)  （按产量加权）
+ *
+ * 参数由管理后台录入；大屏只读计算结果。
  */
 
-const STORAGE_KEY = 'mine-one-map-reserves';
+const STORAGE_KEY = 'mine-one-map-reserves-v2';
 
 let _base = null;
 let _current = null;
 
 function clone(obj) {
-  return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(JSON.stringify(obj || {}));
 }
 
-function monthKey(dateStr) {
-  return String(dateStr || '').slice(0, 7);
+function clampRate(n, fallback = 0) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.max(0, Math.min(1, v));
 }
 
-function todayStr(d = new Date()) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+function pct(rate) {
+  return `${(Number(rate) * 100).toFixed(1)}%`;
+}
+
+/**
+ * 根据后台录入字段重算派生结果（不改动录入字段本身）
+ */
+export function computeReservesDerived(raw) {
+  const state = clone(raw);
+  const unit = state.unit || '万吨';
+  const assessed = Math.max(0, Number(state.assessedUtilizedReserve) || 0);
+  const designRate = clampRate(state.designRecoveryRate, 0);
+  const miningRate = clampRate(state.miningRecoveryRate, 0);
+  const mined = Math.max(0, Number(state.mined) || 0);
+  const avgDaily = Math.max(0, Number(state.avgDailyMined) || 0);
+
+  const recoverable = +(assessed * designRate * miningRate).toFixed(2);
+  const remaining = +Math.max(0, recoverable - mined).toFixed(2);
+
+  const districts = (Array.isArray(state.districts) ? state.districts : []).map((d, i) => {
+    const output = Math.max(0, Number(d.output) || 0);
+    const activated = Math.max(0, Number(d.activatedReserve) || 0);
+    const rate = activated > 0 ? output / activated : 0;
+    return {
+      id: d.id || `D${i + 1}`,
+      name: d.name || `采区${i + 1}`,
+      output: +output.toFixed(2),
+      activatedReserve: +activated.toFixed(2),
+      recoveryRate: +rate.toFixed(6),
+      recoveryRatePct: pct(rate),
+    };
+  });
+
+  const sumOut = districts.reduce((s, d) => s + d.output, 0);
+  const mineRate =
+    sumOut > 0
+      ? districts.reduce((s, d) => s + d.recoveryRate * d.output, 0) / sumOut
+      : 0;
+
+  let remainingDays = Number(state.remainingDays) || 0;
+  if (avgDaily > 0) {
+    remainingDays = Math.max(0, Math.round(remaining / avgDaily));
+  }
+
+  return {
+    ...state,
+    unit,
+    assessedUtilizedReserve: +assessed.toFixed(2),
+    designRecoveryRate: designRate,
+    miningRecoveryRate: miningRate,
+    mined: +mined.toFixed(2),
+    avgDailyMined: +avgDaily.toFixed(3),
+    districts,
+    recoverableReserve: recoverable,
+    remaining,
+    // 兼容旧图表字段
+    initialReserve: +assessed.toFixed(2),
+    designRecoverable: recoverable,
+    remainingDays,
+    mineRecoveryRate: +mineRate.toFixed(6),
+    mineRecoveryRatePct: pct(mineRate),
+    formula: {
+      recoverable: '可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率',
+      district: '采区回采率 = 采区采出量 ÷ 采区动用储量',
+      mine: '全矿回采率 = Σ(采区回采率 × 采区采出量) ÷ Σ(采区采出量)',
+    },
+  };
 }
 
 export function getReserves() {
+  return computeReservesDerived(_current || {});
+}
+
+export function getReservesInput() {
   return clone(_current);
 }
 
 export function initReserves(fileJson) {
   _base = clone(fileJson || {});
+  if (!Array.isArray(_base.districts)) _base.districts = [];
   if (!Array.isArray(_base.daily)) _base.daily = [];
   let saved = null;
   try {
@@ -38,15 +111,23 @@ export function initReserves(fileJson) {
   } catch {
     saved = null;
   }
-  _current = saved ? { ...clone(_base), ...saved, daily: saved.daily || clone(_base.daily) } : clone(_base);
-  // 合并：保留 base 字段缺省
-  _current.unit = _current.unit || _base.unit;
-  _current.warningYears = _current.warningYears ?? _base.warningYears;
-  _current.lossRate = _current.lossRate ?? _base.lossRate;
+  if (saved) {
+    _current = {
+      ...clone(_base),
+      ...saved,
+      districts: Array.isArray(saved.districts) ? saved.districts : clone(_base.districts),
+      daily: Array.isArray(saved.daily) ? saved.daily : clone(_base.daily),
+      trend: Array.isArray(saved.trend) ? saved.trend : clone(_base.trend),
+      forecast: Array.isArray(saved.forecast) ? saved.forecast : clone(_base.forecast),
+    };
+  } else {
+    _current = clone(_base);
+  }
   return getReserves();
 }
 
-function persist() {
+function persist(state) {
+  _current = clone(state);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(_current));
   } catch {
@@ -54,89 +135,67 @@ function persist() {
   }
 }
 
-function recomputeRemainingDays(state) {
-  const daily = (state.daily || []).filter((d) => Number(d.mined) > 0).slice(-14);
-  const avg =
-    daily.length > 0
-      ? daily.reduce((s, d) => s + Number(d.mined), 0) / daily.length
-      : 0.35;
-  if (avg <= 0) return state.remainingDays;
-  return Math.max(0, Math.round(Number(state.remaining) / avg));
-}
-
-function syncMonthTrend(state, dateStr, remaining) {
-  const mk = monthKey(dateStr);
-  if (!mk) return;
-  const trend = Array.isArray(state.trend) ? [...state.trend] : [];
-  const idx = trend.findIndex((t) => t.month === mk);
-  if (idx >= 0) {
-    trend[idx] = { ...trend[idx], remaining: +Number(remaining).toFixed(1) };
-  } else {
-    trend.push({ month: mk, remaining: +Number(remaining).toFixed(1) });
-    trend.sort((a, b) => String(a.month).localeCompare(String(b.month)));
-  }
-  state.trend = trend;
-}
-
 /**
- * 录入/覆盖某日采出量（万吨），并扣减储量。
- * 若该日已有记录，先回滚旧值再写入新值。
- * @returns {{ ok: boolean, message?: string, reserves?: object }}
+ * 后台保存录入参数（仅保存输入字段，结果由 compute 派生）
  */
-export function applyDailyMined({ date, mined, note } = {}) {
-  if (!_current) return { ok: false, message: '储量未初始化' };
-  const dateStr = date || todayStr();
-  const amount = Number(mined);
-  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return { ok: false, message: '日期格式应为 YYYY-MM-DD' };
-  }
-  if (!Number.isFinite(amount) || amount < 0) {
-    return { ok: false, message: '采出量须为非负数' };
-  }
+export function saveReservesConfig(input) {
+  const next = {
+    ...clone(_base || {}),
+    ...clone(_current || {}),
+    ...clone(input || {}),
+    updatedAt: new Date().toISOString(),
+  };
+  // 规范化采区
+  next.districts = (Array.isArray(next.districts) ? next.districts : []).map((d, i) => ({
+    id: d.id || `D${i + 1}`,
+    name: String(d.name || `采区${i + 1}`).trim(),
+    output: Math.max(0, Number(d.output) || 0),
+    activatedReserve: Math.max(0, Number(d.activatedReserve) || 0),
+  }));
+  next.assessedUtilizedReserve = Math.max(0, Number(next.assessedUtilizedReserve) || 0);
+  next.designRecoveryRate = clampRate(next.designRecoveryRate, 0);
+  next.miningRecoveryRate = clampRate(next.miningRecoveryRate, 0);
+  next.mined = Math.max(0, Number(next.mined) || 0);
+  next.avgDailyMined = Math.max(0, Number(next.avgDailyMined) || 0);
+  next.warningYears = Math.max(0, Number(next.warningYears) || 0);
+  next.unit = next.unit || '万吨';
 
-  const state = clone(_current);
-  const daily = Array.isArray(state.daily) ? [...state.daily] : [];
-  const existIdx = daily.findIndex((d) => d.date === dateStr);
-  const prev = existIdx >= 0 ? Number(daily[existIdx].mined) || 0 : 0;
-  const delta = amount - prev;
+  // 同步 trend 末点剩余，便于大屏曲线
+  const derived = computeReservesDerived(next);
+  const mk = new Date().toISOString().slice(0, 7);
+  const trend = Array.isArray(next.trend) ? [...next.trend] : [];
+  const idx = trend.findIndex((t) => t.month === mk);
+  const point = { month: mk, remaining: derived.remaining };
+  if (idx >= 0) trend[idx] = point;
+  else trend.push(point);
+  next.trend = trend.sort((a, b) => String(a.month).localeCompare(String(b.month)));
 
-  let remaining = Number(state.remaining) - delta;
-  let minedTotal = Number(state.mined) + delta;
-  if (remaining < 0) {
-    return { ok: false, message: `扣减后剩余为负（需 ${delta.toFixed(2)}，剩余 ${state.remaining}）` };
-  }
-
-  remaining = +remaining.toFixed(2);
-  minedTotal = +minedTotal.toFixed(2);
-
-  const row = { date: dateStr, mined: +amount.toFixed(3), note: note || '' };
-  if (existIdx >= 0) daily[existIdx] = row;
-  else daily.push(row);
-  daily.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-
-  state.daily = daily;
-  state.remaining = remaining;
-  state.mined = minedTotal;
-  state.updatedAt = new Date().toISOString();
-  syncMonthTrend(state, dateStr, remaining);
-  state.remainingDays = recomputeRemainingDays(state);
-
-  _current = state;
-  persist();
-  return { ok: true, reserves: getReserves() };
+  persist(next);
+  return getReserves();
 }
 
 export function resetReserves() {
   if (!_base) return getReserves();
-  _current = clone(_base);
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
     /* ignore */
   }
+  _current = clone(_base);
   return getReserves();
 }
 
+/** @deprecated 大屏不再录入；保留空实现避免旧调用报错 */
+export function applyDailyMined() {
+  return { ok: false, message: '日采出与储量参数请在管理后台维护' };
+}
+
 export function getTodayStr() {
-  return todayStr();
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export function formatRatePct(rate) {
+  return pct(rate);
 }

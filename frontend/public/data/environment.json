@@ -1,13 +1,14 @@
 {
-  "updatedAt": "2026-07-21T10:00:00+08:00",
+  "updatedAt": "2026-07-29T21:00:00+08:00",
   "source": "local-mock",
+  "placementNote": "环境站示意坐标：按矿区功能区相对边坡 GNSS 实测中心布设，安装后可按实测经纬度替换。",
   "points": [
     {
       "id": "ENV-01",
       "name": "1# 环境监测点",
       "location": "行政生活区与生产过渡区",
-      "lng": 102.4449,
-      "lat": 24.7856,
+      "lng": 102.44505,
+      "lat": 24.78545,
       "status": "normal",
       "metrics": {
         "temperature": 24.6,
@@ -54,8 +55,8 @@
       "id": "ENV-02",
       "name": "2# 环境监测点",
       "location": "破碎/筛分车间下风向边界",
-      "lng": 102.4466,
-      "lat": 24.7855,
+      "lng": 102.44655,
+      "lat": 24.78528,
       "status": "warn",
       "metrics": {
         "temperature": 26.1,
@@ -104,8 +105,8 @@
       "id": "ENV-03",
       "name": "3# 环境监测点",
       "location": "矿区边界临近村庄（厂界）",
-      "lng": 102.4472,
-      "lat": 24.7876,
+      "lng": 102.44705,
+      "lat": 24.78745,
       "status": "normal",
       "metrics": {
         "noise": 48.6,

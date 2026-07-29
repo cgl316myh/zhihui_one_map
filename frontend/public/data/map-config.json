@@ -1,8 +1,16 @@
 {
-  "defaultBasemap": "amap-img",
+  "defaultBasemap": "google-sat",
   "mapMinZoom": 3,
   "tiandituTk": "2614f89248e121283410408772c240dc",
+  "basemapNote": "演示默认谷歌卫星在线瓦片；国内若加载慢可切换 ESRI/高德/天地图。正式离线高清需部署本地切片包。",
   "basemaps": {
+    "google-sat": {
+      "label": "谷歌卫星影像",
+      "minZoom": 3,
+      "maxZoom": 20,
+      "maxNativeZoom": 20,
+      "enabled": true
+    },
     "osm-street": {
       "label": "OSM 城市底图",
       "minZoom": 3,
@@ -22,10 +30,10 @@
       "maxNativeZoom": 18
     },
     "esri-img": {
-      "label": "ESRI 影像地图",
+      "label": "ESRI 高清影像",
       "minZoom": 3,
-      "maxZoom": 17,
-      "maxNativeZoom": 17
+      "maxZoom": 19,
+      "maxNativeZoom": 19
     },
     "tdt-vec": {
       "label": "天地图矢量",

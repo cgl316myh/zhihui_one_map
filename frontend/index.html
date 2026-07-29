@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>安宁隆瑞采石场 · 智慧矿山一张图</title>
+  <title>安宁隆瑞混凝土有限责任公司采石场 · 智慧矿山一张图</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./css/dashboard.css" />
 </head>
@@ -13,7 +13,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>智慧矿山一张图</h1>
-        <p>安宁隆瑞采石场 · 云南省昆明市安宁市县街鸣矣河村</p>
+        <p>安宁隆瑞混凝土有限责任公司采石场 · 云南省昆明市安宁市县街鸣矣河村</p>
       </div>
       <nav class="nav-tabs">
         <button type="button" class="nav-tab active" data-scroll="sec-map">一张图</button>
@@ -120,12 +120,13 @@
                   <div class="tool-section-title">底图切换</div>
                   <label class="basemap-select-wrap">
                     <select id="basemap-select" class="basemap-select" title="选择底图">
-                      <option value="osm-street">OSM 城市底图</option>
-                      <option value="amap-img" selected>高德影像底图</option>
-                      <option value="esri-street">ESRI 城市地图</option>
-                      <option value="esri-img">ESRI 影像地图</option>
-                      <option value="tdt-vec">天地图矢量</option>
+                      <option value="google-sat" selected>谷歌卫星影像</option>
+                      <option value="esri-img">ESRI 高清影像</option>
+                      <option value="amap-img">高德影像底图</option>
                       <option value="tdt-img">天地图影像</option>
+                      <option value="tdt-vec">天地图矢量</option>
+                      <option value="esri-street">ESRI 城市地图</option>
+                      <option value="osm-street">OSM 城市底图</option>
                     </select>
                   </label>
                   <div class="tool-tip" id="basemap-zoom-tip">当前底图最大切片等级：—</div>
@@ -161,7 +162,7 @@
         <section class="panel" id="sec-reserve">
           <div class="panel-hd">
             <h2>矿区储量分析</h2>
-            <span class="sub">录入 · 日历 · 扣减</span>
+            <span class="sub">可采储量 · 回采率</span>
           </div>
           <div class="panel-bd">
             <div id="panel-reserve-summary"></div>
@@ -176,7 +177,7 @@
         <section class="panel" id="sec-video">
           <div class="panel-hd">
             <h2>视频监控</h2>
-            <span class="sub">预览占位</span>
+            <span class="sub">示意点位 · 命名待定</span>
           </div>
           <div class="panel-bd">
             <div class="video-grid" id="panel-video"></div>

@@ -1,49 +1,75 @@
 {
-  "updatedAt": "2026-07-21T10:00:00+08:00",
+  "updatedAt": "2026-07-29T21:50:00+08:00",
+  "dataBasis": "安宁隆瑞混凝土有限责任公司采石场2024年矿山储量年度报告（截止 2024-12-31）",
+  "dataBasisNote": "单位已由报告「千吨」换算为系统「万吨」（÷10）。无 2025 年报前以此为基准台账；后台可按生产台账微调已采出/日均采出。",
   "unit": "万吨",
-  "initialReserve": 860,
-  "mined": 218.6,
-  "remaining": 641.4,
-  "designRecoverable": 790,
-  "lossRate": 0.08,
   "warningYears": 3,
-  "remainingDays": 980,
+  "assessedUtilizedReserve": 9825.93,
+  "designRecoveryRate": 1,
+  "miningRecoveryRate": 0.95,
+  "mined": 0,
+  "avgDailyMined": 0.259,
+  "reportSnapshot": {
+    "asOf": "2024-12-31",
+    "unitOriginal": "千吨",
+    "preservedResourceKt": 98259.32,
+    "identifiedTotalKt": 127890.4,
+    "credibleReserveKt": 93346.32,
+    "year2024": {
+      "activatedKt": 993.85,
+      "minedKt": 944.16,
+      "lossKt": 49.69,
+      "recoveryRate": 0.95
+    },
+    "year2023": {
+      "activatedKt": 1996.59,
+      "minedKt": 1896.76,
+      "lossKt": 99.83,
+      "recoveryRate": 0.95
+    },
+    "licensedCapacityWanTPerYear": 300,
+    "formulaCredible": "可信储量 = 控制资源量(保有) × 可信系数(1) × 回采率(0.95)"
+  },
+  "districts": [
+    {
+      "id": "Y2024",
+      "name": "2024年度采剥区",
+      "output": 94.42,
+      "activatedReserve": 99.39
+    },
+    {
+      "id": "Y2023",
+      "name": "2023年度采剥区",
+      "output": 189.68,
+      "activatedReserve": 199.66
+    }
+  ],
   "trend": [
-    { "month": "2026-02", "remaining": 682.1 },
-    { "month": "2026-03", "remaining": 674.5 },
-    { "month": "2026-04", "remaining": 665.8 },
-    { "month": "2026-05", "remaining": 656.2 },
-    { "month": "2026-06", "remaining": 648.0 },
-    { "month": "2026-07", "remaining": 641.4 }
+    { "month": "2023-12", "remaining": 9429.05 },
+    { "month": "2024-03", "remaining": 9400.0 },
+    { "month": "2024-06", "remaining": 9370.0 },
+    { "month": "2024-09", "remaining": 9350.0 },
+    { "month": "2024-12", "remaining": 9334.63 }
   ],
   "forecast": [
-    { "month": "2026-08", "remaining": 632.0 },
-    { "month": "2026-10", "remaining": 612.5 },
-    { "month": "2026-12", "remaining": 593.8 },
-    { "month": "2027-03", "remaining": 565.0 },
-    { "month": "2027-07", "remaining": 528.4 }
+    { "month": "2025-03", "remaining": 9250.0 },
+    { "month": "2025-06", "remaining": 9170.0 },
+    { "month": "2025-09", "remaining": 9090.0 },
+    { "month": "2025-12", "remaining": 9010.0 },
+    { "month": "2026-06", "remaining": 8850.0 }
   ],
   "daily": [
-    { "date": "2026-07-01", "mined": 0.32 },
-    { "date": "2026-07-02", "mined": 0.28 },
-    { "date": "2026-07-03", "mined": 0.35 },
-    { "date": "2026-07-04", "mined": 0.0 },
-    { "date": "2026-07-05", "mined": 0.0 },
-    { "date": "2026-07-06", "mined": 0.41 },
-    { "date": "2026-07-07", "mined": 0.38 },
-    { "date": "2026-07-08", "mined": 0.36 },
-    { "date": "2026-07-09", "mined": 0.33 },
-    { "date": "2026-07-10", "mined": 0.29 },
-    { "date": "2026-07-11", "mined": 0.0 },
-    { "date": "2026-07-12", "mined": 0.0 },
-    { "date": "2026-07-13", "mined": 0.44 },
-    { "date": "2026-07-14", "mined": 0.39 },
-    { "date": "2026-07-15", "mined": 0.37 },
-    { "date": "2026-07-16", "mined": 0.34 },
-    { "date": "2026-07-17", "mined": 0.31 },
-    { "date": "2026-07-18", "mined": 0.0 },
-    { "date": "2026-07-19", "mined": 0.0 },
-    { "date": "2026-07-20", "mined": 0.42 },
-    { "date": "2026-07-21", "mined": 0.36 }
+    { "date": "2024-01-15", "mined": 0.26, "note": "年报分摊示意" },
+    { "date": "2024-02-15", "mined": 0.24, "note": "年报分摊示意" },
+    { "date": "2024-03-15", "mined": 0.28, "note": "年报分摊示意" },
+    { "date": "2024-04-15", "mined": 0.27, "note": "年报分摊示意" },
+    { "date": "2024-05-15", "mined": 0.29, "note": "年报分摊示意" },
+    { "date": "2024-06-15", "mined": 0.28, "note": "年报分摊示意" },
+    { "date": "2024-07-15", "mined": 0.27, "note": "年报分摊示意" },
+    { "date": "2024-08-15", "mined": 0.26, "note": "年报分摊示意" },
+    { "date": "2024-09-15", "mined": 0.25, "note": "年报分摊示意" },
+    { "date": "2024-10-15", "mined": 0.24, "note": "年报分摊示意" },
+    { "date": "2024-11-15", "mined": 0.23, "note": "年报分摊示意" },
+    { "date": "2024-12-15", "mined": 0.22, "note": "年报分摊示意·全年开采约94.42万吨" }
   ]
 }

@@ -44,8 +44,6 @@ import {
 } from './modules/slopeEval.js';
 import {
   initReserves,
-  applyDailyMined,
-  resetReserves,
   getReserves,
 } from './modules/reserves.js';
 import { initRoleFromSession, roleLabel, isAdmin } from './modules/role.js';
@@ -207,33 +205,10 @@ function refreshThresholdForm() {
   renderEnvThresholdForm();
 }
 
-function refreshReservesPanel(flash) {
+function refreshReservesPanel() {
   const reserves = getReserves();
   mockData.reserves = reserves;
-  renderReserves(reserves, {
-    onApply: (payload) => {
-      const result = applyDailyMined(payload);
-      if (result.ok) {
-        mockData.reserves = result.reserves;
-        refreshReservesPanel({
-          ok: true,
-          text: `已写入 ${payload.date}，剩余 ${result.reserves.remaining} ${result.reserves.unit}`,
-        });
-      }
-      return result;
-    },
-    onReset: () => {
-      mockData.reserves = resetReserves();
-      refreshReservesPanel({ ok: true, text: '已恢复为 mock 初始值' });
-    },
-  });
-  if (flash?.text) {
-    const msg = document.getElementById('reserve-form-msg');
-    if (msg) {
-      msg.className = flash.ok ? 'poll-ok' : 'poll-err';
-      msg.textContent = flash.text;
-    }
-  }
+  renderReserves(reserves);
 }
 
 function refreshAlerts(slopeOverride) {
@@ -330,7 +305,7 @@ async function boot() {
   const zoom = mockData.slopePoints.mapZoom || 15;
   initMap(center, zoom);
 
-  let mapConfig = { defaultBasemap: 'amap-img' };
+  let mapConfig = { defaultBasemap: 'google-sat' };
   try {
     const res = await fetch(`./data/map-config.json?_=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) mapConfig = { ...mapConfig, ...(await res.json()) };

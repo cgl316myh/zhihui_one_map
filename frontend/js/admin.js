@@ -40,11 +40,20 @@ import {
   resetEnvThresholds,
   getActivePeriodKey,
 } from './modules/envThresholds.js';
+import {
+  initReserves,
+  getReserves,
+  getReservesInput,
+  saveReservesConfig,
+  resetReserves,
+  computeReservesDerived,
+} from './modules/reserves.js';
 
 let session = null;
 let fileMapConfig = {};
 let fileSensorConfig = {};
 let fileThresholds = null;
+let fileReserves = null;
 let selectedDictType = 'point_status';
 let sensorDraft = null;
 
@@ -88,6 +97,7 @@ function showPanel(name) {
     overview: renderOverview,
     users: renderUsers,
     thresholds: renderThresholds,
+    reserves: renderReservesAdmin,
     dict: renderDict,
     maps: renderMaps,
     sensors: renderSensors,
@@ -450,6 +460,264 @@ function renderThresholds() {
     });
     flash('已恢复默认阈值');
     renderThresholds();
+  });
+}
+
+/* —— 储量参数 —— */
+function renderReservesAdmin() {
+  const derived = getReserves();
+  const input = getReservesInput();
+  const districts = Array.isArray(input.districts) ? input.districts : [];
+  const box = $('panel-reserves');
+  box.innerHTML = `
+    <div class="thresh-page">
+      <div class="thresh-page-hd">
+        <div>
+          <h2>储量参数</h2>
+          <p class="muted">录入后自动计算可采储量与回采率；大屏仅展示结果。
+            <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">计算方法与数据来源</a>
+          </p>
+        </div>
+        <div class="thresh-page-actions">
+          <button type="button" class="btn ghost" id="btn-rsv-reset">恢复默认</button>
+          <button type="button" class="btn" id="btn-rsv-save">保存并计算</button>
+        </div>
+      </div>
+
+      <section class="thresh-period-card is-active" style="margin-bottom:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>计算方法与数据来源</h3>
+            <p>${input.dataBasis || '见 docs/储量计算方法与数据来源.html'}</p>
+          </div>
+        </header>
+        <div class="thresh-metric-list" style="padding:12px 14px">
+          <p class="muted" style="margin:0 0 8px">${input.dataBasisNote || ''}</p>
+          <ul class="muted" style="margin:0;padding-left:1.2em;line-height:1.7">
+            <li>可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率</li>
+            <li>剩余可采 = 可采储量 − 累计已采出；预计天数 = 剩余可采 ÷ 日均采出</li>
+            <li>采区回采率 = 采出量 ÷ 动用储量；全矿按采出量加权平均</li>
+            <li>默认台账：2024 年报保有 9825.93 万吨 × 1.0 × 0.95 ≈ 可信储量 9334.63 万吨</li>
+          </ul>
+          <p class="muted" style="margin:10px 0 0">
+            完整对照表与维护说明：
+            <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">打开说明页</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="thresh-period-card is-active">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>可采储量输入</h3>
+            <p>可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率</p>
+          </div>
+        </header>
+        <div class="thresh-metric-list">
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-name"><strong>评估利用资源储量</strong><span>万吨</span></div>
+            <div class="thresh-metric-fields map-fields-1">
+              <label class="thresh-field"><span>数值</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-assessed" step="0.01" min="0" value="${input.assessedUtilizedReserve ?? ''}" />
+                  <i>万吨</i>
+                </div>
+              </label>
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-name"><strong>回采率</strong><span>0～1 或百分比均可，保存时按小数存</span></div>
+            <div class="thresh-metric-fields map-fields-2">
+              <label class="thresh-field"><span>设计回采率</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-design" step="0.01" min="0" max="1" value="${input.designRecoveryRate ?? ''}" />
+                </div>
+              </label>
+              <label class="thresh-field"><span>采矿回采率</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-mining" step="0.01" min="0" max="1" value="${input.miningRecoveryRate ?? ''}" />
+                </div>
+              </label>
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-name"><strong>台账辅助</strong><span>用于剩余可采与服务年限估算</span></div>
+            <div class="thresh-metric-fields map-fields-grid">
+              <label class="thresh-field"><span>累计已采出</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-mined" step="0.01" min="0" value="${input.mined ?? ''}" /><i>万吨</i>
+                </div>
+              </label>
+              <label class="thresh-field"><span>日均采出</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-avg" step="0.001" min="0" value="${input.avgDailyMined ?? ''}" /><i>万吨/日</i>
+                </div>
+              </label>
+              <label class="thresh-field"><span>服务年限预警</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-warn" step="0.1" min="0" value="${input.warningYears ?? ''}" /><i>年</i>
+                </div>
+              </label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="thresh-period-card is-active" style="margin-top:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>采区回采率输入</h3>
+            <p>采区回采率 = 采出量 ÷ 动用储量；全矿按采出量加权平均</p>
+          </div>
+          <button type="button" class="btn ghost" id="btn-rsv-add-dist">添加采区</button>
+        </header>
+        <div class="table-wrap">
+          <table class="data" id="rsv-district-table">
+            <thead>
+              <tr><th>采区名称</th><th>采出量（万吨）</th><th>动用储量（万吨）</th><th>回采率</th><th></th></tr>
+            </thead>
+            <tbody>
+              ${
+                districts.length
+                  ? districts
+                      .map((d, i) => {
+                        const rate =
+                          Number(d.activatedReserve) > 0
+                            ? ((Number(d.output) || 0) / Number(d.activatedReserve)) * 100
+                            : 0;
+                        return `<tr data-idx="${i}">
+                          <td><input data-f="name" value="${d.name || ''}" /></td>
+                          <td><input type="number" data-f="output" step="0.01" min="0" value="${d.output ?? 0}" /></td>
+                          <td><input type="number" data-f="activated" step="0.01" min="0" value="${d.activatedReserve ?? 0}" /></td>
+                          <td class="rsv-rate-cell">${rate.toFixed(1)}%</td>
+                          <td><button type="button" class="btn ghost" data-act="del">删除</button></td>
+                        </tr>`;
+                      })
+                      .join('')
+                  : '<tr class="empty"><td colspan="5">暂无采区，请添加</td></tr>'
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="thresh-period-card" style="margin-top:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>计算结果（预览）</h3>
+            <p>保存后写入本地，大屏刷新即可见</p>
+          </div>
+        </header>
+        <div class="kpi-row" id="rsv-preview">
+          <div class="kpi"><span>可采储量</span><b>${derived.recoverableReserve} ${derived.unit}</b></div>
+          <div class="kpi"><span>剩余可采</span><b>${derived.remaining} ${derived.unit}</b></div>
+          <div class="kpi"><span>全矿回采率</span><b>${derived.mineRecoveryRatePct}</b></div>
+          <div class="kpi"><span>预计天数</span><b>${derived.remainingDays}</b></div>
+        </div>
+      </section>
+    </div>`;
+
+  const refreshRates = () => {
+    box.querySelectorAll('#rsv-district-table tbody tr[data-idx]').forEach((tr) => {
+      const output = Number(tr.querySelector('[data-f="output"]')?.value) || 0;
+      const act = Number(tr.querySelector('[data-f="activated"]')?.value) || 0;
+      const cell = tr.querySelector('.rsv-rate-cell');
+      if (cell) cell.textContent = act > 0 ? `${((output / act) * 100).toFixed(1)}%` : '—';
+    });
+  };
+
+  const collect = () => {
+    const districtsNext = [];
+    box.querySelectorAll('#rsv-district-table tbody tr[data-idx]').forEach((tr, i) => {
+      districtsNext.push({
+        id: districts[i]?.id || `D${i + 1}`,
+        name: tr.querySelector('[data-f="name"]')?.value?.trim() || `采区${i + 1}`,
+        output: Number(tr.querySelector('[data-f="output"]')?.value) || 0,
+        activatedReserve: Number(tr.querySelector('[data-f="activated"]')?.value) || 0,
+      });
+    });
+    return {
+      assessedUtilizedReserve: Number($('rsv-assessed')?.value) || 0,
+      designRecoveryRate: Number($('rsv-design')?.value) || 0,
+      miningRecoveryRate: Number($('rsv-mining')?.value) || 0,
+      mined: Number($('rsv-mined')?.value) || 0,
+      avgDailyMined: Number($('rsv-avg')?.value) || 0,
+      warningYears: Number($('rsv-warn')?.value) || 0,
+      unit: input.unit || '万吨',
+      districts: districtsNext,
+      daily: input.daily,
+      trend: input.trend,
+      forecast: input.forecast,
+    };
+  };
+
+  const updatePreview = () => {
+    const preview = computeReservesDerived(collect());
+    const el = $('rsv-preview');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="kpi"><span>可采储量</span><b>${preview.recoverableReserve} ${preview.unit}</b></div>
+      <div class="kpi"><span>剩余可采</span><b>${preview.remaining} ${preview.unit}</b></div>
+      <div class="kpi"><span>全矿回采率</span><b>${preview.mineRecoveryRatePct}</b></div>
+      <div class="kpi"><span>预计天数</span><b>${preview.remainingDays}</b></div>`;
+    refreshRates();
+  };
+
+  box.addEventListener('input', (e) => {
+    if (e.target.matches('input')) updatePreview();
+  });
+
+  $('btn-rsv-add-dist')?.addEventListener('click', () => {
+    const payload = collect();
+    payload.districts.push({
+      id: `D${payload.districts.length + 1}`,
+      name: `采区${payload.districts.length + 1}`,
+      output: 0,
+      activatedReserve: 0,
+    });
+    saveReservesConfig(payload);
+    renderReservesAdmin();
+  });
+
+  box.querySelector('#rsv-district-table')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act="del"]');
+    if (!btn) return;
+    const tr = btn.closest('tr[data-idx]');
+    if (!tr) return;
+    const idx = Number(tr.dataset.idx);
+    const payload = collect();
+    payload.districts.splice(idx, 1);
+    saveReservesConfig(payload);
+    renderReservesAdmin();
+  });
+
+  $('btn-rsv-save')?.addEventListener('click', () => {
+    const payload = collect();
+    if (payload.designRecoveryRate > 1 || payload.miningRecoveryRate > 1) {
+      flash('回采率请填写 0～1 之间的小数（如 0.92）', false);
+      return;
+    }
+    const next = saveReservesConfig(payload);
+    appendAuditLog({
+      actor: session.username,
+      action: 'reserves_save',
+      result: 'ok',
+      summary: `保存储量参数 · 可采 ${next.recoverableReserve}${next.unit}`,
+    });
+    flash(`已保存：可采储量 ${next.recoverableReserve} ${next.unit}，全矿回采率 ${next.mineRecoveryRatePct}`);
+    renderReservesAdmin();
+  });
+
+  $('btn-rsv-reset')?.addEventListener('click', () => {
+    resetReserves();
+    appendAuditLog({
+      actor: session.username,
+      action: 'reserves_reset',
+      result: 'ok',
+      summary: '恢复储量默认参数',
+    });
+    flash('已恢复默认储量参数');
+    renderReservesAdmin();
   });
 }
 
@@ -1092,6 +1360,7 @@ function renderAudit() {
           <option value="map_config_save">map_config_save</option>
           <option value="sensor_config_save">sensor_config_save</option>
           <option value="sensor_config_sync">sensor_config_sync</option>
+          <option value="reserves_save">reserves_save</option>
         </select>
       </label>
       <button type="button" class="btn" id="btn-a-filter">筛选</button>
@@ -1154,7 +1423,7 @@ function renderPerms() {
           <tr><td>进入管理后台</td><td>是</td><td>否</td></tr>
           <tr><td>环境阈值改配</td><td>仅后台</td><td>否</td></tr>
           <tr><td>边坡消警</td><td>是</td><td>否</td></tr>
-          <tr><td>储量日采出录入</td><td>是</td><td>否</td></tr>
+          <tr><td>储量参数改配</td><td>仅后台</td><td>否</td></tr>
           <tr><td>字典 / 地图源 / 用户管理</td><td>是</td><td>否</td></tr>
           <tr><td>数据接入（MQTT / HTTP·TCP）</td><td>是</td><td>否</td></tr>
         </tbody>
@@ -1193,6 +1462,17 @@ async function boot() {
     }
   } catch {
     initEnvThresholds(getDefaultEnvThresholds());
+  }
+  try {
+    const res = await fetch(`./data/reserves.json?_=${Date.now()}`, { cache: 'no-store' });
+    if (res.ok) {
+      fileReserves = await res.json();
+      initReserves(fileReserves);
+    } else {
+      initReserves({});
+    }
+  } catch {
+    initReserves({});
   }
 
   bindNav();

@@ -192,11 +192,17 @@ export function renderReserveCharts(reserves) {
           formatter: '{b}\n{c}',
         },
         data: [
-          { name: '已开采', value: reserves.mined, itemStyle: { color: '#3d7eff' } },
-          { name: '剩余保有', value: reserves.remaining, itemStyle: { color: '#2ee6a6' } },
+          { name: '已采出', value: reserves.mined, itemStyle: { color: '#3d7eff' } },
+          { name: '剩余可采', value: reserves.remaining, itemStyle: { color: '#2ee6a6' } },
           {
-            name: '设计可采差',
-            value: Math.max(0, +(reserves.designRecoverable - reserves.remaining).toFixed(1)),
+            name: '评估未计入可采',
+            value: Math.max(
+              0,
+              +(
+                Number(reserves.assessedUtilizedReserve || reserves.initialReserve || 0) -
+                Number(reserves.recoverableReserve || reserves.designRecoverable || 0)
+              ).toFixed(1)
+            ),
             itemStyle: { color: '#5a6d8c' },
           },
         ],
