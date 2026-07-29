@@ -2,7 +2,6 @@
   "defaultBasemap": "google-sat",
   "mapMinZoom": 3,
   "tiandituTk": "2614f89248e121283410408772c240dc",
-  "basemapNote": "演示默认谷歌卫星在线瓦片；国内若加载慢可切换 ESRI/高德/天地图。正式离线高清需部署本地切片包。",
   "basemaps": {
     "google-sat": {
       "label": "谷歌卫星影像",

@@ -344,17 +344,12 @@ export function renderVideoMarkers(video) {
     const m = L.marker([c.lat, c.lng], {
       icon: pulseIcon(c.online ? '#3dd6ff' : '#ff4d4f', '视'),
     }).addTo(g);
-    const pending =
-      c.nameFinal === false
-        ? '<p class="popup-note">命名待设备安装完成后最终确定</p>'
-        : '';
     m.bindPopup(
       `
       <div class="popup-card video-popup">
         <h4>${c.name}</h4>
         <p>${c.online ? '在线' : '离线'} · ${c.scene || ''}</p>
-        ${pending}
-        <div class="popup-video-ph">${c.online ? '实时预览占位（演示）' : '信号中断'}</div>
+        <div class="popup-video-ph">${c.online ? '实时预览' : '信号中断'}</div>
       </div>`,
       { maxWidth: 440, minWidth: 360, className: 'leaflet-video-popup' }
     );

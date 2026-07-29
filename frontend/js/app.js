@@ -198,7 +198,7 @@ function refreshEnvironment() {
   renderEnvironmentMarkers(mockData.environment);
   refreshAlerts();
   const period = getActivePeriodKey() === 'day' ? '昼间' : '夜间';
-  setEnvPollStatus(true, `演示 · 本地 mock · ${period}阈值生效`);
+  setEnvPollStatus(true, `${period}阈值生效`);
 }
 
 function refreshThresholdForm() {
@@ -260,7 +260,7 @@ function onSlopeData(data) {
   setSlopePollStatus(
     true,
     DEMO_MOCK_ONLY || !data.live
-      ? `边坡本地 mock · 阈值计算 · ${Math.round(cfg.intervalMs / 1000)}s`
+      ? `边坡监测 · 阈值计算 · ${Math.round(cfg.intervalMs / 1000)}s`
       : `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
   );
 }
@@ -294,7 +294,7 @@ async function boot() {
     console.error(err);
     document.getElementById('boot-error').hidden = false;
     document.getElementById('boot-error').textContent =
-      '本地测试数据加载失败，请使用传感器网关或静态服务打开 frontend 目录（勿直接双击 file://）。';
+      '数据加载失败，请使用传感器网关或静态服务打开 frontend 目录（勿直接双击 file://）。';
     return;
   }
 

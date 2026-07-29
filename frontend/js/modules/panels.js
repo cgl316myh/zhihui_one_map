@@ -75,9 +75,7 @@ export function renderEnvironment(env, selectedId = null) {
 
   const liveTag = env.live
     ? '<div class="poll-ok" style="margin-bottom:8px">实时接入 · MQTT/HTTP</div>'
-    : env.source === 'fallback-mock' || env.source === 'local-mock'
-      ? '<div class="poll-ok" style="margin-bottom:8px">演示 · 本地 mock</div>'
-      : '';
+    : '';
 
   box.innerHTML =
     liveTag +
@@ -110,9 +108,7 @@ export function renderEnvironment(env, selectedId = null) {
 
   const cap = document.getElementById('env-chart-caption');
   if (cap) {
-    cap.textContent = focus
-      ? `${focus.name} · 近 24h 历史（mock）`
-      : '历史曲线';
+    cap.textContent = focus ? `${focus.name} · 近 24h 历史` : '历史曲线';
   }
   if (focus) renderEnvHistory(focus);
 
@@ -174,7 +170,7 @@ function renderProcessFlow(prod) {
 
   return `
     <div class="process-flow" role="img" aria-label="${prod?.processNote || '工艺流程'}">
-      <div class="process-flow-hd">工艺流程示意（非 SCADA）</div>
+      <div class="process-flow-hd">工艺流程</div>
       <div class="process-flow-track">${parts.join('')}</div>
       <div class="metric-loc">${prod?.processNote || ''}</div>
     </div>`;
@@ -183,34 +179,24 @@ function renderProcessFlow(prod) {
 export function renderProduction(prod) {
   const box = document.getElementById('panel-production');
   if (!box || !prod) return;
-  const reserveNote = prod.sensorReserveNote
-    ? `<div class="sensor-reserve-note">${prod.sensorReserveNote}</div>`
-    : '';
   const linesHtml = (prod.lines || [])
     .map((line) => {
       const devices = (line.devices || [])
         .map((d) => {
           const bits = [];
-          // 正式可展示的运行量
           if (d.vibrateHz != null) bits.push(`激振 ${d.vibrateHz}Hz`);
           if (d.flowTph != null) bits.push(`流量 ${d.flowTph}t/h`);
           if (d.speedRpm != null) bits.push(`转速 ${d.speedRpm}rpm`);
-          const detail = bits.length ? `<div class="metric-loc">${bits.join(' · ')}</div>` : '';
-          // 电流/轴温/频率：模拟预留，灰显标注
           const sim = d.sensorSim || {};
-          const simBits = [];
-          if (sim.currentA != null) simBits.push(`电流 ${sim.currentA}A`);
-          if (sim.bearingTemp != null) simBits.push(`轴温 ${sim.bearingTemp}℃`);
-          if (sim.freqHz != null) simBits.push(`频率 ${sim.freqHz}Hz`);
-          const simHtml = simBits.length
-            ? `<div class="metric-loc sensor-sim" title="模拟预留，待传感器接入">${simBits.join(' · ')} <em>模拟预留</em></div>`
-            : '';
+          if (sim.currentA != null) bits.push(`电流 ${sim.currentA}A`);
+          if (sim.bearingTemp != null) bits.push(`轴温 ${sim.bearingTemp}℃`);
+          if (sim.freqHz != null) bits.push(`频率 ${sim.freqHz}Hz`);
+          const detail = bits.length ? `<div class="metric-loc">${bits.join(' · ')}</div>` : '';
           return `
           <li class="${statusClass(d.status)}">
             <span>${d.name}</span>
             <em>${statusText(d.status)}${d.alarm ? ' · ' + d.alarm : ''}</em>
             ${detail}
-            ${simHtml}
           </li>`;
         })
         .join('');
@@ -224,7 +210,7 @@ export function renderProduction(prod) {
         </div>`;
     })
     .join('');
-  box.innerHTML = renderProcessFlow(prod) + reserveNote + linesHtml;
+  box.innerHTML = renderProcessFlow(prod) + linesHtml;
 }
 
 export function renderAlerts(alerts) {
@@ -322,7 +308,7 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
           <span class="metric-loc">选中：${focus.name}</span>
           ${
             needClear
-              ? `<button type="button" class="tool-btn" id="btn-slope-clear">消警（演示）</button>`
+              ? `<button type="button" class="tool-btn" id="btn-slope-clear">消警</button>`
               : ''
           }
           ${
@@ -355,7 +341,6 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
 
 export function renderReserves(reserves) {
   const box = document.getElementById('panel-reserve-summary');
-  const formBox = document.getElementById('panel-reserve-form');
   if (!reserves) return;
   const days = Number(reserves.remainingDays);
   const warnYears = Number(reserves.warningYears);
@@ -407,52 +392,24 @@ export function renderReserves(reserves) {
     </div>`;
   }
 
-  if (formBox) {
-    const basis = reserves.dataBasis
-      ? `<div class="metric-loc" style="margin-top:6px">数据来源：${reserves.dataBasis}</div>`
-      : '';
-    const basisNote = reserves.dataBasisNote
-      ? `<div class="metric-loc">${reserves.dataBasisNote}</div>`
-      : '';
-    formBox.innerHTML = `
-      <div class="thresh-hd">
-        <strong>计算说明</strong>
-        <span class="sub">只读 · 参数在管理后台维护</span>
-      </div>
-      <div class="metric-loc">${reserves.formula?.recoverable || ''}</div>
-      <div class="metric-loc">${reserves.formula?.district || ''}</div>
-      <div class="metric-loc">${reserves.formula?.mine || ''}</div>
-      ${basis}
-      ${basisNote}
-      <div class="metric-loc" style="margin-top:6px">
-        <a href="./docs/储量计算方法与数据来源.html" target="_blank" rel="noopener">查看完整计算方法与数据来源说明</a>
-        · 管理员请在「管理后台 → 储量参数」修改输入值。
-      </div>`;
-  }
-
   renderReserveCharts(reserves);
 }
 
 export function renderVideo(video) {
   const box = document.getElementById('panel-video');
   if (!box || !video) return;
-  const note = video.placementNote
-    ? `<div class="metric-loc video-place-note">${video.placementNote}</div>`
-    : '';
-  box.innerHTML =
-    note +
-    (video.cameras || [])
-      .map(
-        (c) => `
+  box.innerHTML = (video.cameras || [])
+    .map(
+      (c) => `
       <div class="video-tile ${c.online ? 'online' : 'offline'}">
         <div class="video-screen">
           <span>${c.online ? '● LIVE' : '○ OFFLINE'}</span>
           <p>${c.scene || ''}</p>
         </div>
-        <div class="video-name">${c.name}${c.nameFinal === false ? ' <em class="name-pending">待定名</em>' : ''}</div>
+        <div class="video-name">${c.name}</div>
       </div>`
-      )
-      .join('');
+    )
+    .join('');
 }
 
 export function setSlopePollStatus(ok, message) {

@@ -1,42 +1,37 @@
 {
   "updatedAt": "2026-07-29T21:00:00+08:00",
-  "placementNote": "视频点位为示意坐标（围绕边坡 GNSS 实测中心布设）；命名待设备安装后最终确定。",
   "cameras": [
     {
       "id": "CAM-01",
-      "name": "视频点位1（示意·大门）",
-      "nameFinal": false,
+      "name": "1# 大门",
       "lng": 102.44495,
       "lat": 24.78525,
       "online": true,
-      "scene": "矿区出入口 · 示意位置"
+      "scene": "矿区出入口"
     },
     {
       "id": "CAM-02",
-      "name": "视频点位2（示意·破碎）",
-      "nameFinal": false,
+      "name": "2# 破碎",
       "lng": 102.44638,
       "lat": 24.78512,
       "online": true,
-      "scene": "破碎车间作业面 · 示意位置"
+      "scene": "破碎车间作业面"
     },
     {
       "id": "CAM-03",
-      "name": "视频点位3（示意·筛分）",
-      "nameFinal": false,
+      "name": "3# 筛分",
       "lng": 102.44688,
       "lat": 24.78572,
       "online": true,
-      "scene": "筛分平台与皮带廊 · 示意位置"
+      "scene": "筛分平台与皮带廊"
     },
     {
       "id": "CAM-04",
-      "name": "视频点位4（示意·边坡）",
-      "nameFinal": false,
+      "name": "4# 边坡",
       "lng": 102.44592,
       "lat": 24.78705,
       "online": false,
-      "scene": "边坡监测区周边 · 示意位置"
+      "scene": "边坡监测区周边"
     }
   ]
 }

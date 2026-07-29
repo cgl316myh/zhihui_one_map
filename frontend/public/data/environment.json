@@ -1,7 +1,6 @@
 {
   "updatedAt": "2026-07-29T21:00:00+08:00",
   "source": "local-mock",
-  "placementNote": "环境站示意坐标：按矿区功能区相对边坡 GNSS 实测中心布设，安装后可按实测经纬度替换。",
   "points": [
     {
       "id": "ENV-01",
