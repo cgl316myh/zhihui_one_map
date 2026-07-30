@@ -947,26 +947,35 @@ button.slope-item.active {
 .leaflet-popup-content-wrapper {
   background: rgba(245, 249, 255, 0.96);
   color: #1a2a3a;
-  border-radius: 4px;
+  border-radius: 6px;
+  padding: 2px;
 }
-.popup-card h4 { margin: 0 0 4px; font-size: 14px; }
-.popup-card p { margin: 0 0 6px; font-size: 12px; color: #456; }
-.popup-card ul { margin: 0; padding-left: 16px; font-size: 12px; }
-.popup-card.wide { min-width: 240px; }
+.leaflet-popup-content {
+  margin: 14px 16px;
+  min-width: 280px;
+}
+.popup-card {
+  min-width: 280px;
+}
+.popup-card h4 { margin: 0 0 6px; font-size: 16px; }
+.popup-card p { margin: 0 0 8px; font-size: 13px; color: #456; }
+.popup-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+.popup-card.wide { min-width: 500px; }
 .popup-card.video-popup {
-  min-width: 360px;
-  max-width: 420px;
+  min-width: 440px;
+  max-width: 520px;
 }
 .popup-card .popup-note {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: #a67c00;
 }
 .leaflet-video-popup .leaflet-popup-content {
-  margin: 12px 14px;
+  margin: 14px 16px;
+  min-width: 440px;
 }
 .popup-video-ph {
-  height: 220px;
+  height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -980,14 +989,14 @@ button.slope-item.active {
       rgba(61, 214, 255, 0.04) 16px
     );
   color: #9cf;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 1px;
   border: 1px solid rgba(61, 214, 255, 0.28);
   border-radius: 4px;
 }
-.popup-chart { height: 120px; width: 260px; }
-.popup-chart-label { font-size: 11px; color: #678; margin: 4px 0 2px; }
-.popup-th { font-size: 11px !important; color: #678 !important; }
+.popup-chart { height: 180px; width: 468px; }
+.popup-chart-label { font-size: 12px; color: #678; margin: 6px 0 4px; }
+.popup-th { font-size: 12px !important; color: #678 !important; }
 
 .chart-caption {
   margin: 8px 0 2px;

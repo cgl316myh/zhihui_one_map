@@ -321,7 +321,7 @@ export function renderEnvironmentMarkers(env) {
         <ul>${metrics}</ul>
         ${hasHist ? `<div class="popup-chart-label">近 24h</div><div id="${chartId}" class="popup-chart"></div>` : ''}
       </div>`,
-      { maxWidth: hasHist ? 320 : 260 }
+      { maxWidth: hasHist ? 500 : 360, minWidth: hasHist ? 500 : 300 }
     );
     if (hasHist) {
       m.on('popupopen', () => {
@@ -351,7 +351,7 @@ export function renderVideoMarkers(video) {
         <p>${c.online ? '在线' : '离线'} · ${c.scene || ''}</p>
         <div class="popup-video-ph">${c.online ? '实时预览' : '信号中断'}</div>
       </div>`,
-      { maxWidth: 440, minWidth: 360, className: 'leaflet-video-popup' }
+      { maxWidth: 520, minWidth: 440, className: 'leaflet-video-popup' }
     );
     markers.video.set(c.id, m);
   });
@@ -392,7 +392,10 @@ export function renderProductionMarkers(prod, slopePointsMeta) {
     const m = L.marker([s.lat, s.lng], {
       icon: pulseIcon(statusColor(st), '产'),
     }).addTo(g);
-    m.bindPopup(`<div class="popup-card"><h4>${s.name}</h4><p>状态：${st}</p></div>`);
+    m.bindPopup(`<div class="popup-card"><h4>${s.name}</h4><p>状态：${st}</p></div>`, {
+      maxWidth: 360,
+      minWidth: 280,
+    });
     markers.production.set(s.id, m);
   });
 }
@@ -424,7 +427,7 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
         <div class="popup-chart-label">短历史（近 12 点）</div>
         <div id="${chartId}" class="popup-chart"></div>
       </div>`,
-      { maxWidth: 320 }
+      { maxWidth: 500, minWidth: 500 }
     );
     m.on('popupopen', () => {
       setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 40);
@@ -440,11 +443,14 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
     const m = L.marker([rainMeta.lat, rainMeta.lng], {
       icon: pulseIcon(statusColor(r.status), '雨'),
     }).addTo(g);
-    m.bindPopup(`
+    m.bindPopup(
+      `
       <div class="popup-card">
         <h4>${r.name || '雨量监测点'}</h4>
         <p>当前 ${r.valueMm} mm · 累计 ${r.cumulativeMm} mm</p>
-      </div>`);
+      </div>`,
+      { maxWidth: 360, minWidth: 280 }
+    );
     markers.slope.set(r.id || 'YL-01', m);
   }
 }
