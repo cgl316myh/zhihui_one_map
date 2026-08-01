@@ -3,6 +3,12 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
+# 后端构建 / 内置 Node / 生成的静态页
+backend/target/
+backend/.node/
+backend/src/main/resources/static/**
+!backend/src/main/resources/static/README.txt
+
 # data 联接目录（真实数据在 public/data，避免重复入库）
 frontend/data/
 

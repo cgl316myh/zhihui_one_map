@@ -1,0 +1,73 @@
+{
+  "project": "安宁隆瑞混凝土有限责任公司采石场边坡位移监控系统",
+  "projectId": 398,
+  "monitorId": 721,
+  "sourceUrl": "http://bdlx.jgtop1.com/",
+  "apiBase": "http://wtapi.jgtop1.com/",
+  "mapCenter": [
+    102.445768,
+    24.786112
+  ],
+  "mapZoom": 16,
+  "points": [
+    {
+      "id": "5759",
+      "sn": "17625038478",
+      "name": "25038478(堆石平台)",
+      "type": "displacement",
+      "deviceType": 204,
+      "lng": 102.445768,
+      "lat": 24.786112,
+      "alt": 100.0,
+      "lastTime": "2026-07-15 00:03:38",
+      "sensorType": "GNSS"
+    },
+    {
+      "id": "5760",
+      "sn": "17625038476",
+      "name": "25038476(堆石平台)",
+      "type": "displacement",
+      "deviceType": 204,
+      "lng": 102.446032,
+      "lat": 24.787792,
+      "alt": 100.0,
+      "lastTime": "2026-07-15 00:03:38",
+      "sensorType": "GNSS"
+    },
+    {
+      "id": "5761",
+      "sn": "17625038475",
+      "name": "25038475(禁采区)",
+      "type": "displacement",
+      "deviceType": 204,
+      "lng": 102.446064,
+      "lat": 24.786988,
+      "alt": 100.0,
+      "lastTime": "2026-07-15 00:03:38",
+      "sensorType": "GNSS"
+    },
+    {
+      "id": "5758",
+      "sn": "17625038477",
+      "name": "25038477(采石场汇聚处_GJ)",
+      "type": "displacement",
+      "deviceType": 204,
+      "lng": 102.438408,
+      "lat": 24.78942,
+      "alt": 100.0,
+      "lastTime": "2026-07-15 00:03:38",
+      "sensorType": "GNSS"
+    },
+    {
+      "id": "5762",
+      "sn": "17525030953",
+      "name": "雨量",
+      "type": "rainfall",
+      "deviceType": 201,
+      "lng": 102.4461,
+      "lat": 24.787,
+      "lastTime": "2026-07-15 00:00:02",
+      "sensorType": "雨量计"
+    }
+  ]
+}

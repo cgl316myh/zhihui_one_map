@@ -55,9 +55,9 @@ async function boot() {
       .map((a) => `<code>${a.username}</code> / <code>${a.password}</code>（${a.role}）`)
       .join(' · ');
     const staticLine = isStaticHosting()
-      ? '<br />当前为静态演示：全部功能用本地 mock 数据，无需传感器网关。'
+      ? '<br />当前未连接后端，无法加载业务数据（已禁用演示 JSON 回退）。'
       : '';
-    hint.innerHTML = `演示账号：${accounts}<br />验证码不区分大小写，点击图片可刷新。${staticLine}`;
+    hint.innerHTML = `初始账号：${accounts}<br />验证码不区分大小写，点击图片可刷新。${staticLine}`;
   }
 
   document.getElementById('toggle-pwd')?.addEventListener('click', () => {
@@ -103,7 +103,11 @@ async function boot() {
         });
         return;
       }
-      setSession(result.user, { remember });
+      setSession(result.user, {
+        remember,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
       setRememberedUsername(username, remember);
       appendAuditLog({
         actor: result.user.username,

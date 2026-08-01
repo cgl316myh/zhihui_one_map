@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>管理员后台 · 安宁隆瑞混凝土有限责任公司采石场智慧矿山一张图</title>
   <link rel="stylesheet" href="./css/admin.css" />
+  <script>
+    // 在业务模块加载前清掉旧储量草稿，避免盖住数据库中的 2025 年报
+    try {
+      localStorage.removeItem('mine-one-map-reserves-v2');
+    } catch (e) {}
+  </script>
 </head>
 <body class="admin-page">
   <header class="admin-top">
     <div class="brand">
       <strong>智慧矿山一张图 · 管理后台</strong>
-      <span class="muted">演示原型 · 本地配置</span>
+      <span class="muted">配置写入数据库</span>
     </div>
     <div class="admin-top-actions">
       <span id="admin-user">—</span>

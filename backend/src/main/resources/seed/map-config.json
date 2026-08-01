@@ -1,0 +1,50 @@
+{
+  "defaultBasemap": "google-sat",
+  "mapMinZoom": 3,
+  "tiandituTk": "2614f89248e121283410408772c240dc",
+  "basemaps": {
+    "google-sat": {
+      "label": "谷歌卫星影像",
+      "minZoom": 3,
+      "maxZoom": 20,
+      "maxNativeZoom": 20,
+      "enabled": true
+    },
+    "osm-street": {
+      "label": "OSM 城市底图",
+      "minZoom": 3,
+      "maxZoom": 19,
+      "maxNativeZoom": 19
+    },
+    "amap-img": {
+      "label": "高德影像底图",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "esri-street": {
+      "label": "ESRI 城市地图",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "esri-img": {
+      "label": "ESRI 高清影像",
+      "minZoom": 3,
+      "maxZoom": 19,
+      "maxNativeZoom": 19
+    },
+    "tdt-vec": {
+      "label": "天地图矢量",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    },
+    "tdt-img": {
+      "label": "天地图影像",
+      "minZoom": 3,
+      "maxZoom": 18,
+      "maxNativeZoom": 18
+    }
+  }
+}

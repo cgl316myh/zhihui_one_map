@@ -1,6 +1,9 @@
 /**
- * 地图源与密钥：文件默认 + localStorage 覆盖，供大屏与后台共用。
+ * 地图源与密钥：文件默认 + localStorage 覆盖；API 模式同步 PUT /api/admin/map。
  */
+
+import { isStaticHosting } from '../demoMode.js';
+import { apiPut } from '../api/client.js';
 
 const MAP_KEY = 'mine-one-map-map-config-v1';
 
@@ -50,6 +53,9 @@ export function saveMapConfigOverride(cfg) {
   const data = clone(cfg);
   data.updatedAt = new Date().toISOString();
   localStorage.setItem(MAP_KEY, JSON.stringify(data));
+  if (!isStaticHosting()) {
+    apiPut('/api/admin/map', data).catch((err) => console.warn('[map] sync API failed', err));
+  }
   return data;
 }
 

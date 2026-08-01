@@ -1,4 +1,5 @@
-import { loadMockBundle } from './api/mock.js';
+import { loadDashboardBundle } from './api/dashboard.js';
+import { apiGet } from './api/client.js';
 import {
   startSlopePolling,
   getSlopeApiConfig,
@@ -53,12 +54,8 @@ import { initUserStore } from './auth/users.js';
 import { initDictStore } from './auth/dict.js';
 import { mergeMapConfig } from './auth/mapConfigStore.js';
 import { mergeSensorConfig } from './auth/sensorConfigStore.js';
-import { STATIC_DEMO } from './demoMode.js';
 import { initResizableSidebars, focusWorkspacePanel } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
-
-/** 演示原型：环境/边坡/报警均以本地 mock 为准，不接真实 MQTT/HTTP */
-const DEMO_MOCK_ONLY = STATIC_DEMO;
 
 let mockData = null;
 let selectedSlopeId = null;
@@ -257,12 +254,15 @@ function applySlope(data) {
 function onSlopeData(data) {
   applySlope(data);
   const cfg = getSlopeApiConfig();
-  setSlopePollStatus(
-    true,
-    DEMO_MOCK_ONLY || !data.live
-      ? `边坡监测 · 阈值计算 · ${Math.round(cfg.intervalMs / 1000)}s`
-      : `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`
-  );
+  let statusText;
+  if (data.unavailable) {
+    statusText = '边坡监测 · 网关不可用';
+  } else if (!data.live) {
+    statusText = `边坡监测 · 等待推送 · ${Math.round(cfg.intervalMs / 1000)}s`;
+  } else {
+    statusText = `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`;
+  }
+  setSlopePollStatus(Boolean(data.live), statusText);
 }
 
 function onSlopeError(err) {
@@ -289,29 +289,25 @@ async function boot() {
   initResizableSidebars();
 
   try {
-    mockData = await loadMockBundle();
+    mockData = await loadDashboardBundle();
   } catch (err) {
     console.error(err);
     document.getElementById('boot-error').hidden = false;
     document.getElementById('boot-error').textContent =
-      '数据加载失败，请使用传感器网关或静态服务打开 frontend 目录（勿直接双击 file://）。';
+      '数据加载失败，请确认 Spring Boot 已启动且已登录（数据仅来自数据库/接口，无演示回退）。';
     return;
   }
 
   initEnvThresholds(mockData.envThresholds);
   initReserves(mockData.reserves);
 
-  const center = mockData.slopePoints.mapCenter || [102.445768, 24.786112];
-  const zoom = mockData.slopePoints.mapZoom || 15;
+  const center = mockData.slopePoints?.mapCenter ||
+    mockData.publicConfig?.mapCenter ||
+    [102.445768, 24.786112];
+  const zoom = mockData.slopePoints?.mapZoom ?? mockData.publicConfig?.mapZoom ?? 15;
   initMap(center, zoom);
 
-  let mapConfig = { defaultBasemap: 'google-sat' };
-  try {
-    const res = await fetch(`./data/map-config.json?_=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) mapConfig = { ...mapConfig, ...(await res.json()) };
-  } catch {
-    /* 使用默认配置 */
-  }
+  let mapConfig = { defaultBasemap: 'google-sat', ...(mockData.publicConfig || {}) };
   mapConfig = mergeMapConfig(mapConfig);
   try {
     initMapToolbar(mapConfig);
@@ -319,23 +315,19 @@ async function boot() {
     console.error('[toolbar]', err);
   }
 
-  let sensorFileCfg = {};
-  try {
-    const res = await fetch(`./data/sensor-bridge-config.json?_=${Date.now()}`, {
-      cache: 'no-store',
-    });
-    if (res.ok) sensorFileCfg = await res.json();
-  } catch {
-    /* 默认 */
-  }
-  const sensorCfg = mergeSensorConfig(sensorFileCfg);
-  const apiBase = DEMO_MOCK_ONLY ? '' : sensorCfg.frontend?.apiBaseUrl || '';
+  const sensorCfg = mergeSensorConfig({
+    frontend: {
+      pollIntervalMs: Number(mockData.publicConfig?.pollIntervalMs) || 30000,
+    },
+  });
+  // API 模式：相对路径 /api 经 Vite 代理到 Spring
+  const apiBase = '';
   const pollMs = Math.max(30000, Number(sensorCfg.frontend?.pollIntervalMs) || 30000);
   configureSensorApi({ baseUrl: apiBase, intervalMs: pollMs });
   configureSlopeApi({
     baseUrl: apiBase,
     intervalMs: pollMs,
-    ...(DEMO_MOCK_ONLY ? { preferMock: true } : {}),
+    preferMock: false,
   });
 
   requestAnimationFrame(() => {

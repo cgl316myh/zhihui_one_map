@@ -27,9 +27,6 @@ CONFIG_PATH = ROOT / "config.json"
 STORE_DIR = ROOT / "store"
 STORE_DIR.mkdir(parents=True, exist_ok=True)
 LATEST_PATH = STORE_DIR / "latest.json"
-ENV_FALLBACK = ROOT / "../frontend/data/environment.json"
-SLOPE_FALLBACK = ROOT / "../frontend/data/slope.json"
-
 TZ8 = timezone(timedelta(hours=8))
 
 # ---------- store ----------
@@ -473,20 +470,10 @@ def build_environment(cfg: dict) -> dict:
             )
 
     live = any(p.get("metrics") for p in points)
-    if not live:
-        # fallback to local mock so prototype still works offline
-        try:
-            fb = json.loads(Path(ENV_FALLBACK).resolve().read_text(encoding="utf-8"))
-            fb["live"] = False
-            fb["source"] = "fallback-mock"
-            return fb
-        except Exception:
-            pass
-
     return {
         "updatedAt": _now_iso(),
-        "live": True,
-        "source": "sensor-bridge",
+        "live": live,
+        "source": "sensor-bridge" if live else "bridge-no-data",
         "points": points,
     }
 
@@ -564,24 +551,10 @@ def build_slope(cfg: dict) -> dict:
         }
 
     live = bool(points or rainfall)
-    if not live:
-        try:
-            fb = json.loads(Path(SLOPE_FALLBACK).resolve().read_text(encoding="utf-8"))
-            fb["live"] = False
-            fb["sourceNote"] = "fallback-local-json"
-            return fb
-        except Exception:
-            return {
-                "updatedAt": _now_iso(),
-                "live": False,
-                "rainfall": None,
-                "points": [],
-            }
-
     return {
         "updatedAt": _now_iso(),
-        "live": True,
-        "source": "sensor-bridge-mqtt",
+        "live": live,
+        "source": "sensor-bridge-mqtt" if live else "bridge-no-data",
         "sourceUrl": "",
         "projectName": "MQTT/HTTP 传感器接入",
         "rainfall": rainfall,

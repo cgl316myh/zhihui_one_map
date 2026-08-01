@@ -5,8 +5,11 @@
  * 采区回采率 = 采区采出量 / 采区动用储量
  * 全矿回采率 = Σ(采区回采率 × 采区采出量) / Σ(采区采出量)  （按产量加权）
  *
- * 参数由管理后台录入；大屏只读计算结果。
+ * 参数由管理后台录入；大屏只读计算结果。API 模式下以数据库为准。
  */
+
+import { isStaticHosting } from '../demoMode.js';
+import { apiGet, apiPut } from '../api/client.js';
 
 const STORAGE_KEY = 'mine-one-map-reserves-v2';
 
@@ -25,6 +28,49 @@ function clampRate(n, fallback = 0) {
 
 function pct(rate) {
   return `${(Number(rate) * 100).toFixed(1)}%`;
+}
+
+function buildNext(input) {
+  const next = {
+    ...clone(_base || {}),
+    ...clone(_current || {}),
+    ...clone(input || {}),
+    updatedAt: new Date().toISOString(),
+  };
+  // 表单 collect 不会带这些字段，必须保留库中年报快照，避免保存时冲掉 2025
+  if (_current?.reportSnapshot && !next.reportSnapshot) {
+    next.reportSnapshot = clone(_current.reportSnapshot);
+  }
+  if (_current?.dataBasis && !next.dataBasis) {
+    next.dataBasis = _current.dataBasis;
+  }
+  if (_current?.dataBasisNote && !next.dataBasisNote) {
+    next.dataBasisNote = _current.dataBasisNote;
+  }
+
+  next.districts = (Array.isArray(next.districts) ? next.districts : []).map((d, i) => ({
+    id: d.id || `D${i + 1}`,
+    name: String(d.name || `采区${i + 1}`).trim(),
+    output: Math.max(0, Number(d.output) || 0),
+    activatedReserve: Math.max(0, Number(d.activatedReserve) || 0),
+  }));
+  next.assessedUtilizedReserve = Math.max(0, Number(next.assessedUtilizedReserve) || 0);
+  next.designRecoveryRate = clampRate(next.designRecoveryRate, 0);
+  next.miningRecoveryRate = clampRate(next.miningRecoveryRate, 0);
+  next.mined = Math.max(0, Number(next.mined) || 0);
+  next.avgDailyMined = Math.max(0, Number(next.avgDailyMined) || 0);
+  next.warningYears = Math.max(0, Number(next.warningYears) || 0);
+  next.unit = next.unit || '万吨';
+
+  const derived = computeReservesDerived(next);
+  const mk = new Date().toISOString().slice(0, 7);
+  const trend = Array.isArray(next.trend) ? [...next.trend] : [];
+  const idx = trend.findIndex((t) => t.month === mk);
+  const point = { month: mk, remaining: derived.remaining };
+  if (idx >= 0) trend[idx] = point;
+  else trend.push(point);
+  next.trend = trend.sort((a, b) => String(a.month).localeCompare(String(b.month)));
+  return next;
 }
 
 /**
@@ -78,7 +124,6 @@ export function computeReservesDerived(raw) {
     districts,
     recoverableReserve: recoverable,
     remaining,
-    // 兼容旧图表字段
     initialReserve: +assessed.toFixed(2),
     designRecoverable: recoverable,
     remainingDays,
@@ -100,10 +145,26 @@ export function getReservesInput() {
   return clone(_current);
 }
 
+export function clearReservesLocalCache() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function initReserves(fileJson) {
   _base = clone(fileJson || {});
   if (!Array.isArray(_base.districts)) _base.districts = [];
   if (!Array.isArray(_base.daily)) _base.daily = [];
+
+  // API/库表模式：以服务端为准，丢弃浏览器旧缓存，避免把 23/24 旧稿盖回库
+  if (!isStaticHosting()) {
+    clearReservesLocalCache();
+    _current = clone(_base);
+    return getReserves();
+  }
+
   let saved = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -126,61 +187,59 @@ export function initReserves(fileJson) {
   return getReserves();
 }
 
-function persist(state) {
+function persistLocal(state) {
   _current = clone(state);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(_current));
-  } catch {
-    /* ignore */
+  if (isStaticHosting()) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(_current));
+    } catch {
+      /* ignore */
+    }
   }
 }
 
-/**
- * 后台保存录入参数（仅保存输入字段，结果由 compute 派生）
- */
-export function saveReservesConfig(input) {
-  const next = {
-    ...clone(_base || {}),
-    ...clone(_current || {}),
-    ...clone(input || {}),
-    updatedAt: new Date().toISOString(),
-  };
-  // 规范化采区
-  next.districts = (Array.isArray(next.districts) ? next.districts : []).map((d, i) => ({
-    id: d.id || `D${i + 1}`,
-    name: String(d.name || `采区${i + 1}`).trim(),
-    output: Math.max(0, Number(d.output) || 0),
-    activatedReserve: Math.max(0, Number(d.activatedReserve) || 0),
-  }));
-  next.assessedUtilizedReserve = Math.max(0, Number(next.assessedUtilizedReserve) || 0);
-  next.designRecoveryRate = clampRate(next.designRecoveryRate, 0);
-  next.miningRecoveryRate = clampRate(next.miningRecoveryRate, 0);
-  next.mined = Math.max(0, Number(next.mined) || 0);
-  next.avgDailyMined = Math.max(0, Number(next.avgDailyMined) || 0);
-  next.warningYears = Math.max(0, Number(next.warningYears) || 0);
-  next.unit = next.unit || '万吨';
-
-  // 同步 trend 末点剩余，便于大屏曲线
-  const derived = computeReservesDerived(next);
-  const mk = new Date().toISOString().slice(0, 7);
-  const trend = Array.isArray(next.trend) ? [...next.trend] : [];
-  const idx = trend.findIndex((t) => t.month === mk);
-  const point = { month: mk, remaining: derived.remaining };
-  if (idx >= 0) trend[idx] = point;
-  else trend.push(point);
-  next.trend = trend.sort((a, b) => String(a.month).localeCompare(String(b.month)));
-
-  persist(next);
+/** 仅更新内存草稿（添加/删除采区），不写库 */
+export function draftReservesConfig(input) {
+  const next = buildNext(input);
+  persistLocal(next);
   return getReserves();
+}
+
+/**
+ * 保存到数据库（PUT /api/admin/reserves）
+ */
+export async function saveReservesConfig(input) {
+  const next = buildNext(input);
+  persistLocal(next);
+  if (!isStaticHosting()) {
+    const r = await apiPut('/api/admin/reserves', next);
+    if (!r.ok) {
+      throw new Error(r.message || '储量保存失败');
+    }
+    if (r.data) {
+      _base = clone(r.data);
+      _current = clone(r.data);
+    }
+  }
+  return getReserves();
+}
+
+/** 从服务器重新拉取 cfg_reserves */
+export async function reloadReservesFromServer() {
+  if (isStaticHosting()) {
+    return resetReserves();
+  }
+  clearReservesLocalCache();
+  const r = await apiGet('/api/admin/reserves');
+  if (!r.ok || !r.data) {
+    throw new Error(r.message || '无法从服务器加载储量');
+  }
+  return initReserves(r.data);
 }
 
 export function resetReserves() {
   if (!_base) return getReserves();
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
+  clearReservesLocalCache();
   _current = clone(_base);
   return getReserves();
 }

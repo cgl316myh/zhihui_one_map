@@ -3,6 +3,9 @@
  * 供后台编辑；前端可读 apiBaseUrl / 轮询间隔；可导出给 gateway config.json。
  */
 
+import { isStaticHosting } from '../demoMode.js';
+import { apiPut } from '../api/client.js';
+
 const STORAGE_KEY = 'mine-one-map-sensor-bridge-config-v1';
 
 const DEFAULTS = {
@@ -78,6 +81,11 @@ export function saveSensorConfigOverride(cfg) {
   }
   if (Number(data.pollHintSec) < 30) data.pollHintSec = 30;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (!isStaticHosting()) {
+    apiPut('/api/admin/sensors', data).catch((err) =>
+      console.warn('[sensors] sync API failed', err)
+    );
+  }
   return data;
 }
 

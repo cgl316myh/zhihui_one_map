@@ -75,25 +75,26 @@ export function renderEnvironment(env, selectedId = null) {
 
   const liveTag = env.live
     ? '<div class="poll-ok" style="margin-bottom:8px">实时接入 · MQTT/HTTP</div>'
-    : '';
+    : env.unavailable
+      ? '<div class="poll-fail" style="margin-bottom:8px">传感器网关不可用</div>'
+      : '<div class="metric-loc" style="margin-bottom:8px">等待传感器推送</div>';
 
-  box.innerHTML =
-    liveTag +
-    points
-      .map((p) => {
-        const m = p.metrics || {};
-        const keys = Object.keys(m);
-        const rows = keys
-          .map(
-            (k) =>
-              `<span>${metricLabel(k)} <b>${m[k]}</b>${(p.units && p.units[k]) || ''}</span>`
-          )
-          .join('');
-        const hit = p.statusHit
-          ? `<div class="metric-loc">触发 ${metricLabel(p.statusHit.key)} ≥ ${p.statusHit.limit}</div>`
-          : '';
-        const active = focus && p.id === focus.id ? 'active' : '';
-        return `
+  const cards = points.length
+    ? points
+        .map((p) => {
+          const m = p.metrics || {};
+          const keys = Object.keys(m);
+          const rows = keys
+            .map(
+              (k) =>
+                `<span>${metricLabel(k)} <b>${m[k]}</b>${(p.units && p.units[k]) || ''}</span>`
+            )
+            .join('');
+          const hit = p.statusHit
+            ? `<div class="metric-loc">触发 ${metricLabel(p.statusHit.key)} ≥ ${p.statusHit.limit}</div>`
+            : '';
+          const active = focus && p.id === focus.id ? 'active' : '';
+          return `
         <button type="button" class="metric-card ${statusClass(p.status)} ${active}" data-env-id="${p.id}">
           <div class="metric-head">
             <strong>${p.name}</strong>
@@ -103,8 +104,11 @@ export function renderEnvironment(env, selectedId = null) {
           <div class="metric-grid">${rows || '<span>等待传感器数据…</span>'}</div>
           ${hit}
         </button>`;
-      })
-      .join('');
+        })
+        .join('')
+    : '<div class="metric-loc">暂无环境实时数据（网关未接入或尚无推送）</div>';
+
+  box.innerHTML = liveTag + cards;
 
   const cap = document.getElementById('env-chart-caption');
   if (cap) {
@@ -244,13 +248,14 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
     meta.textContent = `更新 ${formatTime(slopeData.updatedAt)}`;
   }
 
-  if (rain && slopeData.rainfall) {
-    const r = slopeData.rainfall;
-    const yl24 =
-      r.yl24h != null
-        ? `<div><label>近24小时</label><b>${r.yl24h}</b><i>mm</i></div>`
-        : '';
-    rain.innerHTML = `
+  if (rain) {
+    if (slopeData.rainfall) {
+      const r = slopeData.rainfall;
+      const yl24 =
+        r.yl24h != null
+          ? `<div><label>近24小时</label><b>${r.yl24h}</b><i>mm</i></div>`
+          : '';
+      rain.innerHTML = `
       <div class="rain-card ${statusClass(r.status)}">
         <div class="metric-head">
           <strong>${r.name || '雨量监测点'}</strong>
@@ -263,7 +268,11 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
         </div>
         ${r.updatedAt ? `<div class="metric-loc">更新 ${formatTime(r.updatedAt)}</div>` : ''}
       </div>`;
-    renderRainTrend(r);
+      renderRainTrend(r);
+    } else {
+      rain.innerHTML =
+        '<div class="metric-loc">暂无雨量数据（传感器网关未推送）</div>';
+    }
   }
 
   const points = slopeData.points || [];
@@ -274,12 +283,13 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
     points[0];
 
   if (list) {
-    list.innerHTML = points
-      .map((p) => {
-        const active = focus && p.id === focus.id ? 'active' : '';
-        const th = p.threshold || {};
-        const cleared = p.cleared ? `<span class="cleared-tag">已消警</span>` : '';
-        return `
+    list.innerHTML = points.length
+      ? points
+          .map((p) => {
+            const active = focus && p.id === focus.id ? 'active' : '';
+            const th = p.threshold || {};
+            const cleared = p.cleared ? `<span class="cleared-tag">已消警</span>` : '';
+            return `
         <button type="button" class="slope-item ${statusClass(p.status)} ${active}" data-slope-id="${p.id}">
           <div class="metric-head">
             <strong>${p.name}</strong>
@@ -293,8 +303,13 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
           </div>
           <div class="metric-loc">幅值 ${fmtNum(p.magnitude)} · 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'}</div>
         </button>`;
-      })
-      .join('');
+          })
+          .join('')
+      : `<div class="metric-loc">${
+          slopeData.unavailable
+            ? '传感器网关不可用，暂无边坡实时数据'
+            : '暂无边坡实时数据（等待网关推送）'
+        }</div>`;
   }
 
   if (actions) {

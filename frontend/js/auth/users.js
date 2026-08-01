@@ -1,6 +1,9 @@
 /**
- * 演示用户库（localStorage）。正式环境由 Spring Security + DB 承接。
+ * 用户：API 模式走 Spring /api/auth|/api/admin/users；静态演示仍用 localStorage。
  */
+
+import { isStaticHosting } from '../demoMode.js';
+import { apiGet, apiPost, apiPut, apiDelete } from '../api/client.js';
 
 const USERS_KEY = 'mine-one-map-users-v1';
 const SALT = 'mine-one-map:';
@@ -56,6 +59,9 @@ function publicUser(u) {
 }
 
 export async function initUserStore() {
+  if (!isStaticHosting()) {
+    return listUsers();
+  }
   let list = loadRaw();
   if (!list || !list.length) {
     list = await buildSeedUsers();
@@ -87,6 +93,24 @@ export function listUsers() {
   return (loadRaw() || []).map(publicUser);
 }
 
+/** API 模式拉取用户列表 */
+export async function listUsersAsync() {
+  if (isStaticHosting()) return listUsers();
+  const r = await apiGet('/api/admin/users');
+  if (!r.ok) return [];
+  const list = Array.isArray(r.data) ? r.data : r.data?.items || [];
+  return list.map((u) => ({
+    id: String(u.id),
+    username: u.username,
+    displayName: u.displayName,
+    phone: u.phone || '',
+    role: u.role,
+    enabled: u.enabled !== false,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt,
+  }));
+}
+
 export function countEnabledAdmins(excludeId) {
   return (loadRaw() || []).filter(
     (u) => u.role === 'admin' && u.enabled !== false && u.id !== excludeId
@@ -104,7 +128,6 @@ export async function adminCreateUser({
   role,
   enabled = true,
 }) {
-  await initUserStore();
   const name = String(username || '').trim();
   const phoneStr = String(phone || '').trim();
   const pwd = String(password || '');
@@ -113,6 +136,21 @@ export async function adminCreateUser({
   if (!isValidUsername(name)) return { ok: false, message: '用户名须为 3～20 位字母/数字/下划线' };
   if (!isValidPhone(phoneStr)) return { ok: false, message: '请填写有效手机号' };
   if (pwd.length < 6) return { ok: false, message: '密码至少 6 位' };
+
+  if (!isStaticHosting()) {
+    const res = await apiPost('/api/admin/users', {
+      username: name,
+      displayName,
+      phone: phoneStr,
+      password: pwd,
+      role: r,
+      enabled: enabled !== false,
+    });
+    if (!res.ok) return { ok: false, message: res.message || '创建失败' };
+    return { ok: true, user: res.data };
+  }
+
+  await initUserStore();
   if (findUserByUsername(name)) return { ok: false, message: '用户名已存在' };
   if (findUserByPhone(phoneStr)) return { ok: false, message: '手机号已被注册' };
 
@@ -136,9 +174,20 @@ export async function adminCreateUser({
 /**
  * 管理员更新用户（不含密码）
  */
-export function adminUpdateUser(id, patch, actorUsername) {
+export async function adminUpdateUser(id, patch, actorUsername) {
+  if (!isStaticHosting()) {
+    const res = await apiPut(`/api/admin/users/${id}`, {
+      displayName: patch.displayName,
+      phone: patch.phone,
+      role: patch.role,
+      enabled: patch.enabled,
+    });
+    if (!res.ok) return { ok: false, message: res.message || '更新失败' };
+    return { ok: true, user: res.data };
+  }
+
   const list = loadRaw() || [];
-  const idx = list.findIndex((u) => u.id === id);
+  const idx = list.findIndex((u) => String(u.id) === String(id));
   if (idx < 0) return { ok: false, message: '用户不存在' };
   const cur = list[idx];
   const next = { ...cur };
@@ -174,17 +223,27 @@ export function adminUpdateUser(id, patch, actorUsername) {
 export async function adminResetPassword(id, newPassword) {
   const pwd = String(newPassword || '123456');
   if (pwd.length < 6) return { ok: false, message: '密码至少 6 位' };
+  if (!isStaticHosting()) {
+    const res = await apiPost(`/api/admin/users/${id}/reset-password`, { password: pwd });
+    if (!res.ok) return { ok: false, message: res.message || '重置失败' };
+    return { ok: true, user: res.data };
+  }
   const list = loadRaw() || [];
-  const idx = list.findIndex((u) => u.id === id);
+  const idx = list.findIndex((u) => String(u.id) === String(id));
   if (idx < 0) return { ok: false, message: '用户不存在' };
   list[idx].passwordHash = await hashPassword(pwd);
   saveRaw(list);
   return { ok: true, user: publicUser(list[idx]) };
 }
 
-export function adminDeleteUser(id, actorUsername) {
+export async function adminDeleteUser(id, actorUsername) {
+  if (!isStaticHosting()) {
+    const res = await apiDelete(`/api/admin/users/${id}`);
+    if (!res.ok) return { ok: false, message: res.message || '删除失败' };
+    return { ok: true };
+  }
   const list = loadRaw() || [];
-  const idx = list.findIndex((u) => u.id === id);
+  const idx = list.findIndex((u) => String(u.id) === String(id));
   if (idx < 0) return { ok: false, message: '用户不存在' };
   const cur = list[idx];
   if (cur.username === actorUsername) return { ok: false, message: '不能删除当前登录账号' };
@@ -226,7 +285,6 @@ export function isValidPhone(phone) {
  * @returns {Promise<{ ok: boolean, message?: string, user?: object }>}
  */
 export async function registerUser({ username, displayName, phone, password }) {
-  await initUserStore();
   const name = String(username || '').trim();
   const phoneStr = String(phone || '').trim();
   const pwd = String(password || '');
@@ -240,6 +298,18 @@ export async function registerUser({ username, displayName, phone, password }) {
   if (pwd.length < 6) {
     return { ok: false, message: '密码至少 6 位' };
   }
+
+  if (!isStaticHosting()) {
+    const r = await apiPost(
+      '/api/auth/register',
+      { username: name, displayName, phone: phoneStr, password: pwd },
+      { auth: false }
+    );
+    if (!r.ok) return { ok: false, message: r.message || '注册失败' };
+    return { ok: true, user: r.data?.user || r.data };
+  }
+
+  await initUserStore();
   if (findUserByUsername(name)) {
     return { ok: false, message: '用户名已存在' };
   }
@@ -265,9 +335,35 @@ export async function registerUser({ username, displayName, phone, password }) {
 }
 
 /**
- * @returns {Promise<{ ok: boolean, code?: string, message?: string, user?: object }>}
+ * @returns {Promise<{ ok: boolean, code?: string, message?: string, user?: object, accessToken?: string, refreshToken?: string }>}
  */
 export async function authenticate(username, password) {
+  if (!isStaticHosting()) {
+    const r = await apiPost(
+      '/api/auth/login',
+      { username, password },
+      { auth: false }
+    );
+    if (!r.ok) {
+      return { ok: false, code: String(r.code), message: r.message || '登录失败' };
+    }
+    const d = r.data || {};
+    const user = d.user || {};
+    return {
+      ok: true,
+      accessToken: d.accessToken,
+      refreshToken: d.refreshToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        phone: user.phone || '',
+        role: user.role === 'admin' ? 'admin' : 'user',
+        enabled: user.enabled !== false,
+      },
+    };
+  }
+
   await initUserStore();
   const u = findUserByUsername(username);
   if (!u) return { ok: false, code: 'not_found', message: '账号不存在' };

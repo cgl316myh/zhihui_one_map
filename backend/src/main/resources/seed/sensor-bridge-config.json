@@ -1,0 +1,33 @@
+{
+  "updatedAt": "2026-07-23T00:00:00+08:00",
+  "note": "传感器 MQTT / HTTP·TCP 推送接入配置。演示可在后台改本地覆盖；写入网关需 PUT /api/config 或导出覆盖 sensor_bridge/config.json。",
+  "frontend": {
+    "apiBaseUrl": "",
+    "pollIntervalMs": 30000
+  },
+  "http": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 5173,
+    "pushPath": "/api/push",
+    "staticDir": "../frontend"
+  },
+  "tcp": {
+    "enabled": false,
+    "host": "0.0.0.0",
+    "port": 9000,
+    "frameHint": "JSON 行 / 长度前缀（预留）"
+  },
+  "mqtt": {
+    "enabled": true,
+    "host": "47.97.123.197",
+    "port": 1883,
+    "username": "mqtt_test",
+    "password": "test1234",
+    "clientId": "mine-onemap-bridge",
+    "topic": "#",
+    "keepalive": 60,
+    "reconnectDelaySec": 30
+  },
+  "pollHintSec": 30
+}

@@ -1,6 +1,7 @@
 import {
   initUserStore,
   listUsers,
+  listUsersAsync,
   adminCreateUser,
   adminUpdateUser,
   adminResetPassword,
@@ -32,6 +33,7 @@ import {
   syncSensorConfigToGateway,
 } from './auth/sensorConfigStore.js';
 import { isStaticHosting } from './demoMode.js';
+import { apiGet } from './api/client.js';
 import {
   initEnvThresholds,
   getEnvThresholds,
@@ -45,7 +47,10 @@ import {
   getReserves,
   getReservesInput,
   saveReservesConfig,
+  draftReservesConfig,
   resetReserves,
+  reloadReservesFromServer,
+  clearReservesLocalCache,
   computeReservesDerived,
 } from './modules/reserves.js';
 
@@ -119,9 +124,21 @@ function bindNav() {
   });
 }
 
+let _usersCache = [];
+
+async function refreshUsersCache() {
+  _usersCache = await listUsersAsync();
+  return _usersCache;
+}
+
+function cachedUsers() {
+  if (isStaticHosting()) return listUsers();
+  return _usersCache;
+}
+
 /* —— 概览 —— */
-function renderOverview() {
-  const users = listUsers();
+async function renderOverview() {
+  const users = await refreshUsersCache();
   const logs = listAuditLogs().slice(0, 8);
   const admins = users.filter((u) => u.role === 'admin').length;
   const normals = users.filter((u) => u.role !== 'admin').length;
@@ -158,8 +175,9 @@ function renderOverview() {
 }
 
 /* —— 用户 —— */
-function renderUsers() {
+async function renderUsers() {
   const box = $('panel-users');
+  await refreshUsersCache();
   box.innerHTML = `
     <h2>用户管理</h2>
     <div class="toolbar" id="user-filters">
@@ -180,7 +198,7 @@ function renderUsers() {
     const q = ($('uf-q')?.value || '').trim().toLowerCase();
     const role = $('uf-role')?.value || '';
     const en = $('uf-enabled')?.value;
-    let rows = listUsers();
+    let rows = cachedUsers();
     if (q) {
       rows = rows.filter(
         (u) =>
@@ -228,6 +246,10 @@ function renderUsers() {
   $('btn-user-filter')?.addEventListener('click', draw);
   $('btn-user-create')?.addEventListener('click', () => openUserModal(null));
   $('btn-user-reset-seed')?.addEventListener('click', async () => {
+    if (!isStaticHosting()) {
+      flash('API 模式下请通过新建/编辑维护用户，无需恢复预置', false);
+      return;
+    }
     if (!confirm('恢复预置 admin/user 账号？当前用户库将被覆盖。')) return;
     await resetUsersToSeed();
     appendAuditLog({
@@ -237,6 +259,7 @@ function renderUsers() {
       summary: '恢复预置用户',
     });
     flash('已恢复预置用户');
+    await refreshUsersCache();
     draw();
     renderOverview();
   });
@@ -245,7 +268,7 @@ function renderUsers() {
     const tr = e.target.closest('tr[data-id]');
     if (!btn || !tr) return;
     const id = tr.dataset.id;
-    const user = listUsers().find((u) => u.id === id);
+    const user = cachedUsers().find((u) => String(u.id) === String(id));
     if (!user) return;
     if (btn.dataset.act === 'edit') openUserModal(user);
     if (btn.dataset.act === 'pwd') {
@@ -263,7 +286,7 @@ function renderUsers() {
     }
     if (btn.dataset.act === 'del') {
       if (!confirm(`确认删除用户 ${user.username}？`)) return;
-      const r = adminDeleteUser(id, session.username);
+      const r = await adminDeleteUser(id, session.username);
       appendAuditLog({
         actor: session.username,
         action: 'user_delete',
@@ -272,6 +295,7 @@ function renderUsers() {
         summary: r.ok ? '删除用户' : r.message,
       });
       flash(r.ok ? '已删除' : r.message, r.ok);
+      await refreshUsersCache();
       draw();
     }
   });
@@ -333,7 +357,7 @@ function openUserModal(user) {
         summary: r.ok ? '新建用户' : r.message,
       });
     } else {
-      r = adminUpdateUser(user.id, payload, session.username);
+      r = await adminUpdateUser(user.id, payload, session.username);
       appendAuditLog({
         actor: session.username,
         action: 'user_update',
@@ -343,6 +367,7 @@ function openUserModal(user) {
       });
     }
     flash(r.ok ? '已保存' : r.message, r.ok);
+    if (r.ok) await refreshUsersCache();
     if (r.ok) {
       mask.remove();
       renderUsers();
@@ -474,10 +499,12 @@ function renderReservesAdmin() {
       <div class="thresh-page-hd">
         <div>
           <h2>储量参数</h2>
-          <p class="muted">录入后自动计算可采储量与回采率；大屏仅展示结果。</p>
+          <p class="muted">数据存于数据库表 <code>cfg_reserves</code>；保存后大屏刷新可见。</p>
+          <p class="muted">依据：${input.dataBasis || '（未标注年报）'} · 评估利用 ${input.assessedUtilizedReserve ?? '—'} 万吨 · 采区 ${districts.length} 条</p>
         </div>
         <div class="thresh-page-actions">
-          <button type="button" class="btn ghost" id="btn-rsv-reset">恢复默认</button>
+          <button type="button" class="btn ghost" id="btn-rsv-reload">从服务器重载</button>
+          <button type="button" class="btn ghost" id="btn-rsv-reset">恢复本次加载</button>
           <button type="button" class="btn" id="btn-rsv-save">保存并计算</button>
         </div>
       </div>
@@ -581,7 +608,7 @@ function renderReservesAdmin() {
         <header class="thresh-period-hd">
           <div>
             <h3>计算结果（预览）</h3>
-            <p>保存后写入本地，大屏刷新即可见</p>
+            <p>点「保存并计算」写入数据库；添加/删除采区仅改草稿，需再保存</p>
           </div>
         </header>
         <div class="kpi-row" id="rsv-preview">
@@ -651,7 +678,7 @@ function renderReservesAdmin() {
       output: 0,
       activatedReserve: 0,
     });
-    saveReservesConfig(payload);
+    draftReservesConfig(payload);
     renderReservesAdmin();
   });
 
@@ -663,25 +690,39 @@ function renderReservesAdmin() {
     const idx = Number(tr.dataset.idx);
     const payload = collect();
     payload.districts.splice(idx, 1);
-    saveReservesConfig(payload);
+    draftReservesConfig(payload);
     renderReservesAdmin();
   });
 
-  $('btn-rsv-save')?.addEventListener('click', () => {
+  $('btn-rsv-save')?.addEventListener('click', async () => {
     const payload = collect();
     if (payload.designRecoveryRate > 1 || payload.miningRecoveryRate > 1) {
       flash('回采率请填写 0～1 之间的小数（如 0.92）', false);
       return;
     }
-    const next = saveReservesConfig(payload);
-    appendAuditLog({
-      actor: session.username,
-      action: 'reserves_save',
-      result: 'ok',
-      summary: `保存储量参数 · 可采 ${next.recoverableReserve}${next.unit}`,
-    });
-    flash(`已保存：可采储量 ${next.recoverableReserve} ${next.unit}，全矿回采率 ${next.mineRecoveryRatePct}`);
-    renderReservesAdmin();
+    try {
+      const next = await saveReservesConfig(payload);
+      appendAuditLog({
+        actor: session.username,
+        action: 'reserves_save',
+        result: 'ok',
+        summary: `保存储量参数 · 可采 ${next.recoverableReserve}${next.unit} · 采区 ${next.districts?.length || 0}`,
+      });
+      flash(`已写入数据库：可采 ${next.recoverableReserve} ${next.unit}，采区 ${next.districts?.length || 0} 条`);
+      renderReservesAdmin();
+    } catch (err) {
+      flash(err.message || '保存失败', false);
+    }
+  });
+
+  $('btn-rsv-reload')?.addEventListener('click', async () => {
+    try {
+      await reloadReservesFromServer();
+      flash('已从服务器重新加载储量配置');
+      renderReservesAdmin();
+    } catch (err) {
+      flash(err.message || '重载失败', false);
+    }
   });
 
   $('btn-rsv-reset')?.addEventListener('click', () => {
@@ -690,9 +731,9 @@ function renderReservesAdmin() {
       actor: session.username,
       action: 'reserves_reset',
       result: 'ok',
-      summary: '恢复储量默认参数',
+      summary: '恢复本次从服务器加载的储量参数',
     });
-    flash('已恢复默认储量参数');
+    flash('已恢复为本次加载的服务器数据（未保存的修改已丢弃）');
     renderReservesAdmin();
   });
 }
@@ -1074,15 +1115,15 @@ function renderSensors() {
           <h2>数据接入配置</h2>
           <p class="muted">${
             staticDemo
-              ? '静态演示：参数仅保存在本浏览器，用于展示配置界面；大屏数据全部来自本地 mock，无需网关。'
-              : '统一管理传感器 MQTT 与 HTTP / TCP 推送地址及参数。本地保存后可导出或同步到网关 config.json。'
+              ? '未连接后端：配置仅可保存在本浏览器；业务监测数据不会加载演示 JSON。'
+              : '统一管理传感器 MQTT 与 HTTP / TCP 推送地址及参数。保存后写入数据库，并可导出或同步到网关 config.json。'
           }</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn ghost" id="btn-sensor-reset">清除本地覆盖</button>
           <button type="button" class="btn ghost" id="btn-sensor-export">导出 JSON</button>
           <button type="button" class="btn ghost" id="btn-sensor-sync" ${
-            staticDemo ? 'title="静态演示无网关，点击将提示说明"' : ''
+            staticDemo ? 'title="未连接后端，无法同步网关"' : ''
           }>同步到网关</button>
           <button type="button" class="btn" id="btn-sensor-save">保存配置</button>
         </div>
@@ -1233,7 +1274,7 @@ function renderSensors() {
       <p class="thresh-foot muted">
         ${
           staticDemo
-            ? 'GitHub Pages / 静态演示：改配置可演示后台能力；监测数据仍读 <code>public/data/*.json</code>。'
+            ? '未连接后端：后台界面可本地编辑，但不会回退读取 <code>public/data/*.json</code> 作为监测数据。'
             : '推送示例：<code>POST http://&lt;host&gt;:&lt;port&gt;&lt;pushPath&gt;</code> · MQTT keepalive / 重连 / 前端轮询均强制 ≥ 30 秒。同步网关后建议重启 <code>gateway.py</code>。'
         }
       </p>
@@ -1294,9 +1335,9 @@ function renderSensors() {
         actor: session.username,
         action: 'sensor_config_sync',
         result: 'ok',
-        summary: '静态演示：跳过网关同步，仅本地保存',
+        summary: '未连接后端：跳过网关同步，仅本地保存',
       });
-      flash('静态演示无传感器网关：配置已保存在浏览器，可用「导出 JSON」带走');
+      flash('未连接后端：配置已保存在浏览器，可用「导出 JSON」带走');
       return;
     }
     const base =
@@ -1405,8 +1446,8 @@ function renderPerms() {
         </tbody>
       </table>
     </div>
-    <p class="muted">正式环境权限由 Spring Security 承接；当前为演示本地会话。</p>`;
-}
+    <p class="muted">权限由 Spring Security 承接；配置与业务数据均以数据库/接口为准。</p>`;
+  }
 
 async function boot() {
   if (!requireAdmin()) return;
@@ -1414,42 +1455,43 @@ async function boot() {
   initDictStore();
   $('admin-user').textContent = `${session.displayName || session.username} · 管理员`;
 
-  try {
-    const res = await fetch(`./data/map-config.json?_=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) fileMapConfig = await res.json();
-  } catch {
-    fileMapConfig = {};
-  }
-  try {
-    const res = await fetch(`./data/sensor-bridge-config.json?_=${Date.now()}`, {
-      cache: 'no-store',
-    });
-    if (res.ok) fileSensorConfig = await res.json();
-  } catch {
-    fileSensorConfig = {};
-  }
-  try {
-    const res = await fetch(`./data/env-thresholds.json?_=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) {
-      fileThresholds = await res.json();
-      initEnvThresholds(fileThresholds);
-    } else {
-      initEnvThresholds(getDefaultEnvThresholds());
+  fileMapConfig = {};
+  fileSensorConfig = {};
+  fileThresholds = null;
+  fileReserves = {};
+
+  // 先清储量本地缓存，避免旧 23/24 草稿在页面逻辑里再次写回库
+  clearReservesLocalCache();
+
+  if (!isStaticHosting()) {
+    try {
+      const mapRes = await apiGet('/api/admin/map');
+      if (mapRes.ok && mapRes.data) fileMapConfig = mapRes.data;
+    } catch {
+      /* keep empty */
     }
-  } catch {
-    initEnvThresholds(getDefaultEnvThresholds());
-  }
-  try {
-    const res = await fetch(`./data/reserves.json?_=${Date.now()}`, { cache: 'no-store' });
-    if (res.ok) {
-      fileReserves = await res.json();
-      initReserves(fileReserves);
-    } else {
-      initReserves({});
+    try {
+      const sensorRes = await apiGet('/api/admin/sensors');
+      if (sensorRes.ok && sensorRes.data) fileSensorConfig = sensorRes.data;
+    } catch {
+      /* keep empty */
     }
-  } catch {
-    initReserves({});
+    try {
+      const thRes = await apiGet('/api/admin/thresholds');
+      if (thRes.ok && thRes.data) fileThresholds = thRes.data;
+    } catch {
+      /* keep empty */
+    }
+    try {
+      const rvRes = await apiGet('/api/admin/reserves');
+      if (rvRes.ok && rvRes.data) fileReserves = rvRes.data;
+    } catch {
+      /* keep empty */
+    }
   }
+
+  initEnvThresholds(fileThresholds || getDefaultEnvThresholds());
+  initReserves(fileReserves || {});
 
   bindNav();
   showPanel('overview');

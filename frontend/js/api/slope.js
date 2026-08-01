@@ -1,14 +1,12 @@
 /**
  * 边坡监测数据接口层。
- * 演示原型默认 preferMock：直接读本地 slope.json；保留 /api/slope 形状供后续接入。
+ * 仅请求 /api/slope（经 Spring 代理 bridge），失败不回退本地演示 JSON。
  * 轮询间隔 ≥ 30 秒。
  */
 const SLOPE_API = {
   baseUrl: '',
   path: '/api/slope',
-  fallbackUrl: './data/slope.json',
-  /** 演示原型：优先本地 mock，不连真实网关 */
-  preferMock: true,
+  preferMock: false,
   intervalMs: 30_000,
 };
 
@@ -18,7 +16,6 @@ let _lastData = null;
 function slopeUrl() {
   const base = SLOPE_API.baseUrl.replace(/\/$/, '');
   const path = SLOPE_API.path.startsWith('/') ? SLOPE_API.path : `/${SLOPE_API.path}`;
-  // 加时间戳避免浏览器缓存，便于演示「定时刷新」
   return `${base}${path}?_=${Date.now()}`;
 }
 
@@ -36,38 +33,37 @@ function normalizeSlopePayload(raw) {
     projectName: raw.projectName || '',
     rainfall: raw.rainfall || null,
     points: Array.isArray(raw.points) ? raw.points : [],
+    unavailable: Boolean(raw.unavailable),
+    live: Boolean(raw.live),
   };
 }
 
-async function fetchJson(u) {
-  const res = await fetch(u, {
-    method: 'GET',
-    cache: 'no-store',
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+function unwrapApiPayload(json) {
+  if (json && typeof json === 'object' && 'code' in json && 'data' in json) {
+    if (json.code !== 0) throw new Error(json.message || '边坡接口错误');
+    return json.data;
+  }
+  return json;
 }
 
-/**
- * 拉取边坡数据（统一接口入口）
- * @returns {Promise<object>}
- */
 export async function fetchSlopeData() {
-  let json;
-  const fb = SLOPE_API.fallbackUrl;
-  if (SLOPE_API.preferMock && fb) {
-    json = await fetchJson(`${fb}?_=${Date.now()}`);
-  } else {
-    try {
-      json = await fetchJson(slopeUrl());
-    } catch (err) {
-      if (!fb) throw err;
-      json = await fetchJson(`${fb}?_=${Date.now()}`);
-    }
+  if (SLOPE_API.preferMock) {
+    throw new Error('已禁用演示数据，请关闭 preferMock 并连接后端');
   }
-  const data = normalizeSlopePayload(json);
-  data.live = Boolean(json.live) && !SLOPE_API.preferMock;
+  const token =
+    sessionStorage.getItem('mine-one-map-session-v1') ||
+    localStorage.getItem('mine-one-map-session-v1');
+  let access = '';
+  try {
+    access = token ? JSON.parse(token).accessToken || '' : '';
+  } catch {
+    access = '';
+  }
+  const headers = { Accept: 'application/json' };
+  if (access) headers.Authorization = `Bearer ${access}`;
+  const res = await fetch(slopeUrl(), { method: 'GET', cache: 'no-store', headers });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = normalizeSlopePayload(unwrapApiPayload(await res.json()));
   _lastData = data;
   return data;
 }
@@ -80,9 +76,6 @@ export function getSlopeApiConfig() {
   return { ...SLOPE_API };
 }
 
-/**
- * 立即拉取一次，并按 intervalMs 定时轮询
- */
 export function startSlopePolling(onData, onError) {
   stopSlopePolling();
 
@@ -114,4 +107,6 @@ export function configureSlopeApi(partial) {
   if (SLOPE_API.intervalMs < 30_000) {
     SLOPE_API.intervalMs = 30_000;
   }
+  // 强制禁止演示回退
+  SLOPE_API.preferMock = false;
 }

@@ -1,6 +1,9 @@
 /**
- * 环境阈值：默认读 mock JSON，演示改动能写入 localStorage。
+ * 环境阈值：静态演示写 localStorage；API 模式同步 PUT /api/admin/thresholds。
  */
+
+import { isStaticHosting } from '../demoMode.js';
+import { apiPut } from '../api/client.js';
 
 const STORAGE_KEY = 'mine-one-map-env-thresholds';
 
@@ -112,6 +115,11 @@ export function saveEnvThresholds(partial) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(_current));
   } catch {
     /* ignore */
+  }
+  if (!isStaticHosting()) {
+    apiPut('/api/admin/thresholds', _current).catch((err) =>
+      console.warn('[thresholds] sync API failed', err)
+    );
   }
   return getEnvThresholds();
 }

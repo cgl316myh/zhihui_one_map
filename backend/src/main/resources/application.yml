@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: mine-one-map-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jackson:
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # 库非空且尚无 flyway_schema_history 时，先基线再迁移（开发库常见）
+    baseline-on-migrate: true
+    baseline-version: 0
+  web:
+    resources:
+      static-locations: classpath:/static/
+      cache:
+        period: 0
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+  type-aliases-package: com.anr.mineonemap.domain
+  mapper-locations: classpath:mapper/*.xml
+
+mine:
+  jwt:
+    secret: ${JWT_SECRET:zhihui-one-map-dev-secret-change-me-32bytes-min}
+    access-expire-minutes: ${JWT_ACCESS_EXPIRE_MINUTES:120}
+    refresh-expire-days: ${JWT_REFRESH_EXPIRE_DAYS:7}
+  bridge:
+    base-url: ${BRIDGE_BASE_URL:http://127.0.0.1:5173}
+  cors:
+    allowed-origins:
+      - http://127.0.0.1:5174
+      - http://localhost:5174
+      - http://127.0.0.1:8080
+      - http://localhost:8080
+      - http://127.0.0.1:8081
+      - http://localhost:8081

@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/zhihui_one_map
+    username: postgres
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    time-zone: Asia/Shanghai
+
+# 本机 IIS/HTTP.sys 常占用 8080（netstat 显示 PID 4），开发默认改用 8081
+server:
+  port: ${SERVER_PORT:8081}
+
+logging:
+  level:
+    com.anr.mineonemap: DEBUG
+    org.springframework.security: INFO

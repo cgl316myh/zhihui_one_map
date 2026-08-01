@@ -1,5 +1,5 @@
 /**
- * 本地会话（演示）。正式环境由服务端 Session / JWT 承接。
+ * 会话：JWT + 用户信息。静态演示可无 token。
  */
 
 const SESSION_KEY = 'mine-one-map-session-v1';
@@ -21,9 +21,32 @@ export function isLoggedIn() {
   return Boolean(getSession());
 }
 
+export function getAccessToken() {
+  return getSession()?.accessToken || '';
+}
+
+export function getRefreshToken() {
+  return getSession()?.refreshToken || '';
+}
+
+export function updateTokens(accessToken, refreshToken) {
+  const s = getSession();
+  if (!s) return;
+  const next = {
+    ...s,
+    accessToken: accessToken || s.accessToken,
+    refreshToken: refreshToken || s.refreshToken,
+  };
+  const json = JSON.stringify(next);
+  sessionStorage.setItem(SESSION_KEY, json);
+  if (localStorage.getItem(SESSION_KEY)) {
+    localStorage.setItem(SESSION_KEY, json);
+  }
+}
+
 /**
  * @param {object} user
- * @param {{ remember?: boolean }} opts
+ * @param {{ remember?: boolean, accessToken?: string, refreshToken?: string }} opts
  */
 export function setSession(user, opts = {}) {
   const session = {
@@ -31,6 +54,9 @@ export function setSession(user, opts = {}) {
     displayName: user.displayName || user.username,
     role: user.role === 'admin' ? 'admin' : 'user',
     phone: user.phone || '',
+    id: user.id ?? null,
+    accessToken: opts.accessToken || user.accessToken || '',
+    refreshToken: opts.refreshToken || user.refreshToken || '',
     loginAt: new Date().toISOString(),
   };
   const json = JSON.stringify(session);
@@ -78,14 +104,14 @@ export function requireSession(loginUrl = './login.html') {
 }
 
 /** 已登录访问登录/注册页时跳转首页 */
-export function redirectIfLoggedIn(homeUrl = './index.html', adminUrl = './index.html') {
+export function redirectIfLoggedIn(userHome = './index.html', adminHome = './admin.html') {
   const s = getSession();
   if (!s) return false;
-  location.replace(s.role === 'admin' ? adminUrl : homeUrl);
+  location.replace(s.role === 'admin' ? adminHome : userHome);
   return true;
 }
 
 export function logout(loginUrl = './login.html') {
   clearSession();
-  location.href = loginUrl;
+  location.replace(loginUrl);
 }

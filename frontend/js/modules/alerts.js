@@ -1,5 +1,6 @@
 /**
- * 由环境 / 边坡 / 生产 / 视频 mock 状态汇聚「最近报警」列表（演示用，非真实推送）。
+ * 由当前大屏已加载的环境 / 边坡 / 生产 / 视频状态在前端汇聚「最近报警」。
+ * 数据源为接口/库表结果，不读取演示 JSON。
  */
 
 function pad(n) {
@@ -130,7 +131,7 @@ export function buildAlertsFromMock(sources = {}) {
 
   return {
     updatedAt: new Date().toISOString(),
-    source: 'mock-aggregate',
+    source: 'client-aggregate',
     items,
   };
 }

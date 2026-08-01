@@ -18,9 +18,9 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     proxy: {
-      // 传感器网关（MQTT/HTTP 推送汇聚）
+      // Spring Boot API（mine-one-map-api）
       '/api': {
-        target: 'http://127.0.0.1:5173',
+        target: 'http://127.0.0.1:8081',
         changeOrigin: true,
       },
     },
@@ -30,7 +30,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:5173',
+        target: 'http://127.0.0.1:8081',
         changeOrigin: true,
       },
     },
