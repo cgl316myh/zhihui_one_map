@@ -52,7 +52,18 @@ public class SensorConfigService {
         if (body != null && body.isObject()) {
             for (String key : new String[]{"tcp", "http", "mqtt"}) {
                 if (body.has(key)) {
-                    slim.set(key, body.get(key));
+                    slim.set(key, body.get(key).deepCopy());
+                }
+            }
+        }
+        // 密码留空时保留库内原值，避免后台重保存冲掉
+        if (slim.has("mqtt") && slim.get("mqtt").isObject()) {
+            ObjectNode mqtt = (ObjectNode) slim.get("mqtt");
+            String pwd = mqtt.path("password").asText("");
+            if (pwd == null || pwd.isBlank()) {
+                String existing = getBridgeConfig().path("mqtt").path("password").asText("");
+                if (existing != null && !existing.isBlank()) {
+                    mqtt.put("password", existing);
                 }
             }
         }

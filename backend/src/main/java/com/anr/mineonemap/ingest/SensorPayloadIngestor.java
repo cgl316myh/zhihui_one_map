@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * 对标 sensor_bridge.gateway.ingest_payload：归一化 MQTT / HTTP JSON，并落库。
+ * 兼容乙方 GNSS 字段 sn/baseX/baseY/baseZ/dateTime；可按 Topic 分流（…/gnss、…/YK）。
  */
 @Component
 public class SensorPayloadIngestor {
@@ -50,7 +52,18 @@ public class SensorPayloadIngestor {
     }
 
     private void ingestObject(JsonNode payload, String source, String topic) {
-        if (looksLikeHttpMeteo(payload) && !payload.has("deviceType")) {
+        String route = routeByTopic(topic);
+        if ("gnss".equals(route)) {
+            ingestGnss(payload, source, topic);
+            return;
+        }
+        if ("rain".equals(route)) {
+            ingestRain(payload, source, topic);
+            return;
+        }
+
+        if (looksLikeHttpMeteo(payload) && !payload.has("deviceType")
+                && !looksLikeGnss(payload) && !looksLikeRain(payload)) {
             ingestMeteo(payload, source, topic);
             return;
         }
@@ -58,12 +71,12 @@ public class SensorPayloadIngestor {
         String deviceType = text(payload, "deviceType");
         String deviceSn = firstText(payload, "deviceSn", "sn");
 
-        if ("2".equals(deviceType) || (payload.has("x") && payload.has("y") && !deviceSn.isEmpty())) {
+        if ("2".equals(deviceType) || looksLikeGnss(payload)) {
             ingestGnss(payload, source, topic);
             return;
         }
         if (("".equals(deviceType) || "1".equals(deviceType) || "5".equals(deviceType))
-                && (payload.has("rainHour") || payload.has("rainDay"))) {
+                && looksLikeRain(payload)) {
             ingestRain(payload, source, topic);
             return;
         }
@@ -76,24 +89,59 @@ public class SensorPayloadIngestor {
         }
     }
 
+    /** Topic 名含 gnss → GNSS；含 YK → 雨量。 */
+    static String routeByTopic(String topic) {
+        if (topic == null || topic.isBlank()) {
+            return "";
+        }
+        String t = topic.trim().toLowerCase(Locale.ROOT);
+        if (t.endsWith("/gnss") || t.contains("/gnss/") || t.endsWith("gnss")) {
+            return "gnss";
+        }
+        if (t.endsWith("/yk") || t.contains("/yk/") || t.endsWith("yk")) {
+            return "rain";
+        }
+        return "";
+    }
+
     private boolean looksLikeHttpMeteo(JsonNode p) {
         return p.has("ambientTemperature") || p.has("ambientHumidity") || p.has("ambientTemp")
                 || p.has("clientId") || p.has("PM2.5") || p.has("PM10")
                 || p.has("noise") || p.has("noise1");
     }
 
+    private boolean looksLikeGnss(JsonNode p) {
+        String sn = firstText(p, "deviceSn", "sn");
+        if (sn.isEmpty()) {
+            return false;
+        }
+        return hasAny(p, "x", "baseX") && hasAny(p, "y", "baseY");
+    }
+
+    private boolean looksLikeRain(JsonNode p) {
+        return hasAny(p, "rainHour", "hourRain", "rainfallHour", "rain_1h",
+                "rainDay", "dayRain", "rainfallDay", "rain_24h", "rainfall", "rain");
+    }
+
     private void ingestGnss(JsonNode payload, String source, String topic) {
-        String sn = text(payload, "deviceSn");
+        String sn = firstText(payload, "deviceSn", "sn");
         if (sn.isEmpty()) {
             return;
         }
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("deviceSn", sn);
-        item.put("collectTime", textOrNull(payload, "collectTime"));
-        item.put("x", toDouble(payload.get("x"), 0.0));
-        item.put("y", toDouble(payload.get("y"), 0.0));
-        JsonNode hNode = payload.has("z") ? payload.get("z") : payload.get("h");
-        item.put("h", toDouble(hNode, 0.0));
+        item.put("collectTime", firstTextOrNull(payload, "collectTime", "dateTime", "time", "ts"));
+        item.put("x", firstDouble(payload, 0.0, "x", "baseX"));
+        item.put("y", firstDouble(payload, 0.0, "y", "baseY"));
+        item.put("h", firstDouble(payload, 0.0, "z", "h", "baseZ", "height"));
+        Double lon = firstDouble(payload, null, "lon", "longitude", "lng");
+        Double lat = firstDouble(payload, null, "lat", "latitude");
+        if (lon != null) {
+            item.put("lon", lon);
+        }
+        if (lat != null) {
+            item.put("lat", lat);
+        }
         item.put("deviceType", firstNonBlank(text(payload, "deviceType"), "2"));
         item.put("source", source);
         item.put("topic", topic);
@@ -103,17 +151,20 @@ public class SensorPayloadIngestor {
     }
 
     private void ingestRain(JsonNode payload, String source, String topic) {
-        String sn = text(payload, "deviceSn");
+        String sn = firstText(payload, "deviceSn", "sn", "deviceId", "id");
         if (sn.isEmpty()) {
             sn = "rain-unknown";
         }
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("deviceSn", sn);
-        item.put("collectTime", textOrNull(payload, "collectTime"));
-        item.put("rainHour", toDouble(payload.get("rainHour"), 0.0));
-        item.put("rainDay", toDouble(payload.get("rainDay"), 0.0));
+        item.put("collectTime", firstTextOrNull(payload, "collectTime", "dateTime", "time", "ts"));
+        item.put("rainHour", firstDouble(payload, 0.0,
+                "rainHour", "hourRain", "rainfallHour", "rain_1h", "rain1h"));
+        Double day = firstDouble(payload, null,
+                "rainDay", "dayRain", "rainfallDay", "rain_24h", "rain24h", "rainfall", "rain");
+        item.put("rainDay", day != null ? day : 0.0);
         item.put("errcode", payload.has("errcode") ? asJava(payload.get("errcode")) : 0);
-        item.put("devChx", textOrNull(payload, "devChx"));
+        item.put("devChx", firstTextOrNull(payload, "devChx", "chx"));
         item.put("source", source);
         item.put("topic", topic);
         item.put("receivedAt", SensorLatestStore.nowIso());
@@ -122,13 +173,13 @@ public class SensorPayloadIngestor {
     }
 
     private void ingestOther(JsonNode payload, String source, String topic) {
-        String sn = firstNonBlank(text(payload, "deviceSn"), "unknown");
+        String sn = firstNonBlank(firstText(payload, "deviceSn", "sn"), "unknown");
         String dtype = firstNonBlank(text(payload, "deviceType"), "other");
         String key = dtype + ":" + sn;
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("deviceSn", sn);
         item.put("deviceType", dtype);
-        item.put("collectTime", textOrNull(payload, "collectTime"));
+        item.put("collectTime", firstTextOrNull(payload, "collectTime", "dateTime"));
         item.put("source", source);
         item.put("topic", topic);
         item.put("receivedAt", SensorLatestStore.nowIso());
@@ -139,14 +190,16 @@ public class SensorPayloadIngestor {
     private void ingestMeteo(JsonNode payload, String source, String topic) {
         String key = firstNonBlank(
                 text(payload, "clientId"),
-                text(payload, "deviceSn"),
+                firstText(payload, "deviceSn", "sn"),
                 text(payload, "deviceId"),
                 "meteo-default");
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", key);
         item.put("clientId", textOrNull(payload, "clientId"));
-        item.put("deviceSn", textOrNull(payload, "deviceSn"));
-        String detected = firstNonBlank(text(payload, "detectedTime"), text(payload, "collectTime"));
+        item.put("deviceSn", firstTextOrNull(payload, "deviceSn", "sn"));
+        String detected = firstNonBlank(
+                text(payload, "detectedTime"),
+                firstText(payload, "collectTime", "dateTime"));
         item.put("detectedTime", detected.isEmpty() ? null : detected);
         putMetric(item, "temperature", pick(payload, "ambientTemperature", "ambientTemp",
                 "ambientTemperature1", "Airtemperature", "amt", "Temp"));
@@ -174,13 +227,29 @@ public class SensorPayloadIngestor {
         }
     }
 
-    private static Double pick(JsonNode payload, String... names) {
+    private static boolean hasAny(JsonNode payload, String... names) {
         for (String n : names) {
             if (payload.has(n) && !payload.get(n).isNull()) {
-                return toDouble(payload.get(n), null);
+                return true;
             }
         }
-        return null;
+        return false;
+    }
+
+    private static Double pick(JsonNode payload, String... names) {
+        return firstDouble(payload, null, names);
+    }
+
+    private static Double firstDouble(JsonNode payload, Double defaultValue, String... names) {
+        for (String n : names) {
+            if (payload.has(n) && !payload.get(n).isNull()) {
+                Double v = toDouble(payload.get(n), null);
+                if (v != null) {
+                    return v;
+                }
+            }
+        }
+        return defaultValue;
     }
 
     private static Double toDouble(JsonNode n, Double defaultValue) {
@@ -221,6 +290,11 @@ public class SensorPayloadIngestor {
             }
         }
         return "";
+    }
+
+    private static String firstTextOrNull(JsonNode n, String... fields) {
+        String t = firstText(n, fields);
+        return t.isEmpty() ? null : t;
     }
 
     private static String firstNonBlank(String... values) {

@@ -13,11 +13,14 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Eclipse Paho MQTT 订阅 → SensorPayloadIngestor。
+ * 支持 mqtt.topics 数组，或兼容旧字段 mqtt.topic（可逗号/分号分隔）。
  */
 @Service
 @Order(200)
@@ -67,7 +70,8 @@ public class MqttIngestService implements ApplicationRunner {
         }
         int port = mqtt.path("port").asInt(1883);
         int keepalive = Math.max(30, mqtt.path("keepalive").asInt(60));
-        String topic = mqtt.path("topic").asText("#");
+        List<String> topics = resolveTopics(mqtt);
+        String topicsLabel = String.join(", ", topics);
         String username = mqtt.path("username").asText("");
         String password = mqtt.path("password").asText("");
         String clientId = mqtt.path("clientId").asText("mine-onemap-api");
@@ -95,10 +99,10 @@ public class MqttIngestService implements ApplicationRunner {
                 public void connectComplete(boolean reconnect, String serverURI) {
                     store.setMqttConnected(true);
                     store.setMqttError(null);
-                    store.setMqttTopic(topic);
-                    log.info("MQTT connected{} to {} topic={}", reconnect ? " (re)" : "", serverURI, topic);
+                    store.setMqttTopic(topicsLabel);
+                    log.info("MQTT connected{} to {} topics={}", reconnect ? " (re)" : "", serverURI, topicsLabel);
                     try {
-                        client.subscribe(topic, 0);
+                        subscribeAll(client, topics);
                     } catch (MqttException e) {
                         store.setMqttError(e.getMessage());
                         log.warn("MQTT subscribe failed: {}", e.getMessage());
@@ -135,13 +139,48 @@ public class MqttIngestService implements ApplicationRunner {
                 }
             });
             clientRef.set(client);
-            store.setMqttTopic(topic);
+            store.setMqttTopic(topicsLabel);
             client.connect(opts);
         } catch (Exception e) {
             store.setMqttConnected(false);
             store.setMqttError(e.getMessage());
             log.warn("MQTT connect failed {}:{} — {}", host, port, e.getMessage());
         }
+    }
+
+    /** 优先 topics[]；否则兼容 topic 字符串（支持逗号/分号/换行分隔）。 */
+    static List<String> resolveTopics(JsonNode mqtt) {
+        List<String> out = new ArrayList<>();
+        JsonNode arr = mqtt.path("topics");
+        if (arr.isArray()) {
+            for (JsonNode n : arr) {
+                String s = n.asText("").trim();
+                if (!s.isEmpty()) {
+                    out.add(s);
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            String raw = mqtt.path("topic").asText("").trim();
+            if (!raw.isEmpty()) {
+                for (String part : raw.split("[,;\\r\\n]+")) {
+                    String s = part.trim();
+                    if (!s.isEmpty()) {
+                        out.add(s);
+                    }
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            out.add("#");
+        }
+        return out;
+    }
+
+    private static void subscribeAll(MqttClient client, List<String> topics) throws MqttException {
+        String[] topicArr = topics.toArray(new String[0]);
+        int[] qos = new int[topicArr.length];
+        client.subscribe(topicArr, qos);
     }
 
     @PreDestroy
