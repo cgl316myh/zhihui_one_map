@@ -1,33 +1,40 @@
 {
-  "updatedAt": "2026-07-23T00:00:00+08:00",
-  "note": "传感器 MQTT / HTTP·TCP 推送接入配置。演示可在后台改本地覆盖；写入网关需 PUT /api/config 或导出覆盖 sensor_bridge/config.json。",
-  "frontend": {
-    "apiBaseUrl": "",
-    "pollIntervalMs": 30000
-  },
-  "http": {
-    "enabled": true,
-    "host": "0.0.0.0",
-    "port": 5173,
-    "pushPath": "/api/push",
-    "staticDir": "../frontend"
-  },
+  "updatedAt": "2026-08-11T00:00:00+08:00",
+  "note": "仅连接通道配置（tcp/http/mqtt）。站点/策略/阈值在列式表。",
   "tcp": {
-    "enabled": false,
     "host": "0.0.0.0",
     "port": 9000,
+    "enabled": false,
     "frameHint": "JSON 行 / 长度前缀（预留）"
   },
-  "mqtt": {
+  "http": {
+    "host": "0.0.0.0",
+    "port": 5173,
     "enabled": true,
+    "pushPath": "/api/push",
+    "staticDir": "../frontend",
+    "mode": "direct",
+    "publicBaseUrl": "",
+    "pushToken": "",
+    "cloud": {
+      "baseUrl": "",
+      "pullPath": "/api/relay/latest",
+      "sincePath": "/api/relay/since",
+      "token": "",
+      "pullIntervalSec": 30,
+      "backfillEnabled": true,
+      "retentionHoursOnCloud": 24
+    }
+  },
+  "mqtt": {
     "host": "47.97.123.197",
     "port": 1883,
-    "username": "mqtt_test",
-    "password": "test1234",
-    "clientId": "mine-onemap-bridge",
     "topic": "#",
+    "enabled": true,
+    "clientId": "mine-onemap-api",
+    "password": "test1234",
+    "username": "mqtt_test",
     "keepalive": 60,
     "reconnectDelaySec": 30
-  },
-  "pollHintSec": 30
+  }
 }

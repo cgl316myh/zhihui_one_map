@@ -10,6 +10,10 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Optional;
 
+/**
+ * @deprecated 环境/边坡已改为本进程内 MQTT/HTTP 接入（{@link SensorViewService}），不再代理 Python 网关。
+ */
+@Deprecated
 @Component
 public class BridgeClient {
 

@@ -36,6 +36,7 @@ mine:
     secret: ${JWT_SECRET:zhihui-one-map-dev-secret-change-me-32bytes-min}
     access-expire-minutes: ${JWT_ACCESS_EXPIRE_MINUTES:120}
     refresh-expire-days: ${JWT_REFRESH_EXPIRE_DAYS:7}
+  # 已内置 MQTT/HTTP 接入；BRIDGE_BASE_URL 仅兼容旧文档，运行时不再代理 Python 网关
   bridge:
     base-url: ${BRIDGE_BASE_URL:http://127.0.0.1:5173}
   cors:

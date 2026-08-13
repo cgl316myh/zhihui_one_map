@@ -3,35 +3,33 @@ package com.anr.mineonemap.dashboard;
 import com.anr.mineonemap.common.ApiResponse;
 import com.anr.mineonemap.domain.BizMapPoint;
 import com.anr.mineonemap.domain.BizVideoCamera;
-import com.anr.mineonemap.ingest.BridgeClient;
+import com.anr.mineonemap.ingest.SensorViewService;
 import com.anr.mineonemap.mapper.BizMapPointMapper;
 import com.anr.mineonemap.mapper.BizVideoCameraMapper;
 import com.anr.mineonemap.mapper.CfgMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api")
 public class DashboardController {
 
-    private final BridgeClient bridgeClient;
+    private final SensorViewService sensorViewService;
     private final CfgMapper cfgMapper;
     private final BizVideoCameraMapper videoCameraMapper;
     private final BizMapPointMapper mapPointMapper;
     private final ObjectMapper objectMapper;
 
-    public DashboardController(BridgeClient bridgeClient, CfgMapper cfgMapper,
+    public DashboardController(SensorViewService sensorViewService, CfgMapper cfgMapper,
                                  BizVideoCameraMapper videoCameraMapper,
                                  BizMapPointMapper mapPointMapper,
                                  ObjectMapper objectMapper) {
-        this.bridgeClient = bridgeClient;
+        this.sensorViewService = sensorViewService;
         this.cfgMapper = cfgMapper;
         this.videoCameraMapper = videoCameraMapper;
         this.mapPointMapper = mapPointMapper;
@@ -40,14 +38,12 @@ public class DashboardController {
 
     @GetMapping("/environment")
     public ApiResponse<JsonNode> environment() {
-        return ApiResponse.ok(bridgeClient.getJson("/api/environment")
-                .orElseGet(() -> emptyBridgePayload(false)));
+        return ApiResponse.ok(sensorViewService.buildEnvironment());
     }
 
     @GetMapping("/slope")
     public ApiResponse<JsonNode> slope() {
-        return ApiResponse.ok(bridgeClient.getJson("/api/slope")
-                .orElseGet(() -> emptyBridgePayload(true)));
+        return ApiResponse.ok(sensorViewService.buildSlope());
     }
 
     @GetMapping("/production")
@@ -110,8 +106,8 @@ public class DashboardController {
 
     @GetMapping("/alerts")
     public ApiResponse<List<Map<String, Object>>> alerts() {
-        JsonNode env = bridgeClient.getJson("/api/environment").orElseGet(() -> emptyBridgePayload(false));
-        JsonNode slope = bridgeClient.getJson("/api/slope").orElseGet(() -> emptyBridgePayload(true));
+        JsonNode env = sensorViewService.buildEnvironment();
+        JsonNode slope = sensorViewService.buildSlope();
         JsonNode prod = parsePayload(cfgMapper.getProductionPayload());
         List<BizVideoCamera> cameras = videoCameraMapper.listAll();
 
@@ -129,11 +125,10 @@ public class DashboardController {
 
     @GetMapping("/sensors/latest")
     public ApiResponse<Map<String, JsonNode>> sensorsLatest() {
-        JsonNode env = bridgeClient.getJson("/api/environment").orElseGet(() -> emptyBridgePayload(false));
-        JsonNode slope = bridgeClient.getJson("/api/slope").orElseGet(() -> emptyBridgePayload(true));
         Map<String, JsonNode> result = new LinkedHashMap<>();
-        result.put("environment", env);
-        result.put("slope", slope);
+        result.put("environment", sensorViewService.buildEnvironment());
+        result.put("slope", sensorViewService.buildSlope());
+        result.put("status", sensorViewService.buildStatus());
         return ApiResponse.ok(result);
     }
 
@@ -156,20 +151,6 @@ public class DashboardController {
         result.put("pollIntervalMs", pollMs);
         result.put("source", "database");
         return ApiResponse.ok(result);
-    }
-
-    /** Bridge 不可用时返回明确空壳，绝不回退 classpath seed / 演示 JSON */
-    private JsonNode emptyBridgePayload(boolean slope) {
-        ObjectNode empty = objectMapper.createObjectNode();
-        empty.put("updatedAt", Instant.now().toString());
-        empty.put("live", false);
-        empty.put("source", "bridge-unavailable");
-        empty.put("unavailable", true);
-        empty.set("points", objectMapper.createArrayNode());
-        if (slope) {
-            empty.putNull("rainfall");
-        }
-        return empty;
     }
 
     private JsonNode parsePayload(String payload) {

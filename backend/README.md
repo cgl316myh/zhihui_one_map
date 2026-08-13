@@ -37,23 +37,25 @@ CREATE SCHEMA public AUTHORIZATION postgres;
 
 Flyway 启动时执行 `db/migration/V1__init_tables.sql`。
 
-## 一键只启 backend（推荐）
+## 前端静态资源（日常改这里）
 
-前端会在构建期打入 `classpath:/static/`，**只需一个终端**：
+**真源目录**：`src/backend/src/main/resources/static/`（`js/`、`css/`、`*.html`）。
+
+| 操作 | 说明 |
+|------|------|
+| 改页面/脚本 | 直接改 `static/` 下文件 |
+| 看效果 | IDEA **重启**后端，打开 http://127.0.0.1:8081/admin.html |
+
+Maven 默认 `skip.frontend=true`，构建不会覆盖 `static/`。
+
+## 一键只启 backend（推荐）
 
 ```powershell
 cd src\backend
 .\run.ps1
 ```
 
-或：
-
-```bash
-cd src/backend
-mvn spring-boot:run
-```
-
-（`mvn spring-boot:run` 会通过 `frontend-maven-plugin` 构建 `../frontend` 并拷贝到 `target/classes/static`。）
+或 IDEA 直接运行 `MineOneMapApplication`。
 
 启动后打开：
 
@@ -65,24 +67,6 @@ mvn spring-boot:run
 
 默认账号：`admin` / `123456`，`user` / `123456`。
 
-### 跳过前端构建（仅 API）
-
-```bash
-mvn spring-boot:run -Dskip.frontend=true
-# 或
-.\run.ps1 -SkipFrontend
-```
-
-### 前端热更新开发（双终端，可选）
-
-```bash
-# 终端1
-cd src/backend && mvn spring-boot:run -Dskip.frontend=true
-
-# 终端2
-cd src/frontend && npm run dev   # http://127.0.0.1:5174 ，/api 代理到 8081
-```
-
 ## 环境变量
 
 | 变量 | 说明 | 默认 |
@@ -90,17 +74,40 @@ cd src/frontend && npm run dev   # http://127.0.0.1:5174 ，/api 代理到 8081
 | `SPRING_PROFILES_ACTIVE` | 配置 | `dev` |
 | `DB_PASSWORD` | postgres 用户密码 | `postgres` |
 | `JWT_SECRET` | JWT 密钥（≥32 字节） | 见 `application.yml` |
-| `BRIDGE_BASE_URL` | sensor_bridge | `http://127.0.0.1:5173` |
 | `SERVER_PORT` | 端口 | dev 默认 `8081`（避免本机 IIS 占 8080） |
-| `skip.frontend` | 跳过前端构建 | `false` |
+| `skip.frontend` | 跳过前端构建（保持 true） | `true` |
+
+## 传感器接入（内置，无需 Python）
+
+MQTT 订阅与 HTTP 推送已并入本服务，**部署服务器不必再装 Python / 不必启动 `sensor_bridge`**。
+
+| 能力 | 说明 |
+|------|------|
+| HTTP 推送 | `POST /api/push`（无需 JWT），JSON 对象或数组 |
+| MQTT | 启动时按 `cfg_sensor_bridge` 连接；后台改配置后自动重连 |
+| 大屏读数 | `GET /api/environment`、`/api/slope`、`/api/sensors/latest` 读内存最新值 |
+| 状态 | `GET /api/sensors/status`（需登录） |
+
+配置在库表 `cfg_sensor_bridge`（管理后台「数据接入」）：`ingest.enabled`（接收总开关）、`mqtt`、`environmentStations`、`slopeDevices`、`thresholds`。
+
+推送数据持久化到 PostgreSQL：
+
+| 表 | 用途 |
+|----|------|
+| `biz_sensor_latest` | 每设备最新一条（重启后回填内存） |
+| `biz_sensor_event` | 全量流水 |
+| `ts_env_sample` / `ts_slope_sample` | 环境指标 / 边坡位移时序 |
+
+旧 Python 网关可保留作对照，生产路径以本服务为准。
 
 ## 主要接口
 
 - 认证：`POST /api/auth/login|register|refresh`，`GET /api/auth/me`
 - 大屏：`GET /api/environment|slope|production|video|reserves|alerts|sensors/latest|config/public`
+- 推送：`POST /api/push`（公开）
 - 管理（需 `ROLE_ADMIN`）：`/api/admin/**`
 
-统一响应：`{ "code": 0, "message": "ok", "data": ... }`
+统一响应：`{ "code": 0, "message": "ok", "data": ... }`（`/api/push` 除外，返回 `{ ok, receivedAt }`）
 
 ## 种子数据
 

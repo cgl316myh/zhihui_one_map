@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .userDetailsService(authUserDetailsService)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+                        // 厂商 HTTP 推送（无 JWT）
+                        .requestMatchers(HttpMethod.POST, "/api/push").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
