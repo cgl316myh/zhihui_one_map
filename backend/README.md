@@ -100,6 +100,28 @@ MQTT 订阅与 HTTP 推送已并入本服务，**部署服务器不必再装 Pyt
 
 旧 Python 网关可保留作对照，生产路径以本服务为准。
 
+## 视频监控（管理后台配置）
+
+配置入口：**管理后台 → 视频监控**（`admin.html`）
+
+| 层级 | 存储 | 管理员填写项 |
+|------|------|----------------|
+| **平台** | `cfg_video_platform` | 接入方式、萤石 AppKey/AppSecret、域名、播放器模板；HLS 回退地址；ZLM 地址/密钥 |
+| **点位** | `biz_video_camera` + `extra` | ID、名称、经纬度、场景、序列号、通道、码流、HLS 地址、在线/启用 |
+
+萤石云（推荐海康 IPC/NVR 上云）每路摄像头额外填：
+
+- `deviceSerial`：机身序列号（如 `C12345678`）
+- `channelNo`：通道号（IPC 一般为 `1`）
+- `streamType`：`sub` 子码流 / `main` 主码流
+
+**AppSecret 仅存数据库**，大屏 `GET /api/video` 由后端换取 `accessToken` 下发，前端不保存密钥。
+
+接口：
+
+- 管理：`GET/PUT /api/admin/video/platform`，`GET/PUT /api/admin/video/cameras`，`POST /api/admin/video/test-token`
+- 大屏：`GET /api/video`（含 `player` + `cameras[].playUrl` / `hlsUrl`）
+
 ## 主要接口
 
 - 认证：`POST /api/auth/login|register|refresh`，`GET /api/auth/me`

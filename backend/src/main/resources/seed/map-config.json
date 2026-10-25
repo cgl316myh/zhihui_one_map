@@ -1,5 +1,5 @@
 {
-  "defaultBasemap": "google-sat",
+  "defaultBasemap": "esri-img",
   "mapMinZoom": 3,
   "tiandituTk": "2614f89248e121283410408772c240dc",
   "basemaps": {

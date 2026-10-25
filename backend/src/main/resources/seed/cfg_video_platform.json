@@ -1,0 +1,18 @@
+{
+  "enabled": false,
+  "provider": "ezviz",
+  "ezviz": {
+    "appKey": "",
+    "appSecret": "",
+    "domain": "https://open.ys7.com",
+    "playerTemplate": "simple",
+    "staticPath": ""
+  },
+  "hls": {
+    "fallbackUrl": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+  },
+  "zlm": {
+    "baseUrl": "",
+    "secret": ""
+  }
+}

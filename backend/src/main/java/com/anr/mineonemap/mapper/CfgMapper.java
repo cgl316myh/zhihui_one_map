@@ -52,4 +52,13 @@ public interface CfgMapper {
             updated_at = NOW() WHERE id = 1
             """)
     int updateProduction(@Param("payload") String payload);
+
+    @Select("SELECT payload::text FROM cfg_video_platform WHERE id = 1")
+    String getVideoPlatformPayload();
+
+    @Update("""
+            UPDATE cfg_video_platform SET payload = CAST(#{payload} AS jsonb),
+            updated_at = NOW(), updated_by = #{updatedBy} WHERE id = 1
+            """)
+    int updateVideoPlatform(@Param("payload") String payload, @Param("updatedBy") String updatedBy);
 }

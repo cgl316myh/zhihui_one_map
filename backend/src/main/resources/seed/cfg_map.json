@@ -1,5 +1,5 @@
 {
-  "defaultBasemap": "google-sat",
+  "defaultBasemap": "esri-img",
   "mapMinZoom": 3,
   "mapCenter": [102.445768, 24.786112],
   "mapZoom": 16,

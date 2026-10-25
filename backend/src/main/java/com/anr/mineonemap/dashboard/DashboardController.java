@@ -7,6 +7,7 @@ import com.anr.mineonemap.ingest.SensorViewService;
 import com.anr.mineonemap.mapper.BizMapPointMapper;
 import com.anr.mineonemap.mapper.BizVideoCameraMapper;
 import com.anr.mineonemap.mapper.CfgMapper;
+import com.anr.mineonemap.video.VideoConfigService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,16 +24,19 @@ public class DashboardController {
     private final CfgMapper cfgMapper;
     private final BizVideoCameraMapper videoCameraMapper;
     private final BizMapPointMapper mapPointMapper;
+    private final VideoConfigService videoConfigService;
     private final ObjectMapper objectMapper;
 
     public DashboardController(SensorViewService sensorViewService, CfgMapper cfgMapper,
                                  BizVideoCameraMapper videoCameraMapper,
                                  BizMapPointMapper mapPointMapper,
+                                 VideoConfigService videoConfigService,
                                  ObjectMapper objectMapper) {
         this.sensorViewService = sensorViewService;
         this.cfgMapper = cfgMapper;
         this.videoCameraMapper = videoCameraMapper;
         this.mapPointMapper = mapPointMapper;
+        this.videoConfigService = videoConfigService;
         this.objectMapper = objectMapper;
     }
 
@@ -53,8 +57,7 @@ public class DashboardController {
 
     @GetMapping("/video")
     public ApiResponse<Map<String, Object>> video() {
-        List<BizVideoCamera> cameras = videoCameraMapper.listAll();
-        return ApiResponse.ok(Map.of("cameras", cameras));
+        return ApiResponse.ok(videoConfigService.buildDashboardVideoPayload());
     }
 
     @GetMapping("/reserves")

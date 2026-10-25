@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5432/zhihui_one_map}
+    username: ${DB_USERNAME:mineonemap}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    time-zone: Asia/Shanghai
+
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
+    com.anr.mineonemap: INFO
+  file:
+    name: ${LOG_FILE:D:/MineOneMap/logs/mine-one-map-api.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 14
+
+mine:
+  cors:
+    allowed-origins:
+      - http://100.122.107.85:8081
+      - http://192.168.1.4:8081
+      - http://192.168.1.5:8081
+      - http://yunnan-server99.tail3f2e7b.ts.net:8081

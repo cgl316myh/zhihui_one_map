@@ -59,6 +59,8 @@ let fileMapConfig = {};
 let fileSensorConfig = {};
 let fileThresholds = null;
 let fileReserves = null;
+let fileVideoPlatform = {};
+let fileVideoCameras = [];
 let selectedDictType = 'point_status';
 let sensorDraft = null;
 /** 数据接入页消息流（跨重渲染保留） */
@@ -189,6 +191,7 @@ function showPanel(name) {
     reserves: renderReservesAdmin,
     dict: renderDict,
     maps: renderMaps,
+    video: renderVideoAdmin,
     'sensor-connect': renderSensorConnect,
     'sensor-mapping': renderSensorMapping,
     'sensor-test': renderSensorTest,
@@ -1796,6 +1799,203 @@ function renderAudit() {
   });
 }
 
+function parseCamExtra(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function readVideoPlatformForm() {
+  const provider = $('vp-provider')?.value || 'ezviz';
+  return {
+    enabled: Boolean($('vp-enabled')?.checked),
+    provider,
+    ezviz: {
+      appKey: $('vp-app-key')?.value?.trim() || '',
+      appSecret: $('vp-app-secret')?.value?.trim() || '',
+      domain: $('vp-domain')?.value?.trim() || 'https://open.ys7.com',
+      playerTemplate: $('vp-template')?.value || 'simple',
+      staticPath: $('vp-static-path')?.value?.trim() || '',
+    },
+    hls: {
+      fallbackUrl: $('vp-hls-url')?.value?.trim() || '',
+    },
+    zlm: {
+      baseUrl: $('vp-zlm-base')?.value?.trim() || '',
+      secret: $('vp-zlm-secret')?.value?.trim() || '',
+    },
+  };
+}
+
+function readVideoCamerasForm() {
+  const rows = document.querySelectorAll('#video-cam-body tr[data-cam-row]');
+  return Array.from(rows).map((tr, idx) => {
+    const extra = {
+      deviceSerial: (tr.querySelector('[data-f="deviceSerial"]')?.value || '').trim().toUpperCase(),
+      channelNo: Number(tr.querySelector('[data-f="channelNo"]')?.value || 1),
+      streamType: tr.querySelector('[data-f="streamType"]')?.value || 'sub',
+      enabled: tr.querySelector('[data-f="enabled"]')?.checked !== false,
+      hlsUrl: (tr.querySelector('[data-f="hlsUrl"]')?.value || '').trim(),
+      zlmStream: (tr.querySelector('[data-f="zlmStream"]')?.value || '').trim(),
+      provider: (tr.querySelector('[data-f="provider"]')?.value || '').trim(),
+    };
+    return {
+      id: (tr.querySelector('[data-f="id"]')?.value || '').trim(),
+      name: (tr.querySelector('[data-f="name"]')?.value || '').trim(),
+      lng: tr.querySelector('[data-f="lng"]')?.value ? Number(tr.querySelector('[data-f="lng"]').value) : null,
+      lat: tr.querySelector('[data-f="lat"]')?.value ? Number(tr.querySelector('[data-f="lat"]').value) : null,
+      scene: (tr.querySelector('[data-f="scene"]')?.value || '').trim(),
+      online: Boolean(tr.querySelector('[data-f="online"]')?.checked),
+      sortNo: idx + 1,
+      extra,
+    };
+  }).filter((c) => c.id);
+}
+
+function cameraRowHtml(cam, idx) {
+  const ex = parseCamExtra(cam.extra);
+  return `<tr data-cam-row>
+    <td><input data-f="id" value="${escapeHtml(cam.id || '')}" placeholder="CAM-01" /></td>
+    <td><input data-f="name" value="${escapeHtml(cam.name || '')}" /></td>
+    <td><input data-f="lng" type="number" step="0.00001" value="${cam.lng ?? ''}" style="width:6.5rem" /></td>
+    <td><input data-f="lat" type="number" step="0.00001" value="${cam.lat ?? ''}" style="width:6.5rem" /></td>
+    <td><input data-f="scene" value="${escapeHtml(cam.scene || '')}" /></td>
+    <td><input data-f="deviceSerial" value="${escapeHtml(ex.deviceSerial || '')}" placeholder="C12345678" /></td>
+    <td><input data-f="channelNo" type="number" min="1" value="${ex.channelNo ?? 1}" style="width:3.5rem" /></td>
+    <td><select data-f="streamType"><option value="sub" ${ex.streamType !== 'main' ? 'selected' : ''}>子码流</option><option value="main" ${ex.streamType === 'main' ? 'selected' : ''}>主码流</option></select></td>
+    <td><input data-f="hlsUrl" value="${escapeHtml(ex.hlsUrl || '')}" placeholder="HLS 模式填 m3u8" style="min-width:8rem" /></td>
+    <td><input data-f="zlmStream" value="${escapeHtml(ex.zlmStream || '')}" placeholder="ZLM 流名" style="width:5.5rem" /></td>
+    <td><label><input data-f="online" type="checkbox" ${cam.online ? 'checked' : ''} />在线</label></td>
+    <td><label><input data-f="enabled" type="checkbox" ${ex.enabled !== false ? 'checked' : ''} />启用</label></td>
+    <td><button type="button" class="btn ghost btn-del-cam">删</button></td>
+  </tr>`;
+}
+
+function renderVideoAdmin() {
+  const cfg = fileVideoPlatform || {};
+  const ez = cfg.ezviz || {};
+  const hls = cfg.hls || {};
+  const zlm = cfg.zlm || {};
+  const cams = fileVideoCameras?.length ? fileVideoCameras : [];
+  const box = $('panel-video');
+  box.innerHTML = `
+    <h2>视频监控</h2>
+    <p class="muted">平台参数写入 <code>cfg_video_platform</code>；摄像头列表写入 <code>biz_video_camera</code>。AppSecret 仅存数据库，大屏通过 <code>/api/video</code> 获取短时 Token，不下发密钥。</p>
+
+    <div class="card-block">
+      <header class="thresh-period-hd"><div><h3>平台接入</h3><p>海康/萤石云、HLS、ZLMediaKit 等全局参数</p></div></header>
+      <div class="form-grid" style="display:grid;grid-template-columns:140px 1fr;gap:8px 12px;max-width:720px">
+        <label><input id="vp-enabled" type="checkbox" ${cfg.enabled ? 'checked' : ''} /> 启用视频接入</label><span></span>
+        <label for="vp-provider">接入方式</label>
+        <select id="vp-provider">
+          <option value="ezviz" ${cfg.provider === 'ezviz' ? 'selected' : ''}>萤石云 EZOPEN（海康 IPC/NVR 上云）</option>
+          <option value="hls" ${cfg.provider === 'hls' ? 'selected' : ''}>HLS 直链（流媒体服务器输出）</option>
+          <option value="zlm" ${cfg.provider === 'zlm' ? 'selected' : ''}>ZLMediaKit（按流名拼 HLS）</option>
+        </select>
+        <label for="vp-app-key">AppKey</label>
+        <input id="vp-app-key" value="${escapeHtml(ez.appKey || '')}" placeholder="萤石开放平台应用 AppKey" />
+        <label for="vp-app-secret">AppSecret</label>
+        <input id="vp-app-secret" type="password" value="${escapeHtml(ez.appSecret || '')}" placeholder="${ez.appSecretSet ? '已保存，留空不改' : '应用密钥'}" autocomplete="new-password" />
+        <label for="vp-domain">开放平台域名</label>
+        <input id="vp-domain" value="${escapeHtml(ez.domain || 'https://open.ys7.com')}" />
+        <label for="vp-template">播放器模板</label>
+        <select id="vp-template">
+          <option value="simple" ${ez.playerTemplate === 'simple' ? 'selected' : ''}>simple 极简</option>
+          <option value="pcLive" ${ez.playerTemplate === 'pcLive' ? 'selected' : ''}>pcLive 预览栏</option>
+        </select>
+        <label for="vp-static-path">SDK 静态资源路径</label>
+        <input id="vp-static-path" value="${escapeHtml(ez.staticPath || '')}" placeholder="可选，默认走萤石 CDN" />
+        <label for="vp-hls-url">HLS 演示/回退地址</label>
+        <input id="vp-hls-url" value="${escapeHtml(hls.fallbackUrl || '')}" placeholder="provider=hls 时默认播放地址" />
+        <label for="vp-zlm-base">ZLM 服务地址</label>
+        <input id="vp-zlm-base" value="${escapeHtml(zlm.baseUrl || '')}" placeholder="http://192.168.1.100:8080" />
+        <label for="vp-zlm-secret">ZLM API 密钥</label>
+        <input id="vp-zlm-secret" type="password" value="${escapeHtml(zlm.secret || '')}" placeholder="${zlm.secretSet ? '已保存' : '可选'}" />
+      </div>
+      <div class="controls" style="margin-top:12px">
+        <button type="button" class="btn" id="btn-video-platform-save">保存平台配置</button>
+        <button type="button" class="btn ghost" id="btn-video-test-token">测试萤石 Token</button>
+      </div>
+    </div>
+
+    <div class="card-block" style="margin-top:16px">
+      <header class="thresh-period-hd">
+        <div><h3>摄像头点位</h3><p>萤石填序列号+通道；HLS 填 m3u8；ZLM 填流名（如 cam-gate）。详见 <a href="./docs/视频监控接入配置指南.html" target="_blank">配置指南</a></p></div>
+        <button type="button" class="btn ghost" id="btn-video-cam-add">添加摄像头</button>
+      </header>
+      <div class="table-wrap">
+        <table class="data video-cam-table">
+          <thead><tr>
+            <th>ID</th><th>名称</th><th>经度</th><th>纬度</th><th>场景</th>
+            <th>序列号</th><th>通道</th><th>码流</th><th>HLS 地址</th><th>ZLM 流名</th><th>状态</th><th>启用</th><th></th>
+          </tr></thead>
+          <tbody id="video-cam-body">${cams.map(cameraRowHtml).join('')}</tbody>
+        </table>
+      </div>
+      <div class="controls" style="margin-top:12px">
+        <button type="button" class="btn" id="btn-video-cams-save">保存摄像头列表</button>
+      </div>
+      <p class="thresh-foot muted">大屏读取 <code>GET /api/video</code>：返回 <code>player.accessToken</code>（萤石）与各点位 <code>playUrl</code> / <code>hlsUrl</code>。</p>
+    </div>`;
+
+  $('btn-video-platform-save')?.addEventListener('click', async () => {
+    const body = readVideoPlatformForm();
+    const r = await apiPut('/api/admin/video/platform', body);
+    if (r.ok) {
+      fileVideoPlatform = r.data;
+      flash('平台配置已保存', true);
+      renderVideoAdmin();
+    } else {
+      flash(r.message || '保存失败', false);
+    }
+  });
+
+  $('btn-video-test-token')?.addEventListener('click', async () => {
+    const r = await apiPost('/api/admin/video/test-token', {});
+    if (r.ok) {
+      flash(`Token 正常：${r.data.accessTokenPreview || 'ok'}`, true);
+    } else {
+      flash(r.message || 'Token 测试失败', false);
+    }
+  });
+
+  $('btn-video-cams-save')?.addEventListener('click', async () => {
+    const cameras = readVideoCamerasForm();
+    const r = await apiPut('/api/admin/video/cameras', { cameras });
+    if (r.ok) {
+      fileVideoCameras = r.data;
+      flash(`已保存 ${cameras.length} 路摄像头`, true);
+      renderVideoAdmin();
+    } else {
+      flash(r.message || '保存失败', false);
+    }
+  });
+
+  $('btn-video-cam-add')?.addEventListener('click', () => {
+    const tbody = $('video-cam-body');
+    const n = tbody.querySelectorAll('tr').length + 1;
+    tbody.insertAdjacentHTML('beforeend', cameraRowHtml({
+      id: `CAM-${String(n).padStart(2, '0')}`,
+      name: `${n}# 新点位`,
+      online: false,
+      extra: { channelNo: 1, streamType: 'sub', enabled: true },
+    }, n));
+    bindVideoCamRowDeletes();
+  });
+
+  bindVideoCamRowDeletes();
+}
+
+function bindVideoCamRowDeletes() {
+  document.querySelectorAll('.btn-del-cam').forEach((btn) => {
+    btn.onclick = () => btn.closest('tr')?.remove();
+  });
+}
+
 function renderPerms() {
   $('panel-perms').innerHTML = `
     <h2>权限说明</h2>
@@ -1809,6 +2009,7 @@ function renderPerms() {
           <tr><td>边坡消警</td><td>是</td><td>否</td></tr>
           <tr><td>储量参数改配</td><td>仅后台</td><td>否</td></tr>
           <tr><td>字典 / 地图源 / 用户管理</td><td>是</td><td>否</td></tr>
+          <tr><td>视频监控（平台 / 摄像头）</td><td>是</td><td>否</td></tr>
           <tr><td>数据接入（连接 / 站点 / 测试）</td><td>是</td><td>否</td></tr>
         </tbody>
       </table>
@@ -1827,7 +2028,9 @@ async function boot() {
   fileThresholds = null;
   fileReserves = {};
 
-  // 先清储量本地缓存，避免旧 23/24 草稿在页面逻辑里再次写回库
+  fileVideoPlatform = {};
+  fileVideoCameras = [];
+
   clearReservesLocalCache();
 
   if (!isStaticHosting()) {
@@ -1852,6 +2055,18 @@ async function boot() {
     try {
       const rvRes = await apiGet('/api/admin/reserves');
       if (rvRes.ok && rvRes.data) fileReserves = rvRes.data;
+    } catch {
+      /* keep empty */
+    }
+    try {
+      const vpRes = await apiGet('/api/admin/video/platform');
+      if (vpRes.ok && vpRes.data) fileVideoPlatform = vpRes.data;
+    } catch {
+      /* keep empty */
+    }
+    try {
+      const vcRes = await apiGet('/api/admin/video/cameras');
+      if (vcRes.ok && Array.isArray(vcRes.data)) fileVideoCameras = vcRes.data;
     } catch {
       /* keep empty */
     }

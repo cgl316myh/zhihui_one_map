@@ -66,6 +66,8 @@ public class DataInitializer implements ApplicationRunner {
                 json -> cfgMapper.updateSensorBridge(json, "system"));
         seedIfEmpty("cfg_reserves.json", cfgMapper::getReservesPayload,
                 json -> cfgMapper.updateReserves(json, "system"));
+        seedIfEmpty("cfg_video_platform.json", cfgMapper::getVideoPlatformPayload,
+                json -> cfgMapper.updateVideoPlatform(json, "system"));
         ensureReserves2025();
         seedIfEmpty("biz_production.json", cfgMapper::getProductionPayload,
                 cfgMapper::updateProduction);
@@ -140,7 +142,11 @@ public class DataInitializer implements ApplicationRunner {
                 cam.setOnline(c.path("online").asBoolean(false));
                 cam.setScene(c.path("scene").asText(""));
                 cam.setSortNo(i);
-                cam.setExtra("{}");
+                if (c.has("extra") && c.get("extra").isObject()) {
+                    cam.setExtra(c.get("extra").toString());
+                } else {
+                    cam.setExtra("{}");
+                }
                 videoCameraMapper.upsert(cam);
             }
             log.info("Seeded {} video cameras", cameras.size());

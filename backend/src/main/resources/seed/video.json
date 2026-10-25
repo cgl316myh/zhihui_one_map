@@ -6,8 +6,14 @@
       "name": "1# 大门",
       "lng": 102.44495,
       "lat": 24.78525,
-      "online": true,
-      "scene": "矿区出入口"
+      "online": false,
+      "scene": "矿区出入口",
+      "extra": {
+        "deviceSerial": "",
+        "channelNo": 1,
+        "streamType": "sub",
+        "enabled": true
+      }
     },
     {
       "id": "CAM-02",
