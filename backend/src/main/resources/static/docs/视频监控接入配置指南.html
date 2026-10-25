@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>视频监控接入配置指南 · 海康 HLS / ZLM / 萤石</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121c2e;
+      --border: rgba(80, 140, 220, 0.22);
+      --text: #e8f0ff;
+      --muted: #8fa3c4;
+      --ok: #2ee6a6;
+      --partial: #ffc857;
+      --info: #3dd6ff;
+      --accent: #6ea8fe;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 72px; }
+    h1 { margin: 0 0 8px; font-size: 24px; color: var(--info); }
+    h2 {
+      margin: 32px 0 12px;
+      font-size: 18px;
+      border-left: 4px solid var(--info);
+      padding-left: 10px;
+    }
+    h3 { margin: 18px 0 8px; font-size: 15px; color: #c9dcff; }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+    p, li { color: #c5d4ec; }
+    ul, ol { padding-left: 1.35em; }
+    code {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+      color: #b8d4ff;
+    }
+    pre {
+      background: #0a101c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      color: #cfe0ff;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+    .banner {
+      background: linear-gradient(135deg, rgba(61,214,255,0.12), rgba(110,168,254,0.08));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 16px 0 24px;
+    }
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 960px) { .grid3 { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      margin-right: 6px;
+    }
+    .tag.ok { color: var(--ok); border-color: rgba(46,230,166,.4); }
+    .tag.info { color: var(--info); border-color: rgba(61,214,255,.4); }
+    .tag.warn { color: var(--partial); border-color: rgba(255,200,87,.4); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: rgba(61,214,255,0.08); color: var(--info); }
+    td code { white-space: nowrap; }
+    .note { color: var(--muted); font-size: 13px; }
+    .flow {
+      background: #0a101c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      color: #a8c4ff;
+      white-space: pre;
+      line-height: 1.5;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>视频监控接入配置指南</h1>
+    <p class="meta">
+      智慧矿山一张图 · 管理后台 <code>admin.html → 视频监控</code><br />
+      数据表：<code>cfg_video_platform</code>（平台） + <code>biz_video_camera</code>（点位）<br />
+      大屏接口：<code>GET /api/video</code>
+    </p>
+
+    <div class="banner">
+      <strong>海康摄像头不一定需要萤石开放平台。</strong>
+      内网部署推荐 <span class="tag ok">HLS 直链</span> 或 <span class="tag ok">ZLMediaKit</span>；
+      要上公网云、用手机 App 同一套账号时，才用 <span class="tag info">萤石云 EZOPEN</span>。
+    </div>
+
+    <h2>一、三种接入方式对比</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3 style="margin-top:0"><span class="tag info">ezviz</span> 萤石云</h3>
+        <ul>
+          <li>需萤石开放平台 AppKey/AppSecret</li>
+          <li>设备须绑定萤石账号</li>
+          <li>每路填：序列号 + 通道号</li>
+          <li>适合：多矿点、外网访问</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span class="tag ok">hls</span> HLS 直链</h3>
+        <ul>
+          <li>不需要萤石</li>
+          <li>每路填完整 <code>m3u8</code> 地址</li>
+          <li>或平台填一个演示/回退地址</li>
+          <li>适合：已有流媒体输出的地址</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span class="tag ok">zlm</span> ZLMediaKit</h3>
+        <ul>
+          <li>不需要萤石</li>
+          <li>平台填 ZLM 服务地址</li>
+          <li>每路填流名 <code>zlmStream</code></li>
+          <li>适合：海康 RTSP → 内网转 HLS</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>二、内网典型架构（海康 + ZLM，推荐矿山）</h2>
+    <div class="flow">海康 IPC ×4（192.168.1.64~67）
+    │  RTSP 子码流 :554/Streaming/Channels/102
+    ▼
+ZLMediaKit（192.168.1.100:8080）
+    │  拉流代理 → 输出 HLS
+    ▼
+Spring Boot /api/video
+    │  拼 hlsUrl = baseUrl/live/{流名}/hls.m3u8
+    ▼
+一张图大屏（hls.js 播放）</div>
+
+    <h3>海康 RTSP 地址规则</h3>
+    <table>
+      <thead><tr><th>含义</th><th>URL 示例</th></tr></thead>
+      <tbody>
+        <tr><td>第 1 路主码流</td><td><code>rtsp://admin:密码@192.168.1.64:554/Streaming/Channels/101</code></td></tr>
+        <tr><td>第 1 路子码流（大屏推荐）</td><td><code>rtsp://admin:密码@192.168.1.64:554/Streaming/Channels/102</code></td></tr>
+        <tr><td>接 NVR 第 2 通道子码流</td><td><code>rtsp://admin:密码@192.168.1.10:554/Streaming/Channels/202</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note">规律：通道号 × 100 + 1 = 主码流，+ 2 = 子码流。</p>
+
+    <h2>三、管理后台怎么填（4 路摄像头完整示例）</h2>
+    <p>以下假设矿区 4 路：大门、破碎、筛分、边坡。坐标为示例，请改成实际 GPS。</p>
+
+    <!-- ========== ZLM ========== -->
+    <h3><span class="tag ok">方式 A</span> ZLMediaKit（4 路海康 RTSP 经 ZLM 转 HLS）</h3>
+
+    <h4>① 平台接入（保存一次）</h4>
+    <table>
+      <thead><tr><th>后台字段</th><th>填写值</th></tr></thead>
+      <tbody>
+        <tr><td>启用视频接入</td><td>☑ 勾选</td></tr>
+        <tr><td>接入方式</td><td><strong>ZLMediaKit（按流名拼 HLS）</strong></td></tr>
+        <tr><td>ZLM 服务地址</td><td><code>http://192.168.1.100:8080</code></td></tr>
+        <tr><td>ZLM API 密钥</td><td><code>your_zlm_secret</code>（可选，用于 REST 拉流）</td></tr>
+        <tr><td>AppKey / AppSecret</td><td><em>留空</em></td></tr>
+        <tr><td>HLS 演示/回退地址</td><td><em>可留空</em></td></tr>
+      </tbody>
+    </table>
+
+    <h4>② ZLM 侧：为 4 路添加 RTSP 拉流（示例 curl）</h4>
+    <pre>curl -X POST "http://192.168.1.100:8080/index/api/addStreamProxy" \
+  -d "secret=your_zlm_secret" \
+  -d "vhost=__defaultVhost__" \
+  -d "app=live" \
+  -d "stream=cam-gate" \
+  -d "url=rtsp://admin:Hik123456@192.168.1.64:554/Streaming/Channels/102" \
+  -d "enable_hls=1"
+
+# 其余三路 stream 分别填：cam-crush / cam-screen / cam-slope
+# url 对应 192.168.1.65 / .66 / .67</pre>
+
+    <h4>③ 摄像头点位表（4 行）</h4>
+    <p class="note">ZLM 模式下：序列号/通道留空；在表格 <strong>ZLM 流名</strong> 列填写（如 <code>cam-gate</code>）。系统按 <code>{ZLM地址}/live/{流名}/hls.m3u8</code> 拼播放地址。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>名称</th><th>经度</th><th>纬度</th><th>场景</th>
+          <th>zlmStream<br/>(extra)</th><th>拼出 HLS</th><th>在线</th><th>启用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>CAM-01</code></td><td>1# 大门</td><td>102.44495</td><td>24.78525</td><td>矿区出入口</td>
+          <td><code>cam-gate</code></td><td><code>.../live/cam-gate/hls.m3u8</code></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-02</code></td><td>2# 破碎</td><td>102.44638</td><td>24.78512</td><td>破碎车间</td>
+          <td><code>cam-crush</code></td><td><code>.../live/cam-crush/hls.m3u8</code></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-03</code></td><td>3# 筛分</td><td>102.44688</td><td>24.78572</td><td>筛分平台</td>
+          <td><code>cam-screen</code></td><td><code>.../live/cam-screen/hls.m3u8</code></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-04</code></td><td>4# 边坡</td><td>102.44592</td><td>24.78705</td><td>边坡监测区</td>
+          <td><code>cam-slope</code></td><td><code>.../live/cam-slope/hls.m3u8</code></td><td>☑</td><td>☑</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>④ 对应 JSON（<code>biz_video_camera.extra</code> 示例，CAM-01）</h4>
+    <pre>{
+  "zlmStream": "cam-gate",
+  "enabled": true
+}</pre>
+
+    <!-- ========== HLS ========== -->
+    <h3><span class="tag ok">方式 B</span> HLS 直链（每路已有 m3u8 地址）</h3>
+
+    <h4>① 平台接入</h4>
+    <table>
+      <thead><tr><th>后台字段</th><th>填写值</th></tr></thead>
+      <tbody>
+        <tr><td>启用视频接入</td><td>☑ 勾选</td></tr>
+        <tr><td>接入方式</td><td><strong>HLS 直链</strong></td></tr>
+        <tr><td>HLS 演示/回退地址</td><td><code>https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8</code>（仅当某路未填 HLS 时用）</td></tr>
+        <tr><td>ZLM / 萤石字段</td><td><em>留空</em></td></tr>
+      </tbody>
+    </table>
+
+    <h4>② 摄像头点位表（4 行 — 重点填「HLS 地址」列）</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>名称</th><th>经度</th><th>纬度</th><th>场景</th>
+          <th>HLS 地址（必填）</th><th>序列号</th><th>在线</th><th>启用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>CAM-01</code></td><td>1# 大门</td><td>102.44495</td><td>24.78525</td><td>矿区出入口</td>
+          <td><code>http://192.168.1.100:8080/live/cam-gate/hls.m3u8</code></td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-02</code></td><td>2# 破碎</td><td>102.44638</td><td>24.78512</td><td>破碎车间</td>
+          <td><code>http://192.168.1.100:8080/live/cam-crush/hls.m3u8</code></td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-03</code></td><td>3# 筛分</td><td>102.44688</td><td>24.78572</td><td>筛分平台</td>
+          <td><code>http://192.168.1.100:8080/live/cam-screen/hls.m3u8</code></td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-04</code></td><td>4# 边坡</td><td>102.44592</td><td>24.78705</td><td>边坡监测区</td>
+          <td><code>http://192.168.1.100:8080/live/cam-slope/hls.m3u8</code></td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">HLS 模式下每路 <strong>必须填各自的 m3u8</strong>；平台「回退地址」只在某路 HLS 为空时才会用到（4 路都填则不会用回退）。</p>
+
+    <h4>③ 对应 JSON（<code>extra</code> 示例，CAM-02）</h4>
+    <pre>{
+  "hlsUrl": "http://192.168.1.100:8080/live/cam-crush/hls.m3u8",
+  "enabled": true
+}</pre>
+
+    <!-- ========== EZVIZ ========== -->
+    <h3><span class="tag info">方式 C</span> 萤石云 EZOPEN（海康设备上萤石云）</h3>
+
+    <h4>① 平台接入</h4>
+    <table>
+      <thead><tr><th>后台字段</th><th>填写值</th></tr></thead>
+      <tbody>
+        <tr><td>启用视频接入</td><td>☑ 勾选</td></tr>
+        <tr><td>接入方式</td><td><strong>萤石云 EZOPEN</strong></td></tr>
+        <tr><td>AppKey</td><td><code>your_app_key</code></td></tr>
+        <tr><td>AppSecret</td><td><code>your_app_secret</code></td></tr>
+        <tr><td>开放平台域名</td><td><code>https://open.ys7.com</code></td></tr>
+        <tr><td>播放器模板</td><td><code>simple</code> 或 <code>pcLive</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note">保存后点「测试萤石 Token」确认凭证有效；4 路设备须已在萤石开放平台账号下添加。</p>
+
+    <h4>② 摄像头点位表（4 行 — 重点填「序列号 + 通道 + 码流」）</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>名称</th><th>经度</th><th>纬度</th><th>场景</th>
+          <th>序列号</th><th>通道</th><th>码流</th><th>HLS</th><th>在线</th><th>启用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>CAM-01</code></td><td>1# 大门</td><td>102.44495</td><td>24.78525</td><td>矿区出入口</td>
+          <td><code>AY1234567</code></td><td>1</td><td>子码流</td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-02</code></td><td>2# 破碎</td><td>102.44638</td><td>24.78512</td><td>破碎车间</td>
+          <td><code>AY2345678</code></td><td>1</td><td>子码流</td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-03</code></td><td>3# 筛分</td><td>102.44688</td><td>24.78572</td><td>筛分平台</td>
+          <td><code>AY3456789</code></td><td>1</td><td>子码流</td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+        <tr>
+          <td><code>CAM-04</code></td><td>4# 边坡</td><td>102.44592</td><td>24.78705</td><td>边坡监测区</td>
+          <td><code>AY4567890</code></td><td>1</td><td>子码流</td><td><em>空</em></td><td>☑</td><td>☑</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">接 NVR 时：通道号填 NVR 对应通道（如第 2 路填 2）；序列号填 NVR 或 IPC 机身标签。</p>
+
+    <h4>③ 大屏实际播放地址（后端自动生成）</h4>
+    <pre>ezopen://open.ys7.com/AY1234567/1.live   ← CAM-01
+ezopen://open.ys7.com/AY2345678/1.live   ← CAM-02
+...</pre>
+
+    <h2>四、完整配置 JSON 参考（入库结构）</h2>
+
+    <h3>cfg_video_platform — ZLM 模式</h3>
+    <pre>{
+  "enabled": true,
+  "provider": "zlm",
+  "ezviz": { "appKey": "", "appSecret": "", "domain": "https://open.ys7.com", "playerTemplate": "simple", "staticPath": "" },
+  "hls": { "fallbackUrl": "" },
+  "zlm": { "baseUrl": "http://192.168.1.100:8080", "secret": "your_zlm_secret" }
+}</pre>
+
+    <h3>cfg_video_platform — HLS 模式</h3>
+    <pre>{
+  "enabled": true,
+  "provider": "hls",
+  "hls": { "fallbackUrl": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+  "zlm": { "baseUrl": "", "secret": "" }
+}</pre>
+
+    <h3>biz_video_camera — 4 路（HLS 模式 extra 摘要）</h3>
+    <pre>[
+  { "id": "CAM-01", "name": "1# 大门", "lng": 102.44495, "lat": 24.78525, "online": true, "scene": "矿区出入口",
+    "extra": { "hlsUrl": "http://192.168.1.100:8080/live/cam-gate/hls.m3u8", "enabled": true } },
+  { "id": "CAM-02", "name": "2# 破碎", "lng": 102.44638, "lat": 24.78512, "online": true, "scene": "破碎车间",
+    "extra": { "hlsUrl": "http://192.168.1.100:8080/live/cam-crush/hls.m3u8", "enabled": true } },
+  { "id": "CAM-03", "name": "3# 筛分", "lng": 102.44688, "lat": 24.78572, "online": true, "scene": "筛分平台",
+    "extra": { "hlsUrl": "http://192.168.1.100:8080/live/cam-screen/hls.m3u8", "enabled": true } },
+  { "id": "CAM-04", "name": "4# 边坡", "lng": 102.44592, "lat": 24.78705, "online": true, "scene": "边坡监测区",
+    "extra": { "hlsUrl": "http://192.168.1.100:8080/live/cam-slope/hls.m3u8", "enabled": true } }
+]</pre>
+
+    <h2>五、操作步骤 checklist</h2>
+    <ol>
+      <li>重启后端，确认 Flyway <code>V4__video_platform</code> 已执行</li>
+      <li>登录 <code>http://127.0.0.1:8081/admin.html</code> → <strong>视频监控</strong>（页内可打开本指南）</li>
+      <li>选接入方式，填平台参数 → <strong>保存平台配置</strong></li>
+      <li>（ZLM）在流媒体服务器添加 4 路 RTSP 拉流</li>
+      <li>在表格添加 4 行摄像头 → <strong>保存摄像头列表</strong></li>
+      <li>打开一张图，视频面板应出现 4 路画面</li>
+    </ol>
+
+    <h2>六、常见问题</h2>
+    <table>
+      <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
+      <tbody>
+        <tr><td>只显示 LIVE 占位、无画面</td><td>未启用 / 未填 HLS 或 zlmStream</td><td>检查「启用」与每路地址</td></tr>
+        <tr><td>HLS 黑屏</td><td>m3u8 浏览器不可达</td><td>用 VLC 测地址；检查 ZLM 是否拉流成功</td></tr>
+        <tr><td>萤石 10031</td><td>Token 无设备权限</td><td>设备未加到开放平台账号</td></tr>
+        <tr><td>4 路同一画面</td><td>流名或 HLS 地址填重复</td><td>每路唯一 cam-gate / cam-crush …</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note" style="margin-top:32px">
+      文档路径：<code>docs/视频监控接入配置指南.html</code><br />
+      后端访问：<code>http://127.0.0.1:8081/docs/视频监控接入配置指南.html</code>
+    </p>
+  </div>
+</body>
+</html>
