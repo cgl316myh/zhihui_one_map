@@ -2149,11 +2149,30 @@ function renderPerms() {
     <p class="muted">权限由 Spring Security 承接；配置与业务数据均以数据库/接口为准。</p>`;
   }
 
+function formatAppVersion(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  return v.startsWith('v') || v.startsWith('V') ? v : `v${v}`;
+}
+
+async function fillAppVersion() {
+  const el = $('app-version');
+  if (!el) return;
+  try {
+    const r = await apiGet('/api/version');
+    const v = formatAppVersion(r?.data?.version);
+    if (v) el.textContent = v;
+  } catch {
+    /* keep HTML fallback */
+  }
+}
+
 async function boot() {
   if (!requireAdmin()) return;
   await initUserStore();
   initDictStore();
   $('admin-user').textContent = `${session.displayName || session.username} · 管理员`;
+  fillAppVersion();
 
   fileMapConfig = {};
   fileSensorConfig = {};

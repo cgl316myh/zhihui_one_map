@@ -29,7 +29,19 @@ body.admin-page {
   border-bottom: 1px solid var(--border);
   background: rgba(8, 20, 36, 0.92);
 }
-.admin-top .brand strong { display: block; font-size: 16px; }
+.admin-top .brand strong {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 16px;
+}
+.admin-top .app-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
 .admin-top-actions { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 
 .admin-layout {
