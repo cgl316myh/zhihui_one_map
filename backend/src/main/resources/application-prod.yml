@@ -8,7 +8,7 @@ spring:
     time-zone: Asia/Shanghai
 
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${SERVER_PORT:8082}
   shutdown: graceful
 
 logging:
@@ -25,7 +25,7 @@ logging:
 mine:
   cors:
     allowed-origins:
-      - http://100.122.107.85:8081
-      - http://192.168.1.4:8081
-      - http://192.168.1.5:8081
-      - http://yunnan-server99.tail3f2e7b.ts.net:8081
+      - http://100.122.107.85:8082
+      - http://192.168.1.4:8082
+      - http://192.168.1.5:8082
+      - http://yunnan-server99.tail3f2e7b.ts.net:8082

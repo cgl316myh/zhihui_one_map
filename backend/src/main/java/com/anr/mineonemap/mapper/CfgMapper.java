@@ -61,4 +61,13 @@ public interface CfgMapper {
             updated_at = NOW(), updated_by = #{updatedBy} WHERE id = 1
             """)
     int updateVideoPlatform(@Param("payload") String payload, @Param("updatedBy") String updatedBy);
+
+    @Select("SELECT payload::text FROM cfg_cad_layers WHERE id = 1")
+    String getCadLayersPayload();
+
+    @Update("""
+            UPDATE cfg_cad_layers SET payload = CAST(#{payload} AS jsonb),
+            updated_at = NOW(), updated_by = #{updatedBy} WHERE id = 1
+            """)
+    int updateCadLayers(@Param("payload") String payload, @Param("updatedBy") String updatedBy);
 }

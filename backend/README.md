@@ -44,7 +44,7 @@ Flyway 启动时执行 `db/migration/V1__init_tables.sql`。
 | 操作 | 说明 |
 |------|------|
 | 改页面/脚本 | 直接改 `static/` 下文件 |
-| 看效果 | IDEA **重启**后端，打开 http://127.0.0.1:8081/admin.html |
+| 看效果 | IDEA **重启**后端，打开 http://127.0.0.1:8082/admin.html |
 
 Maven 默认 `skip.frontend=true`，构建不会覆盖 `static/`。
 
@@ -61,9 +61,9 @@ cd src\backend
 
 | 页面 | 地址 |
 |------|------|
-| 登录 | http://127.0.0.1:8081/ （dev 默认；可用 `SERVER_PORT` 覆盖） |
-| 一张图 | http://127.0.0.1:8081/index.html |
-| 管理后台 | http://127.0.0.1:8081/admin.html |
+| 登录 | http://127.0.0.1:8082/ （dev 默认；可用 `SERVER_PORT` 覆盖） |
+| 一张图 | http://127.0.0.1:8082/index.html |
+| 管理后台 | http://127.0.0.1:8082/admin.html |
 
 默认账号：`admin` / `123456`，`user` / `123456`。
 
@@ -74,7 +74,7 @@ cd src\backend
 | `SPRING_PROFILES_ACTIVE` | 配置 | `dev` |
 | `DB_PASSWORD` | postgres 用户密码 | `postgres` |
 | `JWT_SECRET` | JWT 密钥（≥32 字节） | 见 `application.yml` |
-| `SERVER_PORT` | 端口 | dev 默认 `8081`（避免本机 IIS 占 8080） |
+| `SERVER_PORT` | 端口 | dev 默认 `8082`（避开 IIS 8080、GeoServer 8081） |
 | `skip.frontend` | 跳过前端构建（保持 true） | `true` |
 
 ## 传感器接入（内置，无需 Python）

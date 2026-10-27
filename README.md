@@ -16,7 +16,7 @@ cd src\backend
 .\run.ps1
 ```
 
-或 IDEA 运行 `MineOneMapApplication`，打开 http://127.0.0.1:8081/
+或 IDEA 运行 `MineOneMapApplication`，打开 http://127.0.0.1:8082/
 
 前端改 `src/backend/src/main/resources/static/` 后重启后端即可。
 

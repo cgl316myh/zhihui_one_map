@@ -17,7 +17,7 @@ if (-not (Test-Path (Join-Path $StaticDir "index.html"))) {
 $mvnArgs = @("spring-boot:run", "-Dskip.frontend=true")
 
 Write-Host "==> mvn $($mvnArgs -join ' ')"
-Write-Host "管理后台: http://127.0.0.1:8081/admin.html"
+Write-Host "管理后台: http://127.0.0.1:8082/admin.html"
 
 Push-Location $BackendDir
 try {

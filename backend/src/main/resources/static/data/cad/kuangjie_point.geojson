@@ -1,0 +1,22 @@
+{
+"type": "FeatureCollection",
+"name": "kuangjie_point",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDB8", "Text": "安宁隆瑞混凝土有限责任公司采石场", "PaperSpc": false, "Name": null }, "geometry": { "type": "Point", "coordinates": [ 102.439089213370508, 24.788689944161003 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDB9", "Text": "矿13", "PaperSpc": false, "Name": "矿13" }, "geometry": { "type": "Point", "coordinates": [ 102.436658363887958, 24.791243054681825 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBA", "Text": "矿1", "PaperSpc": false, "Name": "矿1" }, "geometry": { "type": "Point", "coordinates": [ 102.436542444671574, 24.792222765404638 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBB", "Text": "矿2", "PaperSpc": false, "Name": "矿2" }, "geometry": { "type": "Point", "coordinates": [ 102.439037945533698, 24.79263059858603 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBC", "Text": "矿3", "PaperSpc": false, "Name": "矿3" }, "geometry": { "type": "Point", "coordinates": [ 102.440845326015548, 24.792136744683042 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBD", "Text": "矿4", "PaperSpc": false, "Name": "矿4" }, "geometry": { "type": "Point", "coordinates": [ 102.444859918456089, 24.790649809266675 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBE", "Text": "矿5", "PaperSpc": false, "Name": "矿5" }, "geometry": { "type": "Point", "coordinates": [ 102.447100903906914, 24.79036454010971 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDBF", "Text": "矿6", "PaperSpc": false, "Name": "矿6" }, "geometry": { "type": "Point", "coordinates": [ 102.447239879185702, 24.78362765927362 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC0", "Text": "矿7", "PaperSpc": false, "Name": "矿7" }, "geometry": { "type": "Point", "coordinates": [ 102.446021752629889, 24.78304272860321 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC1", "Text": "矿8", "PaperSpc": false, "Name": "矿8" }, "geometry": { "type": "Point", "coordinates": [ 102.441347957947428, 24.782229059212082 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC2", "Text": "矿9", "PaperSpc": false, "Name": "矿9" }, "geometry": { "type": "Point", "coordinates": [ 102.4393034427179, 24.782819806300811 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC3", "Text": "矿10", "PaperSpc": false, "Name": "矿10" }, "geometry": { "type": "Point", "coordinates": [ 102.437451688070112, 24.786623590009082 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC4", "Text": "矿11", "PaperSpc": false, "Name": "矿11" }, "geometry": { "type": "Point", "coordinates": [ 102.436965283025643, 24.78991766594735 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "DDC5", "Text": "矿12", "PaperSpc": false, "Name": "矿12" }, "geometry": { "type": "Point", "coordinates": [ 102.43590936426925, 24.790595099977541 ] } },
+{ "type": "Feature", "properties": { "Layer": "矿界", "Linetype": "Continuous", "EntityHdl": "239508C", "Text": "矿7", "PaperSpc": false, "Name": "矿7" }, "geometry": { "type": "Point", "coordinates": [ 102.452031970049589, 24.779784503354161 ] } }
+]
+}

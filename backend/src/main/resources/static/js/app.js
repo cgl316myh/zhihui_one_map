@@ -56,6 +56,7 @@ import { mergeMapConfig } from './auth/mapConfigStore.js';
 import { mergeSensorConfig } from './auth/sensorConfigStore.js';
 import { initResizableSidebars, focusWorkspacePanel } from './modules/layout.js';
 import { initMapToolbar } from './modules/tools.js';
+import { initCadLayers } from './modules/cadLayers.js';
 
 let mockData = null;
 let selectedSlopeId = null;
@@ -343,6 +344,12 @@ async function boot() {
   renderProductionMarkers(mockData.production, mockData.slopePoints);
 
   ['environment', 'slope', 'video', 'production'].forEach((k) => setLayerVisible(k, true));
+
+  try {
+    await initCadLayers();
+  } catch (err) {
+    console.warn('[cad] init failed', err);
+  }
 
   startSlopePolling(onSlopeData, onSlopeError);
 

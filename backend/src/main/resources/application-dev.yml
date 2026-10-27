@@ -7,9 +7,9 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
 
-# 本机 IIS/HTTP.sys 常占用 8080（netstat 显示 PID 4），开发默认改用 8081
+# 本机 IIS 常占 8080、GeoServer 常占 8081，开发默认改用 8082
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${SERVER_PORT:8082}
 
 logging:
   level:

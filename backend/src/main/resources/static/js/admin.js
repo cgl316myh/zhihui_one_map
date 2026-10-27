@@ -191,6 +191,7 @@ function showPanel(name) {
     reserves: renderReservesAdmin,
     dict: renderDict,
     maps: renderMaps,
+    'cad-layers': renderCadLayers,
     video: renderVideoAdmin,
     'sensor-connect': renderSensorConnect,
     'sensor-mapping': renderSensorMapping,
@@ -1145,6 +1146,136 @@ function renderMaps() {
   });
 }
 
+/* —— CAD 矢量图层 —— */
+let _cadLayersCfg = null;
+
+async function loadCadLayersCfg() {
+  if (isStaticHosting()) {
+    return { version: 1, layers: [] };
+  }
+  const r = await apiGet('/api/admin/cad-layers');
+  return r.ok && r.data ? r.data : { version: 1, layers: [] };
+}
+
+async function renderCadLayers() {
+  const box = $('panel-cad-layers');
+  if (!box) return;
+  box.innerHTML = `<div class="thresh-page"><p class="muted">加载 CAD 图层配置…</p></div>`;
+  try {
+    _cadLayersCfg = await loadCadLayersCfg();
+  } catch (e) {
+    box.innerHTML = `<div class="thresh-page"><p class="muted">加载失败：${e.message || e}</p></div>`;
+    return;
+  }
+  const layers = Array.isArray(_cadLayersCfg.layers) ? _cadLayersCfg.layers : [];
+  box.innerHTML = `
+    <div class="thresh-page">
+      <div class="thresh-page-hd">
+        <div>
+          <h2>CAD 矢量图层</h2>
+          <p class="muted">控制一张图是否允许加载各 CAD 层。关闭「允许加载」后，前端不显示也不请求该 GeoJSON。一期仅矿界点/线。</p>
+        </div>
+        <div class="thresh-page-actions">
+          <button type="button" class="btn ghost" id="btn-cad-reload">重新加载</button>
+          <button type="button" class="btn" id="btn-cad-save">保存</button>
+        </div>
+      </div>
+      <section class="thresh-period-card is-active">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>图层清单</h3>
+            <p>共 ${layers.length} 层 · GeoJSON 静态路径 /data/cad/</p>
+          </div>
+        </header>
+        <div class="thresh-metric-list" id="cad-layer-list">
+          ${
+            layers.length
+              ? layers
+                  .map((l, idx) => {
+                    const enabled = l.enabled !== false;
+                    const defaultOn = Boolean(l.defaultOn);
+                    return `
+              <article class="thresh-metric map-source-row" data-idx="${idx}" data-id="${l.id || ''}">
+                <div class="thresh-metric-name">
+                  <strong>${l.name || l.id || '未命名'}</strong>
+                  <span><code>${l.id || ''}</code> · ${l.geom || ''} · ${l.group || ''}</span>
+                  <label class="map-enable">
+                    <input type="checkbox" data-f="enabled" ${enabled ? 'checked' : ''} />
+                    允许加载
+                  </label>
+                  <label class="map-enable">
+                    <input type="checkbox" data-f="defaultOn" ${defaultOn ? 'checked' : ''} />
+                    默认打开
+                  </label>
+                </div>
+                <div class="thresh-metric-fields map-fields-grid">
+                  <label class="thresh-field map-field-wide">
+                    <span>GeoJSON 地址</span>
+                    <div class="thresh-input-wrap">
+                      <input data-f="url" value="${l.url || ''}" readonly />
+                    </div>
+                  </label>
+                  <label class="thresh-field">
+                    <span>线/点颜色</span>
+                    <div class="thresh-input-wrap">
+                      <input data-f="color" value="${(l.style && l.style.color) || '#e74c3c'}" />
+                    </div>
+                  </label>
+                  <label class="thresh-field">
+                    <span>线宽 / 半径</span>
+                    <div class="thresh-input-wrap">
+                      <input type="number" data-f="weight" value="${(l.style && (l.style.weight ?? l.style.radius)) || 3}" />
+                    </div>
+                  </label>
+                </div>
+              </article>`;
+                  })
+                  .join('')
+              : '<p class="muted">暂无图层，请确认 seed/cfg_cad_layers.json 已导入数据库。</p>'
+          }
+        </div>
+      </section>
+      <p class="thresh-foot muted">保存后刷新一张图生效。大层（等高线等）本期不上图，后续在配置中追加即可。</p>
+    </div>`;
+
+  $('btn-cad-reload')?.addEventListener('click', () => renderCadLayers());
+  $('btn-cad-save')?.addEventListener('click', async () => {
+    const nextLayers = layers.map((l, idx) => {
+      const row = box.querySelector(`.map-source-row[data-idx="${idx}"]`);
+      if (!row) return l;
+      const enabled = row.querySelector('[data-f="enabled"]')?.checked !== false;
+      const defaultOn = Boolean(row.querySelector('[data-f="defaultOn"]')?.checked);
+      const color = row.querySelector('[data-f="color"]')?.value?.trim() || '#e74c3c';
+      const weight = Number(row.querySelector('[data-f="weight"]')?.value) || 3;
+      const style = { ...(l.style || {}) };
+      if ((l.geom || '') === 'point') {
+        style.radius = weight;
+        style.color = color;
+        style.fillColor = color;
+      } else {
+        style.weight = weight;
+        style.color = color;
+      }
+      return { ...l, enabled, defaultOn, style };
+    });
+    const body = { version: _cadLayersCfg.version || 1, layers: nextLayers };
+    const r = await apiPut('/api/admin/cad-layers', body);
+    if (!r.ok) {
+      flash(r.message || '保存失败', false);
+      return;
+    }
+    _cadLayersCfg = body;
+    appendAuditLog({
+      actor: session.username,
+      action: 'cad_layers_save',
+      result: 'ok',
+      summary: `保存 CAD 图层 · ${nextLayers.filter((x) => x.enabled).length}/${nextLayers.length} 启用`,
+    });
+    flash('CAD 图层配置已保存');
+    renderCadLayers();
+  });
+}
+
 /* —— 数据接入：连接 / 站点策略 / 测试 —— */
 function field(label, html) {
   return `<label class="thresh-field"><span>${label}</span><div class="thresh-input-wrap">${html}</div></label>`;
@@ -1310,7 +1441,7 @@ async function renderSensorConnect() {
           <article class="thresh-metric map-global-row">
             <div class="thresh-metric-name"><strong>公网地址</strong><span>给厂商的推送前缀</span></div>
             <div class="thresh-metric-fields map-fields-2">
-              ${field('publicBaseUrl', `<input name="http-public" value="${escapeHtml(cfg.http?.publicBaseUrl || '')}" placeholder="https://x.x.x.x:8081" />`)}
+              ${field('publicBaseUrl', `<input name="http-public" value="${escapeHtml(cfg.http?.publicBaseUrl || '')}" placeholder="https://x.x.x.x:8082" />`)}
               ${field('Push Token', `<input name="http-token" value="${escapeHtml(cfg.http?.pushToken || '')}" placeholder="可选 X-Push-Token" />`)}
             </div>
           </article>
@@ -2009,6 +2140,7 @@ function renderPerms() {
           <tr><td>边坡消警</td><td>是</td><td>否</td></tr>
           <tr><td>储量参数改配</td><td>仅后台</td><td>否</td></tr>
           <tr><td>字典 / 地图源 / 用户管理</td><td>是</td><td>否</td></tr>
+          <tr><td>CAD 矢量图层开关</td><td>是</td><td>否</td></tr>
           <tr><td>视频监控（平台 / 摄像头）</td><td>是</td><td>否</td></tr>
           <tr><td>数据接入（连接 / 站点 / 测试）</td><td>是</td><td>否</td></tr>
         </tbody>

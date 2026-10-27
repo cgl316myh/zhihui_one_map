@@ -68,11 +68,38 @@ public class DataInitializer implements ApplicationRunner {
                 json -> cfgMapper.updateReserves(json, "system"));
         seedIfEmpty("cfg_video_platform.json", cfgMapper::getVideoPlatformPayload,
                 json -> cfgMapper.updateVideoPlatform(json, "system"));
+        seedIfEmpty("cfg_cad_layers.json", cfgMapper::getCadLayersPayload,
+                json -> cfgMapper.updateCadLayers(json, "system"));
+        ensureCadLayersSeed();
         ensureReserves2025();
         seedIfEmpty("biz_production.json", cfgMapper::getProductionPayload,
                 cfgMapper::updateProduction);
         seedVideoCameras();
         seedMapPoints();
+    }
+
+    /** 表已存在但 layers 为空时补种一期矿界点/线配置 */
+    private void ensureCadLayersSeed() {
+        try {
+            String current = cfgMapper.getCadLayersPayload();
+            JsonNode node = objectMapper.readTree(current == null || current.isBlank() ? "{}" : current);
+            JsonNode layers = node.path("layers");
+            if (layers.isArray() && layers.size() > 0) {
+                return;
+            }
+            Resource resource = resourceLoader.getResource("classpath:seed/cfg_cad_layers.json");
+            if (!resource.exists()) {
+                return;
+            }
+            String json = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8).trim();
+            if (json.isEmpty()) {
+                return;
+            }
+            cfgMapper.updateCadLayers(json, "system");
+            log.info("Reloaded empty cfg_cad_layers from seed");
+        } catch (Exception e) {
+            log.warn("ensureCadLayersSeed failed: {}", e.getMessage());
+        }
     }
 
     /**
