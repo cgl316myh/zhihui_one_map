@@ -33,7 +33,7 @@ mybatis:
 
 mine:
   app:
-    version: ${APP_VERSION:0.1.0-SNAPSHOT}
+    version: ${APP_VERSION:1.1.0}
   jwt:
     secret: ${JWT_SECRET:zhihui-one-map-dev-secret-change-me-32bytes-min}
     access-expire-minutes: ${JWT_ACCESS_EXPIRE_MINUTES:120}
