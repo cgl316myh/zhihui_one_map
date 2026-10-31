@@ -35,6 +35,7 @@ public interface SensorPersistMapper {
     @Insert("""
             INSERT INTO ts_env_sample (point_id, metric, value, sampled_at)
             VALUES (#{pointId}, #{metric}, #{value}, #{sampledAt})
+            ON CONFLICT (point_id, metric, sampled_at) DO NOTHING
             """)
     int insertEnvSample(@Param("pointId") String pointId,
                         @Param("metric") String metric,
@@ -42,8 +43,33 @@ public interface SensorPersistMapper {
                         @Param("sampledAt") OffsetDateTime sampledAt);
 
     @Insert("""
+            INSERT INTO biz_slope_hist (
+              device_sn, collect_time, x_mm, y_mm, h_mm, plane_mm, plane_speed, plane_acc, azimuth,
+              total_projection, speed_x, speed_y, speed_h, projection_speed, projection_acc,
+              interval_hours, source)
+            VALUES (
+              #{deviceSn}, #{collectTime}, #{xMm}, #{yMm}, #{hMm}, #{planeMm}, #{planeSpeed}, #{planeAcc}, #{azimuth},
+              #{totalProjection}, #{speedX}, #{speedY}, #{speedH}, #{projectionSpeed}, #{projectionAcc},
+              #{intervalHours}, #{source})
+            ON CONFLICT (device_sn, collect_time) DO NOTHING
+            """)
+    int insertSlopeHist(com.anr.mineonemap.domain.BizSlopeLatest row);
+
+    @Insert("""
+            INSERT INTO biz_rain_hist (device_sn, collect_time, rain_hour, rain_day, source)
+            VALUES (#{deviceSn}, #{collectTime}, #{rainHour}, #{rainDay}, #{source})
+            ON CONFLICT (device_sn, collect_time) DO NOTHING
+            """)
+    int insertRainHist(@Param("deviceSn") String deviceSn,
+                       @Param("collectTime") OffsetDateTime collectTime,
+                       @Param("rainHour") Double rainHour,
+                       @Param("rainDay") Double rainDay,
+                       @Param("source") String source);
+
+    @Insert("""
             INSERT INTO ts_slope_sample (point_id, x, y, h, magnitude, sampled_at)
             VALUES (#{pointId}, #{x}, #{y}, #{h}, #{magnitude}, #{sampledAt})
+            ON CONFLICT (point_id, sampled_at) DO NOTHING
             """)
     int insertSlopeSample(@Param("pointId") String pointId,
                           @Param("x") Double x,

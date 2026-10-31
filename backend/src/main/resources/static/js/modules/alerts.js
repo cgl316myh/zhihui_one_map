@@ -69,6 +69,18 @@ export function buildAlertsFromMock(sources = {}) {
     });
   }
 
+  (slope?.alarms || []).forEach((a) => {
+    if (!a || !a.title) return;
+    pushItem(items, {
+      id: `BDLX-${a.id || a.pointId || items.length}`,
+      level: a.level || (a.color === 'red' ? 'alarm' : a.color === 'blue' ? 'info' : 'warn'),
+      module: a.module || '边坡预警',
+      title: a.title,
+      time: a.time || stamp,
+      pointId: a.pointId || '',
+    });
+  });
+
   (slope?.points || []).forEach((p) => {
     if (p.status === 'warn' || p.status === 'alarm') {
       pushItem(items, {

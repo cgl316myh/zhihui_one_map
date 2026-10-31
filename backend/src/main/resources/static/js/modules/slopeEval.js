@@ -64,6 +64,10 @@ export function slopeMagnitude(point) {
 }
 
 export function computeSlopeStatus(point) {
+  if (point?.online === false) return 'offline';
+  const color = String(point?.vendorColor || '').toLowerCase();
+  if (color === 'red') return 'alarm';
+  if (color === 'orange' || color === 'yellow') return 'warn';
   const mag = slopeMagnitude(point);
   const warn = Number(point?.threshold?.warn);
   const alarm = Number(point?.threshold?.alarm);

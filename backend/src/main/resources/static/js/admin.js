@@ -133,6 +133,7 @@ function formatStatusBrief(st) {
     `MQTT=${mqtt.connected ? '已连接' : '未连接'}${mqtt.error ? ` (${mqtt.error})` : ''}`,
     `HTTP次数=${http.count ?? 0}`,
     `meteo=${c.meteo ?? 0} gnss=${c.gnss ?? 0} rain=${c.rainfall ?? 0}`,
+    `边坡云平台=${st.bdlx?.lastPullAt ? `上次 ${st.bdlx.lastPullAt}` : '未拉取'}${st.bdlx?.error ? ` (${st.bdlx.error})` : ''}`,
   ].join(' · ');
 }
 
@@ -1405,8 +1406,14 @@ function formatMqttTopics(cfg) {
   return single.split(/[,;]+/).map((s) => s.trim()).filter(Boolean).join('\n');
 }
 
+async function loadBdlxCfg() {
+  const r = await apiGet('/api/admin/sensors/bdlx');
+  return r.ok ? r.data || {} : {};
+}
+
 async function renderSensorConnect() {
   const cfg = await loadBridgeCfg();
+  const bdlx = await loadBdlxCfg();
   const mqttOn = cfg.mqtt?.enabled !== false;
   const httpOn = cfg.http?.enabled !== false;
   const tcpOn = Boolean(cfg.tcp?.enabled);
@@ -1422,12 +1429,61 @@ async function renderSensorConnect() {
       <div class="thresh-page-hd">
         <div>
           <h2>接入连接</h2>
-          <p class="muted">仅配置 MQTT / HTTP / TCP 通道（写入 cfg_sensor_bridge）。站点映射请到「站点与策略」。</p>
+          <p class="muted">边坡云平台登录信息、MQTT / HTTP / TCP。站点映射请到「站点与策略」。</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn" id="btn-bridge-save" ${staticDemo ? 'disabled' : ''}>保存连接</button>
         </div>
       </div>
+
+      <section class="thresh-period-card is-active" style="margin-bottom:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>边坡位移云平台（易尔 / BDLX）</h3>
+            <p>登录网址、账号、密码；每小时拉取最新位移 / 雨量 / 预警</p>
+          </div>
+          <label class="map-enable" style="margin:0">
+            <input type="checkbox" name="bdlx-enabled" ${bdlx.enabled !== false ? 'checked' : ''} /> 启用拉取
+          </label>
+        </header>
+        <div class="thresh-metric-list">
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('登录网址', `<input name="bdlx-web" value="${escapeHtml(bdlx.webUrl || 'http://bdlx.jgtop1.com/')}" />`)}
+              ${field('接口基址', `<input name="bdlx-api" value="${escapeHtml(bdlx.apiBase || 'http://wtapi.jgtop1.com')}" />`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('登录用户名', `<input name="bdlx-user" value="${escapeHtml(bdlx.username || '')}" autocomplete="off" />`)}
+              ${field('登录密码', `<input type="text" name="bdlx-pass" value="${escapeHtml(bdlx.password || '')}" autocomplete="off" />`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('Cron', `<input name="bdlx-cron" value="${escapeHtml(bdlx.cron || '0 8 * * * *')}" />`)}
+              ${field('回看小时', `<input type="number" min="24" name="bdlx-lookback" value="${bdlx.lookbackHours ?? 744}" /><i>默认 744=近一个月，去重写入时序</i>`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row" id="bdlx-captcha-row">
+            <div class="thresh-metric-name"><strong>算术验证码</strong><span>填计算结果，不是算式本身</span></div>
+            <div class="thresh-metric-fields" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+              <img id="bdlx-captcha-img" alt="验证码" style="height:36px;background:#fff;border-radius:4px;display:none" />
+              <input id="bdlx-captcha-code" placeholder="如 48 或 -1" style="width:88px" autocomplete="off" />
+              <input type="hidden" id="bdlx-captcha-uuid" />
+              <button type="button" class="btn ghost" id="btn-bdlx-captcha" ${staticDemo ? 'disabled' : ''}>刷新验证码</button>
+              <button type="button" class="btn ghost" id="btn-bdlx-login-pull" ${staticDemo ? 'disabled' : ''}>登录并拉取</button>
+            </div>
+          </article>
+          <p class="muted" style="padding:0 12px 8px">
+            上次成功：${escapeHtml(bdlx.lastSuccessAt || '尚未拉取')}
+            ${bdlx.lastError ? ` · 错误：${escapeHtml(String(bdlx.lastError))}` : ''}
+            · Token 仅内存${bdlx.tokenConfigured ? '（已配置环境变量）' : ''}
+            <button type="button" class="btn ghost" id="btn-bdlx-save" style="margin-left:8px" ${staticDemo ? 'disabled' : ''}>保存云平台账号</button>
+            <button type="button" class="btn ghost" id="btn-bdlx-pull" ${staticDemo ? 'disabled' : ''}>立即拉取</button>
+          </p>
+        </div>
+      </section>
 
       <section class="thresh-period-card is-active" style="margin-bottom:14px">
         <header class="thresh-period-hd"><div><h3>HTTP 接收模式</h3><p>公网直收 或 云端中转拉取</p></div></header>
@@ -1548,6 +1604,90 @@ async function renderSensorConnect() {
     flash('连接配置已保存');
     renderSensorConnect();
   });
+  $('btn-bdlx-save')?.addEventListener('click', async () => {
+    if (isStaticHosting()) {
+      flash('未连接后端', false);
+      return;
+    }
+    const r = await apiPut('/api/admin/sensors/bdlx', {
+      enabled: Boolean(box.querySelector('[name="bdlx-enabled"]')?.checked),
+      webUrl: box.querySelector('[name="bdlx-web"]')?.value || '',
+      apiBase: box.querySelector('[name="bdlx-api"]')?.value || '',
+      username: box.querySelector('[name="bdlx-user"]')?.value || '',
+      password: box.querySelector('[name="bdlx-pass"]')?.value || '',
+      cron: box.querySelector('[name="bdlx-cron"]')?.value || '',
+      lookbackHours: Number(box.querySelector('[name="bdlx-lookback"]')?.value || 744),
+    });
+    if (!r.ok) {
+      flash(r.message || '云平台配置保存失败', false);
+      return;
+    }
+    flash('边坡云平台账号已保存');
+    renderSensorConnect();
+  });
+  $('btn-bdlx-pull')?.addEventListener('click', async () => {
+    const r = await apiPost('/api/admin/sensors/bdlx-pull-now', {});
+    if (showBdlxCaptcha(r)) {
+      flash(r.message || '请填写验证码计算结果后再点「登录并拉取」', false);
+      return;
+    }
+    if (!r.ok) {
+      flash(r.message || '拉取失败', false);
+      return;
+    }
+    flash(`已拉取 点 ${r.data?.points ?? 0} / 告警 ${r.data?.alarms ?? 0}`);
+    renderSensorConnect();
+  });
+  $('btn-bdlx-captcha')?.addEventListener('click', async () => {
+    const r = await apiGet('/api/admin/sensors/bdlx-captcha');
+    if (!r.ok) {
+      flash(r.message || '获取验证码失败', false);
+      return;
+    }
+    showBdlxCaptcha(r);
+  });
+  $('btn-bdlx-login-pull')?.addEventListener('click', async () => {
+    const uuid = $('bdlx-captcha-uuid')?.value || '';
+    const code = ($('bdlx-captcha-code')?.value || '').trim();
+    if (!uuid || !code) {
+      flash('请先刷新验证码并填写计算结果', false);
+      return;
+    }
+    const r = await apiPost('/api/admin/sensors/bdlx-login-pull', { uuid, code });
+    if (showBdlxCaptcha(r)) {
+      flash(r.message || '验证码不正确，已刷新请重填', false);
+      const cap = await apiGet('/api/admin/sensors/bdlx-captcha');
+      if (cap.ok) showBdlxCaptcha(cap);
+      return;
+    }
+    if (!r.ok) {
+      flash(r.message || '登录/拉取失败', false);
+      const cap = await apiGet('/api/admin/sensors/bdlx-captcha');
+      if (cap.ok) showBdlxCaptcha(cap);
+      return;
+    }
+    flash(`已拉取 点 ${r.data?.points ?? 0} / 告警 ${r.data?.alarms ?? 0}`);
+    renderSensorConnect();
+  });
+}
+
+function showBdlxCaptcha(r) {
+  const img = r?.data?.img;
+  const uuid = r?.data?.uuid;
+  if (!img || !uuid) return false;
+  const el = $('bdlx-captcha-img');
+  const hid = $('bdlx-captcha-uuid');
+  const inp = $('bdlx-captcha-code');
+  if (el) {
+    el.src = img;
+    el.style.display = 'block';
+  }
+  if (hid) hid.value = uuid;
+  if (inp) {
+    inp.value = '';
+    inp.focus();
+  }
+  return Boolean(r?.data?.needCaptcha) || r?.code === 409;
 }
 
 async function renderSensorMapping() {

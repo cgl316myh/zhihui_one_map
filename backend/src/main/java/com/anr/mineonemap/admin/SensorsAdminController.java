@@ -7,6 +7,8 @@ import com.anr.mineonemap.domain.CfgEnvStation;
 import com.anr.mineonemap.domain.CfgSensorIngest;
 import com.anr.mineonemap.domain.CfgSlopeDevice;
 import com.anr.mineonemap.ingest.CloudRelayPullScheduler;
+import com.anr.mineonemap.ingest.bdlx.BdlxConfigService;
+import com.anr.mineonemap.ingest.bdlx.BdlxPullService;
 import com.anr.mineonemap.ingest.MqttIngestService;
 import com.anr.mineonemap.ingest.SensorConfigService;
 import com.anr.mineonemap.ingest.SensorLatestStore;
@@ -34,6 +36,8 @@ public class SensorsAdminController {
     private final SensorConfigService configService;
     private final SensorViewService viewService;
     private final CloudRelayPullScheduler cloudRelayPullScheduler;
+    private final BdlxPullService bdlxPullService;
+    private final BdlxConfigService bdlxConfigService;
 
     public SensorsAdminController(AuditService auditService,
                                   AuthUserDetailsService authUserDetailsService, ObjectMapper objectMapper,
@@ -41,7 +45,9 @@ public class SensorsAdminController {
                                   SensorPayloadIngestor ingestor,
                                   SensorConfigService configService,
                                   SensorViewService viewService,
-                                  CloudRelayPullScheduler cloudRelayPullScheduler) {
+                                  CloudRelayPullScheduler cloudRelayPullScheduler,
+                                  BdlxPullService bdlxPullService,
+                                  BdlxConfigService bdlxConfigService) {
         this.auditService = auditService;
         this.authUserDetailsService = authUserDetailsService;
         this.objectMapper = objectMapper;
@@ -50,6 +56,8 @@ public class SensorsAdminController {
         this.configService = configService;
         this.viewService = viewService;
         this.cloudRelayPullScheduler = cloudRelayPullScheduler;
+        this.bdlxPullService = bdlxPullService;
+        this.bdlxConfigService = bdlxConfigService;
     }
 
     /** 兼容：返回合并视图（连接+策略+映射） */
@@ -275,6 +283,89 @@ public class SensorsAdminController {
     @GetMapping("/cloud-health")
     public ApiResponse<JsonNode> cloudHealth() {
         return ApiResponse.ok(cloudRelayPullScheduler.cloudHealth());
+    }
+
+    @GetMapping("/bdlx")
+    public ApiResponse<Map<String, Object>> bdlxCfg() {
+        return ApiResponse.ok(bdlxConfigService.viewForAdmin());
+    }
+
+    @PutMapping("/bdlx")
+    public ApiResponse<Map<String, Object>> putBdlxCfg(@RequestBody JsonNode body) {
+        String actor = authUserDetailsService.currentUser().getUsername();
+        Map<String, Object> saved = bdlxConfigService.saveFromAdmin(body == null
+                ? objectMapper.createObjectNode() : body);
+        auditService.log(actor, "sensors.bdlx_cfg", "cfg_bdlx_pull", "更新边坡云平台登录配置");
+        return ApiResponse.ok(saved);
+    }
+
+    @PostMapping("/bdlx-pull-now")
+    public ApiResponse<Map<String, Object>> bdlxPullNow() {
+        String actor = authUserDetailsService.currentUser().getUsername();
+        try {
+            Map<String, Object> data = bdlxPullService.pullOnce();
+            data.put("status", viewService.buildStatus());
+            data.put("slope", viewService.buildSlope());
+            auditService.log(actor, "sensors.bdlx_pull_now", "bdlx", "立即拉取边坡云平台");
+            return ApiResponse.ok(data);
+        } catch (com.anr.mineonemap.ingest.bdlx.BdlxCaptchaRequired e) {
+            return new ApiResponse<>(409, e.getMessage(), captchaPayload(e));
+        } catch (Exception e) {
+            throw new BizException(502, "边坡云平台拉取失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/bdlx-captcha")
+    public ApiResponse<Map<String, Object>> bdlxCaptcha() {
+        try {
+            JsonNode cap = bdlxPullService.fetchCaptcha();
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("needCaptcha", true);
+            data.put("uuid", cap.path("uuid").asText());
+            data.put("img", captchaImg(cap.path("img").asText()));
+            data.put("hint", "填写图中算式的计算结果，例如 6×8=? 填 48，4-5=? 填 -1");
+            return ApiResponse.ok(data);
+        } catch (Exception e) {
+            throw new BizException(502, "获取验证码失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/bdlx-login-pull")
+    public ApiResponse<Map<String, Object>> bdlxLoginPull(@RequestBody JsonNode body) {
+        String actor = authUserDetailsService.currentUser().getUsername();
+        String uuid = body == null ? "" : body.path("uuid").asText("");
+        String code = body == null ? "" : body.path("code").asText("");
+        try {
+            bdlxPullService.loginWithCode(uuid, code);
+            Map<String, Object> data = bdlxPullService.pullOnce();
+            data.put("status", viewService.buildStatus());
+            data.put("slope", viewService.buildSlope());
+            auditService.log(actor, "sensors.bdlx_login_pull", "bdlx", "验证码登录并拉取");
+            return ApiResponse.ok(data);
+        } catch (com.anr.mineonemap.ingest.bdlx.BdlxCaptchaRequired e) {
+            return new ApiResponse<>(409, e.getMessage(), captchaPayload(e));
+        } catch (Exception e) {
+            throw new BizException(502, "边坡云平台登录/拉取失败：" + e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> captchaPayload(com.anr.mineonemap.ingest.bdlx.BdlxCaptchaRequired e) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("needCaptcha", true);
+        data.put("uuid", e.getUuid());
+        data.put("img", captchaImg(e.getImg()));
+        return data;
+    }
+
+    private static String captchaImg(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String s = raw.trim();
+        if (s.startsWith("data:")) {
+            return s;
+        }
+        return "data:image/png;base64," + s;
     }
 
     private JsonNode defaultTestPayload() {

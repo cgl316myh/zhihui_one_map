@@ -420,8 +420,9 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
     m.bindPopup(
       `<div class="popup-card wide">
         <h4>${p.name}</h4>
-        <p>X ${p.x} / Y ${p.y} / H ${p.h} ${p.unit || 'mm'} · 幅值 ${p.magnitude ?? '—'}${cleared}</p>
-        <p class="popup-th">阈值 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'} · 计算态 ${p.computedStatus || p.status}</p>
+        <p>X ${p.x} / Y ${p.y} / H ${p.h} ${p.unit || 'mm'} · 平面 ${p.plane ?? '—'} · 幅值 ${p.magnitude ?? '—'}${cleared}</p>
+        <p class="popup-th">速率 ${p.planeSpeed ?? '—'} · 加速度 ${p.planeAcc ?? '—'} · 方位 ${p.azimuth ?? '—'}° · 间隔 ${p.intervalHours ?? '—'} h</p>
+        <p class="popup-th">${p.online === false ? '离线' : '在线'} · 维护 ${p.maintainer || '—'} · 阈值 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'} · ${p.computedStatus || p.status}</p>
         <div class="popup-chart-label">短历史（近 12 点）</div>
         <div id="${chartId}" class="popup-chart"></div>
       </div>`,

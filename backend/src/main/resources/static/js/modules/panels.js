@@ -267,6 +267,7 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
           <div><label>区间累计</label><b>${r.cumulativeMm}</b><i>mm</i></div>
           ${yl24}
         </div>
+        ${r.maintainer || r.online === false ? `<div class="metric-loc">${r.online === false ? '离线' : '在线'} · 维护 ${r.maintainer || '—'}</div>` : ''}
         ${r.updatedAt ? `<div class="metric-loc">更新 ${formatTime(r.updatedAt)}</div>` : ''}
       </div>`;
       renderRainTrend(r);
@@ -302,7 +303,9 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
             <span>H <b>${fmtNum(p.h)}</b></span>
             <span class="unit">${p.unit || 'mm'}</span>
           </div>
-          <div class="metric-loc">幅值 ${fmtNum(p.magnitude)} · 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'}</div>
+          <div class="metric-loc">平面 ${fmtNum(p.plane)} · 速率 ${fmtNum(p.planeSpeed)} · 加速度 ${fmtNum(p.planeAcc)} · 方位 ${fmtNum(p.azimuth)}°</div>
+          <div class="metric-loc">投影 ${fmtNum(p.totalProjection)} · 分向 ${fmtNum(p.speedX)}/${fmtNum(p.speedY)}/${fmtNum(p.speedH)} · 间隔 ${fmtNum(p.intervalHours)} h</div>
+          <div class="metric-loc">${p.online === false ? '离线' : '在线'} · 维护 ${p.maintainer || '—'} · 幅值 ${fmtNum(p.magnitude)}${p.vendorColor ? ` · ${p.vendorColor}` : ''}</div>
         </button>`;
           })
           .join('')

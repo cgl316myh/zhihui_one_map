@@ -108,13 +108,27 @@ public class DashboardController {
     }
 
     @GetMapping("/alerts")
-    public ApiResponse<List<Map<String, Object>>> alerts() {
+    public ApiResponse<Map<String, Object>> alerts() {
         JsonNode env = sensorViewService.buildEnvironment();
         JsonNode slope = sensorViewService.buildSlope();
         JsonNode prod = parsePayload(cfgMapper.getProductionPayload());
         List<BizVideoCamera> cameras = videoCameraMapper.listAll();
 
         List<Map<String, Object>> alerts = new ArrayList<>();
+        if (slope.path("alarms").isArray()) {
+            for (JsonNode a : slope.get("alarms")) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", a.path("id").asText());
+                m.put("level", a.path("level").asText("info"));
+                m.put("module", a.path("module").asText("边坡预警"));
+                m.put("title", a.path("title").asText());
+                m.put("time", a.path("time").asText(""));
+                m.put("pointId", a.path("pointId").asText(""));
+                m.put("color", a.path("color").asText(""));
+                m.put("source", "bdlx");
+                alerts.add(m);
+            }
+        }
         collectStatusAlerts(alerts, env, "environment");
         collectStatusAlerts(alerts, slope, "slope");
         collectStatusAlerts(alerts, prod, "production");
@@ -123,7 +137,11 @@ public class DashboardController {
                 alerts.add(alert("video", cam.getId(), "offline", cam.getName() + " 离线"));
             }
         }
-        return ApiResponse.ok(alerts);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("items", alerts);
+        result.put("source", "server-aggregate");
+        result.put("updatedAt", java.time.OffsetDateTime.now().toString());
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/sensors/latest")
@@ -202,7 +220,9 @@ public class DashboardController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("source", source);
         m.put("id", id);
-        m.put("level", level);
+        m.put("level", "offline".equals(level) ? "info" : level);
+        m.put("module", source);
+        m.put("title", message);
         m.put("message", message);
         return m;
     }

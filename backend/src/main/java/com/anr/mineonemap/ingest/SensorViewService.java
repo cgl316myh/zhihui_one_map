@@ -1,5 +1,7 @@
 package com.anr.mineonemap.ingest;
 
+import com.anr.mineonemap.domain.BizBdlxAlarm;
+import com.anr.mineonemap.mapper.SensorSchemaMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -17,11 +19,14 @@ public class SensorViewService {
 
     private final SensorLatestStore store;
     private final SensorConfigService configService;
+    private final SensorSchemaMapper schemaMapper;
     private final ObjectMapper objectMapper;
 
-    public SensorViewService(SensorLatestStore store, SensorConfigService configService, ObjectMapper objectMapper) {
+    public SensorViewService(SensorLatestStore store, SensorConfigService configService,
+                             SensorSchemaMapper schemaMapper, ObjectMapper objectMapper) {
         this.store = store;
         this.configService = configService;
+        this.schemaMapper = schemaMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -141,8 +146,12 @@ public class SensorViewService {
             Object err = rainItem.get("errcode");
             boolean alarm = err != null && !"0".equals(String.valueOf(err)) && !Integer.valueOf(0).equals(err)
                     && !(err instanceof Number && ((Number) err).intValue() == 0);
-            rainfall.put("status", alarm ? "alarm" : "normal");
+            rainfall.put("status", rainStatus(rainItem, alarm));
             rainfall.put("unit", "mm");
+            putBool(rainfall, "online", rainItem.get("online"));
+            if (rainItem.get("maintainer") != null) {
+                rainfall.put("maintainer", String.valueOf(rainItem.get("maintainer")));
+            }
             Object upd = rainItem.get("collectTime") != null ? rainItem.get("collectTime") : rainItem.get("receivedAt");
             rainfall.put("updatedAt", upd == null ? null : String.valueOf(upd));
             rainfall.set("series", objectMapper.createArrayNode());
@@ -152,9 +161,11 @@ public class SensorViewService {
         ObjectNode out = objectMapper.createObjectNode();
         out.put("updatedAt", SensorLatestStore.nowIso());
         out.put("live", live);
-        out.put("source", live ? "spring-ingest-mqtt" : "bridge-no-data");
-        out.put("sourceUrl", "");
-        out.put("projectName", "MQTT/HTTP 传感器接入");
+        String src = live ? (anyBdlx(gnss, rains) ? "bdlx-hourly" : "spring-ingest-mqtt") : "bridge-no-data";
+        out.put("source", src);
+        out.put("sourceUrl", "http://bdlx.jgtop1.com/");
+        out.put("projectName", "安宁隆瑞边坡位移监控");
+        out.set("alarms", vendorAlarmsNode());
         if (rainfall != null) {
             out.set("rainfall", rainfall);
         } else {
@@ -187,6 +198,24 @@ public class SensorViewService {
         cloud.put("error", store.getCloudPullError());
         cloud.put("baseUrl", cfg.path("http").path("cloud").path("baseUrl").asText(""));
         out.set("cloudRelay", cloud);
+        ObjectNode bdlx = objectMapper.createObjectNode();
+        bdlx.put("lastPullAt", store.getBdlxPullLastAt());
+        bdlx.put("error", store.getBdlxPullError());
+        try {
+            Map<String, Object> cursor = schemaMapper.getBdlxPull();
+            if (cursor != null) {
+                Object succ = cursor.get("lastSuccessAt");
+                if (succ != null) {
+                    bdlx.put("lastSuccessAt", String.valueOf(succ));
+                }
+                Object err = cursor.get("lastError");
+                if (err != null) {
+                    bdlx.put("lastError", String.valueOf(err));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        out.set("bdlx", bdlx);
         ObjectNode counts = objectMapper.createObjectNode();
         counts.put("gnss", store.snapshotGnss().size());
         counts.put("rainfall", store.snapshotRainfall().size());
@@ -313,12 +342,99 @@ public class SensorViewService {
         putNum(p, "x", g.get("x"));
         putNum(p, "y", g.get("y"));
         putNum(p, "h", g.get("h"));
+        putNum(p, "plane", g.get("plane"));
+        putNum(p, "planeSpeed", g.get("planeSpeed"));
+        putNum(p, "planeAcc", g.get("planeAcc"));
+        putNum(p, "azimuth", g.get("azimuth"));
+        putNum(p, "totalProjection", g.get("totalProjection"));
+        putNum(p, "speedX", g.get("speedX"));
+        putNum(p, "speedY", g.get("speedY"));
+        putNum(p, "speedH", g.get("speedH"));
+        putNum(p, "projectionSpeed", g.get("projectionSpeed"));
+        putNum(p, "projectionAcc", g.get("projectionAcc"));
+        putNum(p, "intervalHours", g.get("intervalHours"));
+        putNum(p, "lng", g.get("lon") != null ? g.get("lon") : g.get("lng"));
+        putNum(p, "lat", g.get("lat"));
         p.put("unit", "mm");
-        p.put("status", "normal");
+        String vendorColor = g.get("vendorColor") == null ? "" : String.valueOf(g.get("vendorColor"));
+        if (!vendorColor.isBlank()) {
+            p.put("vendorColor", vendorColor);
+        }
+        if (g.get("alarmText") != null) {
+            p.put("alarmText", String.valueOf(g.get("alarmText")));
+        }
+        if (g.get("maintainer") != null) {
+            p.put("maintainer", String.valueOf(g.get("maintainer")));
+        }
+        putBool(p, "online", g.get("online"));
+        p.put("status", slopeStatus(g, vendorColor));
+        ObjectNode th = objectMapper.createObjectNode();
+        th.put("warn", 20);
+        th.put("alarm", 80);
+        p.set("threshold", th);
         Object upd = g.get("collectTime") != null ? g.get("collectTime") : g.get("receivedAt");
         p.put("updatedAt", upd == null ? null : String.valueOf(upd));
         p.set("series", objectMapper.createArrayNode());
         return p;
+    }
+
+    private ArrayNode vendorAlarmsNode() {
+        ArrayNode arr = objectMapper.createArrayNode();
+        try {
+            List<BizBdlxAlarm> rows = schemaMapper.listBdlxAlarms();
+            if (rows == null) {
+                return arr;
+            }
+            for (BizBdlxAlarm a : rows) {
+                ObjectNode n = objectMapper.createObjectNode();
+                n.put("id", a.getVendorId() == null ? null : String.valueOf(a.getVendorId()));
+                n.put("pointId", a.getPointId());
+                n.put("deviceSn", a.getDeviceSn());
+                n.put("color", a.getColor());
+                n.put("level", a.getLevel() == null ? "info" : a.getLevel());
+                n.put("module", "边坡预警");
+                n.put("title", a.getTitle() == null || a.getTitle().isBlank() ? a.getContent() : a.getTitle());
+                n.put("time", a.getAlarmTime() == null ? null : a.getAlarmTime().toString());
+                n.put("status", a.getStatus());
+                arr.add(n);
+            }
+        } catch (Exception ignored) {
+        }
+        return arr;
+    }
+
+    private static boolean anyBdlx(Map<String, Map<String, Object>> gnss, Map<String, Map<String, Object>> rains) {
+        for (Map<String, Object> m : gnss.values()) {
+            if ("bdlx-pull".equals(String.valueOf(m.get("source")))) {
+                return true;
+            }
+        }
+        for (Map<String, Object> m : rains.values()) {
+            if ("bdlx-pull".equals(String.valueOf(m.get("source")))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String slopeStatus(Map<String, Object> g, String vendorColor) {
+        if (Boolean.FALSE.equals(g.get("online"))) {
+            return "offline";
+        }
+        if ("red".equals(vendorColor)) {
+            return "alarm";
+        }
+        if ("orange".equals(vendorColor) || "yellow".equals(vendorColor)) {
+            return "warn";
+        }
+        return "normal";
+    }
+
+    private static String rainStatus(Map<String, Object> rainItem, boolean alarm) {
+        if (Boolean.FALSE.equals(rainItem.get("online"))) {
+            return "offline";
+        }
+        return alarm ? "alarm" : "normal";
     }
 
     private void putMetricPair(ObjectNode metrics, ObjectNode units, Map<String, Object> src, String key, String unit) {
@@ -350,6 +466,12 @@ public class SensorViewService {
     private static boolean isNight() {
         int hour = OffsetDateTime.now(SensorLatestStore.TZ8).getHour();
         return hour >= 22 || hour < 6;
+    }
+
+    private static void putBool(ObjectNode node, String field, Object value) {
+        if (value instanceof Boolean b) {
+            node.put(field, b);
+        }
     }
 
     private static void putNum(ObjectNode node, String field, Object value) {
