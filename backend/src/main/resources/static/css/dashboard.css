@@ -708,6 +708,10 @@ button.slope-item.active {
 .alert-item.level-warn { border-left: 2px solid var(--warn); }
 .alert-item.level-alarm { border-left: 2px solid var(--alarm); }
 .alert-item.level-info { border-left: 2px solid var(--cyan); }
+.alert-item.level-red, .slope-item.color-red { border-left-color: #ff4d4f; }
+.alert-item.level-orange { border-left-color: #ff7a45; }
+.alert-item.level-yellow { border-left-color: #fadb14; }
+.alert-item.level-blue { border-left-color: #1677ff; }
 
 .slope-item {
   width: 100%;

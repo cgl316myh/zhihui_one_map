@@ -73,6 +73,24 @@ public class SensorWarmupRunner implements ApplicationRunner {
                     item.put("x", row.getXMm());
                     item.put("y", row.getYMm());
                     item.put("h", row.getHMm());
+                    item.put("plane", row.getPlaneMm());
+                    item.put("planeSpeed", row.getPlaneSpeed());
+                    item.put("planeAcc", row.getPlaneAcc());
+                    item.put("azimuth", row.getAzimuth());
+                    item.put("totalProjection", row.getTotalProjection());
+                    item.put("speedX", row.getSpeedX());
+                    item.put("speedY", row.getSpeedY());
+                    item.put("speedH", row.getSpeedH());
+                    item.put("projectionSpeed", row.getProjectionSpeed());
+                    item.put("projectionAcc", row.getProjectionAcc());
+                    item.put("intervalHours", row.getIntervalHours());
+                    item.put("lon", row.getLng());
+                    item.put("lat", row.getLat());
+                    item.put("online", row.getOnline());
+                    item.put("maintainer", row.getMaintainer());
+                    item.put("vendorPointId", row.getVendorPointId());
+                    item.put("vendorColor", row.getVendorColor());
+                    item.put("alarmText", row.getAlarmText());
                     item.put("deviceType", row.getDeviceType());
                     item.put("source", row.getSource());
                     item.put("topic", row.getTopic());
@@ -95,6 +113,11 @@ public class SensorWarmupRunner implements ApplicationRunner {
                     item.put("rainDay", row.getRainDay());
                     item.put("errcode", row.getErrcode());
                     item.put("devChx", row.getDevChx());
+                    item.put("lon", row.getLng());
+                    item.put("lat", row.getLat());
+                    item.put("online", row.getOnline());
+                    item.put("maintainer", row.getMaintainer());
+                    item.put("vendorPointId", row.getVendorPointId());
                     item.put("source", row.getSource());
                     item.put("topic", row.getTopic());
                     if (row.getCollectTime() != null) {

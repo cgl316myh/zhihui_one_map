@@ -30,6 +30,8 @@ public class SensorLatestStore {
     private final AtomicLong httpCount = new AtomicLong();
     private volatile String cloudPullLastAt;
     private volatile String cloudPullError;
+    private volatile String bdlxPullLastAt;
+    private volatile String bdlxPullError;
 
     public static String nowIso() {
         return OffsetDateTime.now(TZ8).toString();
@@ -90,6 +92,9 @@ public class SensorLatestStore {
         updatedAt = nowIso();
         if ("mqtt".equals(source)) {
             mqttLastMessageAt = updatedAt;
+        }
+        if ("bdlx-pull".equals(source)) {
+            bdlxPullLastAt = updatedAt;
         }
     }
 
@@ -163,5 +168,21 @@ public class SensorLatestStore {
 
     public String getCloudPullError() {
         return cloudPullError;
+    }
+
+    public void setBdlxPullLastAt(String at) {
+        this.bdlxPullLastAt = at;
+    }
+
+    public void setBdlxPullError(String error) {
+        this.bdlxPullError = error;
+    }
+
+    public String getBdlxPullLastAt() {
+        return bdlxPullLastAt;
+    }
+
+    public String getBdlxPullError() {
+        return bdlxPullError;
     }
 }

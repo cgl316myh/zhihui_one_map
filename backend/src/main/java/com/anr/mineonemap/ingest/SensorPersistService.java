@@ -90,18 +90,45 @@ public class SensorPersistService {
             s.setXMm(asDouble(item.get("x")));
             s.setYMm(asDouble(item.get("y")));
             s.setHMm(asDouble(item.get("h")));
+            s.setPlaneMm(asDouble(item.get("plane")));
+            s.setPlaneSpeed(asDouble(item.get("planeSpeed")));
+            s.setPlaneAcc(asDouble(item.get("planeAcc")));
+            s.setAzimuth(asDouble(item.get("azimuth")));
+            s.setTotalProjection(asDouble(item.get("totalProjection")));
+            s.setSpeedX(asDouble(item.get("speedX")));
+            s.setSpeedY(asDouble(item.get("speedY")));
+            s.setSpeedH(asDouble(item.get("speedH")));
+            s.setProjectionSpeed(asDouble(item.get("projectionSpeed")));
+            s.setProjectionAcc(asDouble(item.get("projectionAcc")));
+            s.setIntervalHours(asDouble(item.get("intervalHours")));
+            s.setLng(asDouble(item.get("lon") != null ? item.get("lon") : item.get("lng")));
+            s.setLat(asDouble(item.get("lat")));
+            s.setOnline(asBoolean(item.get("online")));
+            s.setMaintainer(asString(item.get("maintainer")));
+            s.setVendorPointId(asString(item.get("vendorPointId")));
+            s.setVendorColor(asString(item.get("vendorColor")));
+            s.setAlarmText(asString(item.get("alarmText")));
             s.setDeviceType(item.get("deviceType") == null ? "2" : String.valueOf(item.get("deviceType")));
             s.setSource(source == null ? "mqtt" : source);
             s.setTopic(topic);
             s.setReceivedAt(receivedAt);
             schemaMapper.upsertSlopeLatest(s);
-            writeSlopeSample(sensorKey, item, receivedAt);
+            OffsetDateTime sampleAt = s.getCollectTime() != null ? s.getCollectTime() : receivedAt;
+            writeSlopeSample(sensorKey, item, sampleAt);
+            if (s.getCollectTime() != null) {
+                tsMapper.insertSlopeHist(s);
+            }
         } else if ("rainfall".equals(category)) {
             BizRainLatest r = new BizRainLatest();
             r.setDeviceSn(sensorKey);
             r.setCollectTime(parseFlexibleTime(item.get("collectTime")));
             r.setRainHour(asDouble(item.get("rainHour")));
             r.setRainDay(asDouble(item.get("rainDay")));
+            r.setLng(asDouble(item.get("lon") != null ? item.get("lon") : item.get("lng")));
+            r.setLat(asDouble(item.get("lat")));
+            r.setOnline(asBoolean(item.get("online")));
+            r.setMaintainer(asString(item.get("maintainer")));
+            r.setVendorPointId(asString(item.get("vendorPointId")));
             Object err = item.get("errcode");
             if (err instanceof Number) {
                 r.setErrcode(((Number) err).intValue());
@@ -111,7 +138,12 @@ public class SensorPersistService {
             r.setTopic(topic);
             r.setReceivedAt(receivedAt);
             schemaMapper.upsertRainLatest(r);
-            writeRainAsEnv(sensorKey, item, receivedAt);
+            OffsetDateTime rainAt = r.getCollectTime() != null ? r.getCollectTime() : receivedAt;
+            writeRainAsEnv(sensorKey, item, rainAt);
+            if (r.getCollectTime() != null) {
+                tsMapper.insertRainHist(sensorKey, r.getCollectTime(), r.getRainHour(), r.getRainDay(),
+                        source == null ? "mqtt" : source);
+            }
         }
     }
 
@@ -139,8 +171,8 @@ public class SensorPersistService {
         Double x = asDouble(item.get("x"));
         Double y = asDouble(item.get("y"));
         Double h = asDouble(item.get("h"));
-        Double mag = null;
-        if (x != null && y != null) {
+        Double mag = asDouble(item.get("plane"));
+        if (mag == null && x != null && y != null) {
             mag = Math.sqrt(x * x + y * y);
         }
         tsMapper.insertSlopeSample(key, x, y, h, mag, at);
@@ -150,7 +182,39 @@ public class SensorPersistService {
         if (v instanceof Number) {
             return ((Number) v).doubleValue();
         }
+        if (v instanceof String s && !s.isBlank()) {
+            try {
+                return Double.parseDouble(s.trim());
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
         return null;
+    }
+
+    private static Boolean asBoolean(Object v) {
+        if (v instanceof Boolean b) {
+            return b;
+        }
+        if (v == null) {
+            return null;
+        }
+        String s = String.valueOf(v).trim().toLowerCase();
+        if ("true".equals(s) || "1".equals(s)) {
+            return true;
+        }
+        if ("false".equals(s) || "0".equals(s)) {
+            return false;
+        }
+        return null;
+    }
+
+    private static String asString(Object v) {
+        if (v == null) {
+            return null;
+        }
+        String s = String.valueOf(v).trim();
+        return s.isEmpty() || "null".equalsIgnoreCase(s) ? null : s;
     }
 
     private static OffsetDateTime parseReceivedAt(Object v) {

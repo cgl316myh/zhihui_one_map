@@ -9,6 +9,11 @@ public class BizRainLatest {
     private Double rainDay;
     private Integer errcode;
     private String devChx;
+    private Double lng;
+    private Double lat;
+    private Boolean online;
+    private String maintainer;
+    private String vendorPointId;
     private String source;
     private String topic;
     private OffsetDateTime receivedAt;
@@ -26,6 +31,16 @@ public class BizRainLatest {
     public void setErrcode(Integer errcode) { this.errcode = errcode; }
     public String getDevChx() { return devChx; }
     public void setDevChx(String devChx) { this.devChx = devChx; }
+    public Double getLng() { return lng; }
+    public void setLng(Double lng) { this.lng = lng; }
+    public Double getLat() { return lat; }
+    public void setLat(Double lat) { this.lat = lat; }
+    public Boolean getOnline() { return online; }
+    public void setOnline(Boolean online) { this.online = online; }
+    public String getMaintainer() { return maintainer; }
+    public void setMaintainer(String maintainer) { this.maintainer = maintainer; }
+    public String getVendorPointId() { return vendorPointId; }
+    public void setVendorPointId(String vendorPointId) { this.vendorPointId = vendorPointId; }
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
     public String getTopic() { return topic; }

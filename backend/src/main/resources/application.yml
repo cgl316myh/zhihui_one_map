@@ -41,6 +41,15 @@ mine:
   # 已内置 MQTT/HTTP 接入；BRIDGE_BASE_URL 仅兼容旧文档，运行时不再代理 Python 网关
   bridge:
     base-url: ${BRIDGE_BASE_URL:http://127.0.0.1:5173}
+  bdlx:
+    enabled: ${BDLX_ENABLED:true}
+    web-url: ${BDLX_WEB_URL:http://bdlx.jgtop1.com/}
+    api-base: ${BDLX_API_BASE:http://wtapi.jgtop1.com}
+    username: ${BDLX_USERNAME:}
+    password: ${BDLX_PASSWORD:}
+    token: ${BDLX_TOKEN:}
+    cron: ${BDLX_CRON:0 8 * * * *}
+    lookback-hours: ${BDLX_LOOKBACK_HOURS:744}
   cors:
     allowed-origins:
       - http://127.0.0.1:5174
