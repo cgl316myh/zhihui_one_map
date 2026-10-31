@@ -1411,9 +1411,14 @@ async function loadBdlxCfg() {
   return r.ok ? r.data || {} : {};
 }
 
+async function loadFtEnvCfg() {
+  const r = await apiGet('/api/admin/sensors/ftenv');
+  return r.ok ? r.data || {} : {};
+}
+
 async function renderSensorConnect() {
   const cfg = await loadBridgeCfg();
-  const bdlx = await loadBdlxCfg();
+  const [bdlx, ftenv] = await Promise.all([loadBdlxCfg(), loadFtEnvCfg()]);
   const mqttOn = cfg.mqtt?.enabled !== false;
   const httpOn = cfg.http?.enabled !== false;
   const tcpOn = Boolean(cfg.tcp?.enabled);
@@ -1481,6 +1486,45 @@ async function renderSensorConnect() {
             · Token 仅内存${bdlx.tokenConfigured ? '（已配置环境变量）' : ''}
             <button type="button" class="btn ghost" id="btn-bdlx-save" style="margin-left:8px" ${staticDemo ? 'disabled' : ''}>保存云平台账号</button>
             <button type="button" class="btn ghost" id="btn-bdlx-pull" ${staticDemo ? 'disabled' : ''}>立即拉取</button>
+          </p>
+        </div>
+      </section>
+
+      <section class="thresh-period-card is-active" style="margin-bottom:14px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>环境数据云平台（ThingsBoard）</h3>
+            <p>登录网址、账号、密码；每小时拉取温湿度 / 噪声 / PM / 气压 / 风速风向</p>
+          </div>
+          <label class="map-enable" style="margin:0">
+            <input type="checkbox" name="ftenv-enabled" ${ftenv.enabled !== false ? 'checked' : ''} /> 启用拉取
+          </label>
+        </header>
+        <div class="thresh-metric-list">
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('登录网址', `<input name="ftenv-web" value="${escapeHtml(ftenv.webUrl || 'http://182.40.193.119:9010/#/logon')}" />`)}
+              ${field('接口基址', `<input name="ftenv-api" value="${escapeHtml(ftenv.apiBase || 'http://182.40.193.119:8081')}" />`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('登录用户名', `<input name="ftenv-user" value="${escapeHtml(ftenv.username || '')}" autocomplete="off" />`)}
+              ${field('登录密码', `<input type="text" name="ftenv-pass" value="${escapeHtml(ftenv.password || '')}" autocomplete="off" />`)}
+            </div>
+          </article>
+          <article class="thresh-metric map-global-row">
+            <div class="thresh-metric-fields map-fields-2">
+              ${field('Cron', `<input name="ftenv-cron" value="${escapeHtml(ftenv.cron || '0 18 * * * *')}" />`)}
+              ${field('回看小时', `<input type="number" min="2" name="ftenv-lookback" value="${ftenv.lookbackHours ?? 168}" /><i>首次按小时均值回填时序，之后从上次成功起增量</i>`)}
+            </div>
+          </article>
+          <p class="muted" style="padding:0 12px 8px">
+            上次成功：${escapeHtml(ftenv.lastSuccessAt || '尚未拉取')}
+            ${ftenv.lastError ? ` · 错误：${escapeHtml(String(ftenv.lastError))}` : ''}
+            · Token 仅内存
+            <button type="button" class="btn ghost" id="btn-ftenv-save" style="margin-left:8px" ${staticDemo ? 'disabled' : ''}>保存云平台账号</button>
+            <button type="button" class="btn ghost" id="btn-ftenv-pull" ${staticDemo ? 'disabled' : ''}>立即拉取</button>
           </p>
         </div>
       </section>
@@ -1623,6 +1667,36 @@ async function renderSensorConnect() {
       return;
     }
     flash('边坡云平台账号已保存');
+    renderSensorConnect();
+  });
+  $('btn-ftenv-save')?.addEventListener('click', async () => {
+    if (isStaticHosting()) {
+      flash('未连接后端', false);
+      return;
+    }
+    const r = await apiPut('/api/admin/sensors/ftenv', {
+      enabled: Boolean(box.querySelector('[name="ftenv-enabled"]')?.checked),
+      webUrl: box.querySelector('[name="ftenv-web"]')?.value || '',
+      apiBase: box.querySelector('[name="ftenv-api"]')?.value || '',
+      username: box.querySelector('[name="ftenv-user"]')?.value || '',
+      password: box.querySelector('[name="ftenv-pass"]')?.value || '',
+      cron: box.querySelector('[name="ftenv-cron"]')?.value || '',
+      lookbackHours: Number(box.querySelector('[name="ftenv-lookback"]')?.value || 168),
+    });
+    if (!r.ok) {
+      flash(r.message || '环境云配置保存失败', false);
+      return;
+    }
+    flash('环境云平台账号已保存');
+    renderSensorConnect();
+  });
+  $('btn-ftenv-pull')?.addEventListener('click', async () => {
+    const r = await apiPost('/api/admin/sensors/ftenv-pull-now', {});
+    if (!r.ok) {
+      flash(r.message || '拉取失败', false);
+      return;
+    }
+    flash(`已拉取 站 ${r.data?.points ?? 0} / 时序 ${r.data?.samples ?? 0}`);
     renderSensorConnect();
   });
   $('btn-bdlx-pull')?.addEventListener('click', async () => {

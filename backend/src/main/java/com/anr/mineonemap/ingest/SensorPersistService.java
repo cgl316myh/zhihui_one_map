@@ -75,6 +75,8 @@ public class SensorPersistService {
             env.setTsp(asDouble(item.get("dust")));
             env.setPressure(asDouble(item.get("pressure")));
             env.setWindSpeed(asDouble(item.get("windSpeed")));
+            env.setWindDirection(asDouble(item.get("windDirection")));
+            env.setRssi(asDouble(item.get("rssi")));
             env.setRainfall(asDouble(item.get("rainfall")));
             env.setLongitude(asDouble(item.get("lng")));
             env.setLatitude(asDouble(item.get("lat")));
@@ -148,7 +150,8 @@ public class SensorPersistService {
     }
 
     private void writeEnvSamples(String key, Map<String, Object> item, OffsetDateTime at) {
-        for (String metric : new String[]{"temperature", "humidity", "noise", "pm25", "pm10", "dust"}) {
+        for (String metric : new String[]{"temperature", "humidity", "noise", "pm25", "pm10", "dust",
+                "pressure", "windSpeed", "windDirection", "rssi"}) {
             Object v = item.get(metric);
             if (v instanceof Number) {
                 tsMapper.insertEnvSample(key, metric, ((Number) v).doubleValue(), at);

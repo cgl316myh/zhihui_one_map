@@ -148,8 +148,21 @@ async function ensureLoaded(layerMeta) {
   const gj = L.geoJSON(data, {
     pane: paneName,
     style: (feat) => styleFor(layerMeta, feat),
-    pointToLayer: (feat, latlng) =>
-      L.circleMarker(latlng, { ...styleFor(layerMeta, feat), pane: paneName }),
+    filter: (feat) => {
+      const g = feat?.geometry;
+      if (!g) return false;
+      if (g.type === 'Point') {
+        const c = g.coordinates;
+        return Array.isArray(c) && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1]));
+      }
+      return true;
+    },
+    pointToLayer: (feat, latlng) => {
+      if (!latlng || !Number.isFinite(latlng.lat) || !Number.isFinite(latlng.lng)) {
+        return null;
+      }
+      return L.circleMarker(latlng, { ...styleFor(layerMeta, feat), pane: paneName });
+    },
     onEachFeature: (feat, lyr) => {
       const props = feat.properties || {};
       lyr.bindPopup(popupHtml(layerMeta, props));
@@ -167,7 +180,11 @@ async function ensureLoaded(layerMeta) {
       }
     },
   });
-  gj.addTo(group);
+  try {
+    gj.addTo(group);
+  } catch (err) {
+    console.warn('[cad] skip layer with invalid geometry', id, err);
+  }
 
   if (id === FIT_LAYER_ID) {
     fitToKuangjieLine(gj);
