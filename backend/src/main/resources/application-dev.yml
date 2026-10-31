@@ -15,3 +15,11 @@ logging:
   level:
     com.anr.mineonemap: DEBUG
     org.springframework.security: INFO
+
+mine:
+  bdlx:
+    username: ${BDLX_USERNAME:15925118626}
+    password: ${BDLX_PASSWORD:228218494@qq.com}
+  ftenv:
+    username: ${FTENV_USERNAME:26072811ZXZ@ft.com}
+    password: ${FTENV_PASSWORD:123456}

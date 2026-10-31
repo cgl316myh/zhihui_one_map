@@ -15,11 +15,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -33,9 +36,6 @@ public class VideoConfigService {
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
 
-    private volatile String cachedAccessToken;
-    private volatile Instant cachedTokenExpireAt;
-
     public VideoConfigService(CfgMapper cfgMapper, BizVideoCameraMapper videoCameraMapper, ObjectMapper objectMapper) {
         this.cfgMapper = cfgMapper;
         this.videoCameraMapper = videoCameraMapper;
@@ -48,7 +48,7 @@ public class VideoConfigService {
 
     public JsonNode getPlatformConfigForAdmin() {
         ObjectNode copy = getPlatformConfig().deepCopy();
-        maskSecret(copy.path("ezviz"), "appSecret");
+        maskSecret(copy.path("hikvision"), "password");
         maskSecret(copy.path("zlm"), "secret");
         return copy;
     }
@@ -62,14 +62,12 @@ public class VideoConfigService {
             merged.put("enabled", body.get("enabled").asBoolean());
         }
         if (body.has("provider")) {
-            merged.put("provider", body.get("provider").asText("ezviz"));
+            merged.put("provider", body.get("provider").asText("hikvision"));
         }
-        mergeObjectNode(merged, "ezviz", body.path("ezviz"), "appSecret");
+        mergeObjectNode(merged, "hikvision", body.path("hikvision"), "password");
         mergeObjectNode(merged, "hls", body.path("hls"), null);
         mergeObjectNode(merged, "zlm", body.path("zlm"), "secret");
         savePlatform(merged, actor);
-        cachedAccessToken = null;
-        cachedTokenExpireAt = null;
     }
 
     public List<BizVideoCamera> listCameras() {
@@ -82,6 +80,7 @@ public class VideoConfigService {
             videoCameraMapper.deleteById(cam.getId());
         }
         int i = 0;
+        JsonNode platform = getPlatformConfig();
         for (BizVideoCamera cam : cameras) {
             if (cam.getId() == null || cam.getId().isBlank()) {
                 continue;
@@ -96,6 +95,7 @@ public class VideoConfigService {
                 cam.setOnline(false);
             }
             videoCameraMapper.upsert(cam);
+            registerZlmProxy(platform, cam);
         }
         log.info("video cameras updated by {} count={}", actor, cameras.size());
     }
@@ -103,37 +103,16 @@ public class VideoConfigService {
     public Map<String, Object> buildDashboardVideoPayload() {
         JsonNode platform = getPlatformConfig();
         boolean enabled = platform.path("enabled").asBoolean(false);
-        String provider = platform.path("provider").asText("ezviz");
+        String provider = platform.path("provider").asText("hikvision");
 
         Map<String, Object> player = new LinkedHashMap<>();
         player.put("enabled", enabled);
         player.put("provider", provider);
-        player.put("template", platform.path("ezviz").path("playerTemplate").asText("simple"));
-        player.put("staticPath", platform.path("ezviz").path("staticPath").asText(""));
-        player.put("domain", platform.path("ezviz").path("domain").asText("https://open.ys7.com"));
-
-        if ("hls".equalsIgnoreCase(provider)) {
-            player.put("fallbackUrl", platform.path("hls").path("fallbackUrl").asText(""));
-        }
-
-        String accessToken = null;
-        String tokenError = null;
-        if (enabled && "ezviz".equalsIgnoreCase(provider)) {
-            try {
-                accessToken = resolveEzvizAccessToken(platform);
-            } catch (Exception e) {
-                tokenError = e.getMessage();
-                log.warn("ezviz token unavailable: {}", e.getMessage());
-            }
-        }
-        player.put("accessToken", accessToken);
-        if (tokenError != null) {
-            player.put("tokenError", tokenError);
-        }
+        player.put("nvrHost", platform.path("hikvision").path("host").asText(""));
 
         List<Map<String, Object>> cameras = new ArrayList<>();
         for (BizVideoCamera cam : videoCameraMapper.listAll()) {
-            cameras.add(toDashboardCamera(cam, platform, provider, accessToken));
+            cameras.add(toDashboardCamera(cam, platform, provider));
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -144,17 +123,35 @@ public class VideoConfigService {
         return result;
     }
 
-    public Map<String, Object> testEzvizToken() {
+    public Map<String, Object> testHikvision() {
         JsonNode platform = getPlatformConfig();
-        String token = fetchEzvizToken(platform);
+        JsonNode hik = platform.path("hikvision");
+        String host = hik.path("host").asText("").trim();
+        int port = hik.path("rtspPort").asInt(554);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ok", true);
-        result.put("accessTokenPreview", previewToken(token));
-        result.put("expireAt", cachedTokenExpireAt != null ? cachedTokenExpireAt.toString() : null);
+        result.put("host", host);
+        result.put("rtspPort", port);
+        result.put("rtspPortOpen", host.isBlank() ? false : tcpOpen(host, port, 3000));
+        result.put("examplePath", "/Streaming/Channels/101");
+        String zlm = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
+        result.put("zlmBase", zlm);
+        if (!zlm.isBlank()) {
+            try {
+                String body = restClient.get()
+                        .uri(zlm + "/index/api/getServerConfig?secret="
+                                + URLEncoder.encode(platform.path("zlm").path("secret").asText(""), StandardCharsets.UTF_8))
+                        .retrieve()
+                        .body(String.class);
+                result.put("zlmOk", body != null && body.contains("\"code\":0"));
+            } catch (Exception e) {
+                result.put("zlmOk", false);
+                result.put("zlmError", e.getMessage());
+            }
+        }
         return result;
     }
 
-    private Map<String, Object> toDashboardCamera(BizVideoCamera cam, JsonNode platform, String provider, String accessToken) {
+    private Map<String, Object> toDashboardCamera(BizVideoCamera cam, JsonNode platform, String provider) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", cam.getId());
         item.put("name", cam.getName());
@@ -168,12 +165,16 @@ public class VideoConfigService {
         boolean camEnabled = !extra.has("enabled") || extra.path("enabled").asBoolean(true);
         item.put("enabled", camEnabled);
 
-        String deviceSerial = extra.path("deviceSerial").asText("").trim().toUpperCase(Locale.ROOT);
         int channelNo = extra.path("channelNo").asInt(1);
         String streamType = extra.path("streamType").asText("sub");
-        item.put("deviceSerial", deviceSerial);
+        String host = extra.path("host").asText("").trim();
+        if (host.isBlank()) {
+            host = platform.path("hikvision").path("host").asText("");
+        }
+        item.put("host", host);
         item.put("channelNo", channelNo);
         item.put("streamType", streamType);
+        item.put("hikChannel", hikChannelId(channelNo, streamType));
 
         String camProvider = extra.path("provider").asText("").trim();
         if (camProvider.isBlank()) {
@@ -181,74 +182,119 @@ public class VideoConfigService {
         }
         item.put("provider", camProvider);
 
-        if ("ezviz".equalsIgnoreCase(camProvider) && !deviceSerial.isBlank()) {
-            item.put("playUrl", "ezopen://open.ys7.com/" + deviceSerial + "/" + channelNo + ".live");
-            item.put("hd", "main".equalsIgnoreCase(streamType));
-        }
         String hlsUrl = extra.path("hlsUrl").asText("").trim();
-        if (!hlsUrl.isBlank()) {
-            item.put("hlsUrl", hlsUrl);
-        } else if ("hls".equalsIgnoreCase(camProvider)) {
-            item.put("hlsUrl", platform.path("hls").path("fallbackUrl").asText(""));
-        }
         String zlmStream = extra.path("zlmStream").asText("").trim();
-        if (!zlmStream.isBlank()) {
-            String base = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
-            if (!base.isBlank()) {
-                item.put("hlsUrl", base + "/live/" + zlmStream + "/hls.m3u8");
+        if (zlmStream.isBlank()) {
+            zlmStream = streamName(cam.getId());
+        }
+        item.put("zlmStream", zlmStream);
+        if (hlsUrl.isBlank()) {
+            String pub = trimSlash(platform.path("zlm").path("publicBaseUrl").asText(""));
+            if (pub.isBlank()) {
+                pub = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
+            }
+            if (!pub.isBlank() && !zlmStream.isBlank()) {
+                hlsUrl = pub + "/live/" + zlmStream + "/hls.m3u8";
             }
         }
-        if (accessToken != null) {
-            item.put("canPlay", camEnabled && Boolean.TRUE.equals(cam.getOnline()));
+        if (!hlsUrl.isBlank()) {
+            item.put("hlsUrl", hlsUrl);
         }
+        item.put("canPlay", camEnabled && !hlsUrl.isBlank());
         return item;
     }
 
-    private String resolveEzvizAccessToken(JsonNode platform) {
-        if (cachedAccessToken != null && cachedTokenExpireAt != null
-                && Instant.now().isBefore(cachedTokenExpireAt.minusSeconds(120))) {
-            return cachedAccessToken;
+    private void registerZlmProxy(JsonNode platform, BizVideoCamera cam) {
+        String rtsp = buildRtspUrl(platform, cam);
+        if (rtsp.isBlank()) {
+            return;
         }
-        return fetchEzvizToken(platform);
+        JsonNode extra = parseExtra(cam.getExtra());
+        String stream = extra.path("zlmStream").asText("").trim();
+        if (stream.isBlank()) {
+            stream = streamName(cam.getId());
+        }
+        String base = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
+        if (base.isBlank() || stream.isBlank()) {
+            return;
+        }
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        String secret = platform.path("zlm").path("secret").asText("");
+        if (!secret.isBlank()) {
+            form.add("secret", secret);
+        }
+        form.add("vhost", "__defaultVhost__");
+        form.add("app", "live");
+        form.add("stream", stream);
+        form.add("url", rtsp);
+        form.add("enable_hls", "1");
+        form.add("enable_audio", "0");
+        form.add("rtp_type", "0");
+        try {
+            String body = restClient.post()
+                    .uri(base + "/index/api/addStreamProxy")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
+            log.info("ZLM proxy {} -> {} : {}", stream, maskRtsp(rtsp), body);
+        } catch (Exception e) {
+            log.warn("ZLM addStreamProxy {} failed: {}", stream, e.getMessage());
+        }
     }
 
-    private String fetchEzvizToken(JsonNode platform) {
-        String appKey = platform.path("ezviz").path("appKey").asText("").trim();
-        String appSecret = platform.path("ezviz").path("appSecret").asText("").trim();
-        if (appKey.isBlank() || appSecret.isBlank()) {
-            throw new BizException("萤石 AppKey / AppSecret 未配置");
+    private String buildRtspUrl(JsonNode platform, BizVideoCamera cam) {
+        JsonNode extra = parseExtra(cam.getExtra());
+        String override = extra.path("rtspUrl").asText("").trim();
+        if (!override.isBlank()) {
+            return override;
         }
-        String domain = trimSlash(platform.path("ezviz").path("domain").asText("https://open.ys7.com"));
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("appKey", appKey);
-        form.add("appSecret", appSecret);
-        String body = restClient.post()
-                .uri(domain + "/api/lapp/token/get")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(String.class);
-        try {
-            JsonNode json = objectMapper.readTree(body == null ? "{}" : body);
-            String code = json.path("code").asText("");
-            if (!"200".equals(code)) {
-                throw new BizException("[" + code + "] " + json.path("msg").asText("获取 Token 失败"));
-            }
-            String token = json.path("data").path("accessToken").asText("");
-            if (token.isBlank()) {
-                throw new BizException("萤石返回空 Token");
-            }
-            long expireMs = json.path("data").path("expireTime").asLong(0);
-            cachedAccessToken = token;
-            cachedTokenExpireAt = expireMs > 0
-                    ? Instant.ofEpochMilli(expireMs)
-                    : Instant.now().plusSeconds(6 * 24 * 3600L);
-            return token;
-        } catch (BizException e) {
-            throw e;
+        JsonNode hik = platform.path("hikvision");
+        String host = extra.path("host").asText("").trim();
+        if (host.isBlank()) {
+            host = hik.path("host").asText("").trim();
+        }
+        String user = hik.path("username").asText("").trim();
+        String pass = hik.path("password").asText("");
+        int port = extra.path("rtspPort").asInt(0);
+        if (port <= 0) {
+            port = hik.path("rtspPort").asInt(554);
+        }
+        if (host.isBlank() || user.isBlank()) {
+            return "";
+        }
+        int channelNo = extra.path("channelNo").asInt(1);
+        String streamType = extra.path("streamType").asText("sub");
+        int hikCh = hikChannelId(channelNo, streamType);
+        String encUser = URLEncoder.encode(user, StandardCharsets.UTF_8);
+        String encPass = URLEncoder.encode(pass, StandardCharsets.UTF_8);
+        return "rtsp://" + encUser + ":" + encPass + "@" + host + ":" + port + "/Streaming/Channels/" + hikCh;
+    }
+
+    private static int hikChannelId(int channelNo, String streamType) {
+        int ch = Math.max(1, channelNo);
+        int stream = "main".equalsIgnoreCase(streamType) ? 1 : 2;
+        return ch * 100 + stream;
+    }
+
+    private static String streamName(String camId) {
+        if (camId == null || camId.isBlank()) {
+            return "";
+        }
+        return camId.trim().toLowerCase().replace('_', '-');
+    }
+
+    private static boolean tcpOpen(String host, int port, int timeoutMs) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeoutMs);
+            return true;
         } catch (Exception e) {
-            throw new BizException("解析萤石 Token 响应失败: " + e.getMessage());
+            return false;
         }
+    }
+
+    private static String maskRtsp(String rtsp) {
+        return rtsp.replaceAll("://([^:]+):([^@]+)@", "://$1:****@");
     }
 
     private void savePlatform(JsonNode node, String actor) {
@@ -307,13 +353,6 @@ public class VideoConfigService {
 
     private boolean isMaskedSecret(String value) {
         return value == null || value.isBlank() || SECRET_MASK.equals(value) || value.contains("****");
-    }
-
-    private String previewToken(String token) {
-        if (token == null || token.length() < 12) {
-            return "—";
-        }
-        return token.substring(0, 8) + "…" + token.substring(token.length() - 4);
     }
 
     private String trimSlash(String url) {

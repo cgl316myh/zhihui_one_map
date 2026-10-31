@@ -146,9 +146,6 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedVideoCameras() {
-        if (videoCameraMapper.listAll() != null && !videoCameraMapper.listAll().isEmpty()) {
-            return;
-        }
         Resource resource = resourceLoader.getResource("classpath:seed/video.json");
         if (!resource.exists()) {
             return;

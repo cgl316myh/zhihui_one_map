@@ -55,7 +55,8 @@ export async function apiRequest(path, opts = {}) {
     cache: 'no-store',
   });
 
-  if (res.status === 401 && auth && opts.retry !== false) {
+  // 未带有效 JWT 时 Spring 可能回 401，也可能回匿名用户的 403
+  if ((res.status === 401 || res.status === 403) && auth && opts.retry !== false) {
     const ok = await refreshAccessToken();
     if (ok) {
       return apiRequest(path, { ...opts, retry: false });

@@ -225,6 +225,15 @@ export function initMap(center, zoom) {
   const el = document.getElementById('map');
   if (!el) return null;
 
+  if (typeof L !== 'undefined' && L.Icon?.Default) {
+    L.Icon.Default.mergeOptions({
+      imagePath: 'vendor/leaflet/images/',
+      iconUrl: 'marker-icon.png',
+      iconRetinaUrl: 'marker-icon-2x.png',
+      shadowUrl: 'marker-shadow.png',
+    });
+  }
+
   map = L.map('map', {
     zoomControl: false,
     attributionControl: false,

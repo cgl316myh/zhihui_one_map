@@ -48,7 +48,7 @@ import {
   getReserves,
 } from './modules/reserves.js';
 import { initRoleFromSession, roleLabel, isAdmin } from './modules/role.js';
-import { requireSession, logout, getSession } from './auth/session.js';
+import { requireSession, logout, getSession, clearSession } from './auth/session.js';
 import { appendAuditLog } from './auth/audit.js';
 import { initUserStore } from './auth/users.js';
 import { initDictStore } from './auth/dict.js';
@@ -293,9 +293,9 @@ async function boot() {
     mockData = await loadDashboardBundle();
   } catch (err) {
     console.error(err);
-    document.getElementById('boot-error').hidden = false;
-    document.getElementById('boot-error').textContent =
-      '数据加载失败，请确认 Spring Boot 已启动且已登录（数据仅来自数据库/接口，无演示回退）。';
+    clearSession();
+    const next = encodeURIComponent(location.pathname + location.search + location.hash);
+    location.replace(`./login.html?redirect=${next}`);
     return;
   }
 

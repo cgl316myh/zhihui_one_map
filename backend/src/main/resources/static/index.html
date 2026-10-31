@@ -204,7 +204,7 @@
         }
         console.error(err);
       });
-    // 等待 Leaflet / ECharts 就绪后再启动，避免 CDN 偶发延迟
+    // 等待本地 Leaflet / ECharts 就绪后再启动
     if (typeof L !== 'undefined' && typeof echarts !== 'undefined') {
       boot();
     } else {

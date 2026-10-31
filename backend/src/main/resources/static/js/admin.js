@@ -2155,22 +2155,21 @@ function parseCamExtra(raw) {
 }
 
 function readVideoPlatformForm() {
-  const provider = $('vp-provider')?.value || 'ezviz';
   return {
     enabled: Boolean($('vp-enabled')?.checked),
-    provider,
-    ezviz: {
-      appKey: $('vp-app-key')?.value?.trim() || '',
-      appSecret: $('vp-app-secret')?.value?.trim() || '',
-      domain: $('vp-domain')?.value?.trim() || 'https://open.ys7.com',
-      playerTemplate: $('vp-template')?.value || 'simple',
-      staticPath: $('vp-static-path')?.value?.trim() || '',
+    provider: $('vp-provider')?.value || 'hikvision',
+    hikvision: {
+      host: $('vp-hik-host')?.value?.trim() || '',
+      rtspPort: Number($('vp-hik-port')?.value || 554),
+      username: $('vp-hik-user')?.value?.trim() || 'admin',
+      password: $('vp-hik-pass')?.value || '',
     },
     hls: {
       fallbackUrl: $('vp-hls-url')?.value?.trim() || '',
     },
     zlm: {
       baseUrl: $('vp-zlm-base')?.value?.trim() || '',
+      publicBaseUrl: $('vp-zlm-public')?.value?.trim() || '',
       secret: $('vp-zlm-secret')?.value?.trim() || '',
     },
   };
@@ -2180,13 +2179,13 @@ function readVideoCamerasForm() {
   const rows = document.querySelectorAll('#video-cam-body tr[data-cam-row]');
   return Array.from(rows).map((tr, idx) => {
     const extra = {
-      deviceSerial: (tr.querySelector('[data-f="deviceSerial"]')?.value || '').trim().toUpperCase(),
+      host: (tr.querySelector('[data-f="host"]')?.value || '').trim(),
       channelNo: Number(tr.querySelector('[data-f="channelNo"]')?.value || 1),
       streamType: tr.querySelector('[data-f="streamType"]')?.value || 'sub',
       enabled: tr.querySelector('[data-f="enabled"]')?.checked !== false,
       hlsUrl: (tr.querySelector('[data-f="hlsUrl"]')?.value || '').trim(),
       zlmStream: (tr.querySelector('[data-f="zlmStream"]')?.value || '').trim(),
-      provider: (tr.querySelector('[data-f="provider"]')?.value || '').trim(),
+      provider: 'hikvision',
     };
     return {
       id: (tr.querySelector('[data-f="id"]')?.value || '').trim(),
@@ -2209,11 +2208,11 @@ function cameraRowHtml(cam, idx) {
     <td><input data-f="lng" type="number" step="0.00001" value="${cam.lng ?? ''}" style="width:6.5rem" /></td>
     <td><input data-f="lat" type="number" step="0.00001" value="${cam.lat ?? ''}" style="width:6.5rem" /></td>
     <td><input data-f="scene" value="${escapeHtml(cam.scene || '')}" /></td>
-    <td><input data-f="deviceSerial" value="${escapeHtml(ex.deviceSerial || '')}" placeholder="C12345678" /></td>
-    <td><input data-f="channelNo" type="number" min="1" value="${ex.channelNo ?? 1}" style="width:3.5rem" /></td>
-    <td><select data-f="streamType"><option value="sub" ${ex.streamType !== 'main' ? 'selected' : ''}>子码流</option><option value="main" ${ex.streamType === 'main' ? 'selected' : ''}>主码流</option></select></td>
-    <td><input data-f="hlsUrl" value="${escapeHtml(ex.hlsUrl || '')}" placeholder="HLS 模式填 m3u8" style="min-width:8rem" /></td>
-    <td><input data-f="zlmStream" value="${escapeHtml(ex.zlmStream || '')}" placeholder="ZLM 流名" style="width:5.5rem" /></td>
+    <td><input data-f="host" value="${escapeHtml(ex.host || '')}" placeholder="192.168.2.x" style="width:7.5rem" /></td>
+    <td><input data-f="channelNo" type="number" min="1" value="${ex.channelNo ?? 1}" style="width:3.5rem" title="IPC 一般为 1，子码流 102" /></td>
+    <td><select data-f="streamType"><option value="sub" ${ex.streamType !== 'main' ? 'selected' : ''}>子码流(x02)</option><option value="main" ${ex.streamType === 'main' ? 'selected' : ''}>主码流(x01)</option></select></td>
+    <td><input data-f="zlmStream" value="${escapeHtml(ex.zlmStream || cam.id || '')}" placeholder="cam-01" style="width:6rem" /></td>
+    <td><input data-f="hlsUrl" value="${escapeHtml(ex.hlsUrl || '')}" placeholder="可空，自动拼 ZLM HLS" style="min-width:8rem" /></td>
     <td><label><input data-f="online" type="checkbox" ${cam.online ? 'checked' : ''} />在线</label></td>
     <td><label><input data-f="enabled" type="checkbox" ${ex.enabled !== false ? 'checked' : ''} />启用</label></td>
     <td><button type="button" class="btn ghost btn-del-cam">删</button></td>
@@ -2222,61 +2221,53 @@ function cameraRowHtml(cam, idx) {
 
 function renderVideoAdmin() {
   const cfg = fileVideoPlatform || {};
-  const ez = cfg.ezviz || {};
+  const hik = cfg.hikvision || {};
   const hls = cfg.hls || {};
   const zlm = cfg.zlm || {};
   const cams = fileVideoCameras?.length ? fileVideoCameras : [];
   const box = $('panel-video');
   box.innerHTML = `
     <h2>视频监控</h2>
-    <p class="muted">平台参数写入 <code>cfg_video_platform</code>；摄像头列表写入 <code>biz_video_camera</code>。AppSecret 仅存数据库，大屏通过 <code>/api/video</code> 获取短时 Token，不下发密钥。</p>
+    <p class="muted">每路摄像头一个内网 IP，共用账号密码。浏览器不能直接播 RTSP；本机看大屏时 ZLM 用 <code>http://127.0.0.1:8080</code>，对外地址可先空着。</p>
 
     <div class="card-block">
-      <header class="thresh-period-hd"><div><h3>平台接入</h3><p>海康/萤石云、HLS、ZLMediaKit 等全局参数</p></div></header>
+      <header class="thresh-period-hd"><div><h3>海康账号</h3><p>各 IPC 共用；具体 IP 填在下表每一行</p></div></header>
       <div class="form-grid" style="display:grid;grid-template-columns:140px 1fr;gap:8px 12px;max-width:720px">
         <label><input id="vp-enabled" type="checkbox" ${cfg.enabled ? 'checked' : ''} /> 启用视频接入</label><span></span>
-        <label for="vp-provider">接入方式</label>
-        <select id="vp-provider">
-          <option value="ezviz" ${cfg.provider === 'ezviz' ? 'selected' : ''}>萤石云 EZOPEN（海康 IPC/NVR 上云）</option>
-          <option value="hls" ${cfg.provider === 'hls' ? 'selected' : ''}>HLS 直链（流媒体服务器输出）</option>
-          <option value="zlm" ${cfg.provider === 'zlm' ? 'selected' : ''}>ZLMediaKit（按流名拼 HLS）</option>
-        </select>
-        <label for="vp-app-key">AppKey</label>
-        <input id="vp-app-key" value="${escapeHtml(ez.appKey || '')}" placeholder="萤石开放平台应用 AppKey" />
-        <label for="vp-app-secret">AppSecret</label>
-        <input id="vp-app-secret" type="password" value="${escapeHtml(ez.appSecret || '')}" placeholder="${ez.appSecretSet ? '已保存，留空不改' : '应用密钥'}" autocomplete="new-password" />
-        <label for="vp-domain">开放平台域名</label>
-        <input id="vp-domain" value="${escapeHtml(ez.domain || 'https://open.ys7.com')}" />
-        <label for="vp-template">播放器模板</label>
-        <select id="vp-template">
-          <option value="simple" ${ez.playerTemplate === 'simple' ? 'selected' : ''}>simple 极简</option>
-          <option value="pcLive" ${ez.playerTemplate === 'pcLive' ? 'selected' : ''}>pcLive 预览栏</option>
-        </select>
-        <label for="vp-static-path">SDK 静态资源路径</label>
-        <input id="vp-static-path" value="${escapeHtml(ez.staticPath || '')}" placeholder="可选，默认走萤石 CDN" />
-        <label for="vp-hls-url">HLS 演示/回退地址</label>
-        <input id="vp-hls-url" value="${escapeHtml(hls.fallbackUrl || '')}" placeholder="provider=hls 时默认播放地址" />
-        <label for="vp-zlm-base">ZLM 服务地址</label>
-        <input id="vp-zlm-base" value="${escapeHtml(zlm.baseUrl || '')}" placeholder="http://192.168.1.100:8080" />
+        <input type="hidden" id="vp-provider" value="hikvision" />
+        <label for="vp-hik-host">默认 IP（可空）</label>
+        <input id="vp-hik-host" value="${escapeHtml(hik.host || '')}" placeholder="行内未填 IP 时才用" />
+        <label for="vp-hik-port">RTSP 端口</label>
+        <input id="vp-hik-port" type="number" value="${hik.rtspPort || 554}" />
+        <label for="vp-hik-user">用户名</label>
+        <input id="vp-hik-user" value="${escapeHtml(hik.username || 'admin')}" autocomplete="username" />
+        <label for="vp-hik-pass">密码</label>
+        <input id="vp-hik-pass" type="password" value="${escapeHtml(hik.password || '')}" placeholder="${hik.passwordSet ? '已保存，留空不改' : '摄像头密码'}" autocomplete="new-password" />
+        <label for="vp-zlm-base">ZLM 本机地址</label>
+        <input id="vp-zlm-base" value="${escapeHtml(zlm.baseUrl || 'http://127.0.0.1:8080')}" placeholder="http://127.0.0.1:8080" />
+        <label for="vp-zlm-public">ZLM 对外地址</label>
+        <input id="vp-zlm-public" value="${escapeHtml(zlm.publicBaseUrl || '')}" placeholder="先空着；仅本机看大屏用上面 127.0.0.1" />
         <label for="vp-zlm-secret">ZLM API 密钥</label>
         <input id="vp-zlm-secret" type="password" value="${escapeHtml(zlm.secret || '')}" placeholder="${zlm.secretSet ? '已保存' : '可选'}" />
+        <label for="vp-hls-url">HLS 回退地址</label>
+        <input id="vp-hls-url" value="${escapeHtml(hls.fallbackUrl || '')}" placeholder="可空" />
       </div>
       <div class="controls" style="margin-top:12px">
         <button type="button" class="btn" id="btn-video-platform-save">保存平台配置</button>
-        <button type="button" class="btn ghost" id="btn-video-test-token">测试萤石 Token</button>
+        <button type="button" class="btn ghost" id="btn-video-test-token">测试 NVR / ZLM</button>
       </div>
     </div>
 
     <div class="card-block" style="margin-top:16px">
       <header class="thresh-period-hd">
-        <div><h3>摄像头点位</h3><p>萤石填序列号+通道；HLS 填 m3u8；ZLM 填流名（如 cam-gate）。详见 <a href="./docs/视频监控接入配置指南.html" target="_blank">配置指南</a></p></div>
+        <div><h3>摄像头点位</h3><p>通道 1 子码流对应 <code>.../Channels/102</code>。保存后会向 ZLM 登记 RTSP 拉流。</p></div>
         <button type="button" class="btn ghost" id="btn-video-cam-add">添加摄像头</button>
       </header>
       <div class="table-wrap">
         <table class="data video-cam-table">
           <thead><tr>
             <th>ID</th><th>名称</th><th>经度</th><th>纬度</th><th>场景</th>
-            <th>序列号</th><th>通道</th><th>码流</th><th>HLS 地址</th><th>ZLM 流名</th><th>状态</th><th>启用</th><th></th>
+            <th>摄像头 IP</th><th>通道</th><th>码流</th><th>ZLM 流名</th><th>HLS 覆盖</th><th>状态</th><th>启用</th><th></th>
           </tr></thead>
           <tbody id="video-cam-body">${cams.map(cameraRowHtml).join('')}</tbody>
         </table>
@@ -2284,7 +2275,6 @@ function renderVideoAdmin() {
       <div class="controls" style="margin-top:12px">
         <button type="button" class="btn" id="btn-video-cams-save">保存摄像头列表</button>
       </div>
-      <p class="thresh-foot muted">大屏读取 <code>GET /api/video</code>：返回 <code>player.accessToken</code>（萤石）与各点位 <code>playUrl</code> / <code>hlsUrl</code>。</p>
     </div>`;
 
   $('btn-video-platform-save')?.addEventListener('click', async () => {
@@ -2302,9 +2292,10 @@ function renderVideoAdmin() {
   $('btn-video-test-token')?.addEventListener('click', async () => {
     const r = await apiPost('/api/admin/video/test-token', {});
     if (r.ok) {
-      flash(`Token 正常：${r.data.accessTokenPreview || 'ok'}`, true);
+      const d = r.data || {};
+      flash(`NVR ${d.host || ''} :554 ${d.rtspPortOpen ? '通' : '不通'} · ZLM ${d.zlmOk ? '正常' : (d.zlmError || '未检测')}`, d.rtspPortOpen);
     } else {
-      flash(r.message || 'Token 测试失败', false);
+      flash(r.message || '测试失败', false);
     }
   });
 
@@ -2325,9 +2316,9 @@ function renderVideoAdmin() {
     const n = tbody.querySelectorAll('tr').length + 1;
     tbody.insertAdjacentHTML('beforeend', cameraRowHtml({
       id: `CAM-${String(n).padStart(2, '0')}`,
-      name: `${n}# 新点位`,
-      online: false,
-      extra: { channelNo: 1, streamType: 'sub', enabled: true },
+      name: `${n}# 摄像头`,
+      online: true,
+      extra: { host: '', channelNo: 1, streamType: 'sub', enabled: true },
     }, n));
     bindVideoCamRowDeletes();
   });

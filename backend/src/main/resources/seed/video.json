@@ -1,43 +1,16 @@
 {
-  "updatedAt": "2026-07-29T21:00:00+08:00",
+  "updatedAt": "2026-10-31T22:10:00+08:00",
   "cameras": [
-    {
-      "id": "CAM-01",
-      "name": "1# 大门",
-      "lng": 102.44495,
-      "lat": 24.78525,
-      "online": false,
-      "scene": "矿区出入口",
-      "extra": {
-        "deviceSerial": "",
-        "channelNo": 1,
-        "streamType": "sub",
-        "enabled": true
-      }
-    },
-    {
-      "id": "CAM-02",
-      "name": "2# 破碎",
-      "lng": 102.44638,
-      "lat": 24.78512,
-      "online": true,
-      "scene": "破碎车间作业面"
-    },
-    {
-      "id": "CAM-03",
-      "name": "3# 筛分",
-      "lng": 102.44688,
-      "lat": 24.78572,
-      "online": true,
-      "scene": "筛分平台与皮带廊"
-    },
-    {
-      "id": "CAM-04",
-      "name": "4# 边坡",
-      "lng": 102.44592,
-      "lat": 24.78705,
-      "online": false,
-      "scene": "边坡监测区周边"
-    }
+    {"id":"CAM-01","name":"摄像头 122","lng":102.44495,"lat":24.78525,"online":true,"scene":"192.168.2.122","extra":{"host":"192.168.2.122","channelNo":1,"streamType":"sub","zlmStream":"cam-01","enabled":true}},
+    {"id":"CAM-02","name":"摄像头 107","lng":102.44638,"lat":24.78512,"online":true,"scene":"192.168.2.107","extra":{"host":"192.168.2.107","channelNo":1,"streamType":"sub","zlmStream":"cam-02","enabled":true}},
+    {"id":"CAM-03","name":"摄像头 118","lng":102.44688,"lat":24.78572,"online":true,"scene":"192.168.2.118","extra":{"host":"192.168.2.118","channelNo":1,"streamType":"sub","zlmStream":"cam-03","enabled":true}},
+    {"id":"CAM-04","name":"摄像头 128","lng":102.44592,"lat":24.78705,"online":true,"scene":"192.168.2.128","extra":{"host":"192.168.2.128","channelNo":1,"streamType":"sub","zlmStream":"cam-04","enabled":true}},
+    {"id":"CAM-05","name":"摄像头 130","lng":102.44520,"lat":24.78640,"online":true,"scene":"192.168.2.130","extra":{"host":"192.168.2.130","channelNo":1,"streamType":"sub","zlmStream":"cam-05","enabled":true}},
+    {"id":"CAM-06","name":"摄像头 119","lng":102.44610,"lat":24.78650,"online":true,"scene":"192.168.2.119","extra":{"host":"192.168.2.119","channelNo":1,"streamType":"sub","zlmStream":"cam-06","enabled":true}},
+    {"id":"CAM-07","name":"摄像头 104","lng":102.44480,"lat":24.78600,"online":true,"scene":"192.168.2.104","extra":{"host":"192.168.2.104","channelNo":1,"streamType":"sub","zlmStream":"cam-07","enabled":true}},
+    {"id":"CAM-08","name":"摄像头 110","lng":102.44550,"lat":24.78560,"online":true,"scene":"192.168.2.110","extra":{"host":"192.168.2.110","channelNo":1,"streamType":"sub","zlmStream":"cam-08","enabled":true}},
+    {"id":"CAM-09","name":"摄像头 112","lng":102.44660,"lat":24.78620,"online":true,"scene":"192.168.2.112","extra":{"host":"192.168.2.112","channelNo":1,"streamType":"sub","zlmStream":"cam-09","enabled":true}},
+    {"id":"CAM-10","name":"摄像头 120","lng":102.44500,"lat":24.78720,"online":true,"scene":"192.168.2.120","extra":{"host":"192.168.2.120","channelNo":1,"streamType":"sub","zlmStream":"cam-10","enabled":true}},
+    {"id":"CAM-11","name":"摄像头 142","lng":102.44710,"lat":24.78590,"online":true,"scene":"192.168.2.142","extra":{"host":"192.168.2.142","channelNo":1,"streamType":"sub","zlmStream":"cam-11","enabled":true}}
   ]
 }

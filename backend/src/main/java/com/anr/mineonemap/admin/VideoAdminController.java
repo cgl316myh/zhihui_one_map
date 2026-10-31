@@ -85,8 +85,8 @@ public class VideoAdminController {
     @PostMapping("/test-token")
     public ApiResponse<Map<String, Object>> testToken() {
         String actor = authUserDetailsService.currentUser().getUsername();
-        Map<String, Object> result = videoConfigService.testEzvizToken();
-        auditService.log(actor, "video.test_token", "cfg_video_platform", "测试萤石 Token");
+        Map<String, Object> result = videoConfigService.testHikvision();
+        auditService.log(actor, "video.test_hikvision", "cfg_video_platform", "测试海康 NVR / ZLM");
         return ApiResponse.ok(result);
     }
 }
