@@ -50,6 +50,18 @@ public interface SensorSchemaMapper {
             """)
     int insertStation(CfgEnvStation row);
 
+    @Insert("""
+            INSERT INTO cfg_env_station (id, name, location, lng, lat, client_id, enabled, sort_no, updated_at)
+            VALUES (#{id}, #{name}, #{location}, #{lng}, #{lat}, #{clientId},
+                    COALESCE(#{enabled}, TRUE), COALESCE(#{sortNo}, 0), NOW())
+            ON CONFLICT (id) DO UPDATE SET
+              name = EXCLUDED.name,
+              client_id = COALESCE(EXCLUDED.client_id, cfg_env_station.client_id),
+              location = COALESCE(EXCLUDED.location, cfg_env_station.location),
+              updated_at = NOW()
+            """)
+    int upsertEnvStationIgnore(CfgEnvStation row);
+
     @Select("""
             SELECT device_sn AS deviceSn, external_id AS externalId, name,
                    device_kind AS deviceKind, enabled, sort_no AS sortNo, updated_at AS updatedAt
@@ -323,6 +335,38 @@ public interface SensorSchemaMapper {
             WHERE id = 1
             """)
     int updateBdlxLoginCfg(CfgBdlx row);
+
+    @Update("""
+            UPDATE cfg_ft_env_pull SET
+              last_success_at = COALESCE(#{at}, last_success_at), last_error = #{error},
+              points_updated = #{points}, samples_upserted = #{samples}, updated_at = NOW()
+            WHERE id = 1
+            """)
+    int updateFtEnvPull(@Param("at") OffsetDateTime at, @Param("error") String error,
+                        @Param("points") int points, @Param("samples") int samples);
+
+    @Select("""
+            SELECT last_success_at AS lastSuccessAt, last_error AS lastError,
+                   points_updated AS pointsUpdated, samples_upserted AS samplesUpserted,
+                   updated_at AS updatedAt, enabled, web_url AS webUrl, api_base AS apiBase,
+                   username, password, cron, lookback_hours AS lookbackHours
+            FROM cfg_ft_env_pull WHERE id = 1
+            """)
+    java.util.Map<String, Object> getFtEnvPull();
+
+    @Update("""
+            UPDATE cfg_ft_env_pull SET
+              enabled = COALESCE(#{enabled}, enabled),
+              web_url = #{webUrl},
+              api_base = #{apiBase},
+              username = #{username},
+              password = #{password},
+              cron = #{cron},
+              lookback_hours = #{lookbackHours},
+              updated_at = NOW()
+            WHERE id = 1
+            """)
+    int updateFtEnvLoginCfg(CfgFtEnv row);
 
     @Select("SELECT COUNT(*) FROM biz_env_latest")
     int countEnvLatest();

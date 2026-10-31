@@ -9,6 +9,8 @@ import com.anr.mineonemap.domain.CfgSlopeDevice;
 import com.anr.mineonemap.ingest.CloudRelayPullScheduler;
 import com.anr.mineonemap.ingest.bdlx.BdlxConfigService;
 import com.anr.mineonemap.ingest.bdlx.BdlxPullService;
+import com.anr.mineonemap.ingest.ftenv.FtEnvConfigService;
+import com.anr.mineonemap.ingest.ftenv.FtEnvPullService;
 import com.anr.mineonemap.ingest.MqttIngestService;
 import com.anr.mineonemap.ingest.SensorConfigService;
 import com.anr.mineonemap.ingest.SensorLatestStore;
@@ -38,6 +40,8 @@ public class SensorsAdminController {
     private final CloudRelayPullScheduler cloudRelayPullScheduler;
     private final BdlxPullService bdlxPullService;
     private final BdlxConfigService bdlxConfigService;
+    private final FtEnvPullService ftEnvPullService;
+    private final FtEnvConfigService ftEnvConfigService;
 
     public SensorsAdminController(AuditService auditService,
                                   AuthUserDetailsService authUserDetailsService, ObjectMapper objectMapper,
@@ -47,7 +51,9 @@ public class SensorsAdminController {
                                   SensorViewService viewService,
                                   CloudRelayPullScheduler cloudRelayPullScheduler,
                                   BdlxPullService bdlxPullService,
-                                  BdlxConfigService bdlxConfigService) {
+                                  BdlxConfigService bdlxConfigService,
+                                  FtEnvPullService ftEnvPullService,
+                                  FtEnvConfigService ftEnvConfigService) {
         this.auditService = auditService;
         this.authUserDetailsService = authUserDetailsService;
         this.objectMapper = objectMapper;
@@ -58,6 +64,8 @@ public class SensorsAdminController {
         this.cloudRelayPullScheduler = cloudRelayPullScheduler;
         this.bdlxPullService = bdlxPullService;
         this.bdlxConfigService = bdlxConfigService;
+        this.ftEnvPullService = ftEnvPullService;
+        this.ftEnvConfigService = ftEnvConfigService;
     }
 
     /** 兼容：返回合并视图（连接+策略+映射） */
@@ -346,6 +354,34 @@ public class SensorsAdminController {
             return new ApiResponse<>(409, e.getMessage(), captchaPayload(e));
         } catch (Exception e) {
             throw new BizException(502, "边坡云平台登录/拉取失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/ftenv")
+    public ApiResponse<Map<String, Object>> ftEnvCfg() {
+        return ApiResponse.ok(ftEnvConfigService.viewForAdmin());
+    }
+
+    @PutMapping("/ftenv")
+    public ApiResponse<Map<String, Object>> putFtEnvCfg(@RequestBody JsonNode body) {
+        String actor = authUserDetailsService.currentUser().getUsername();
+        Map<String, Object> saved = ftEnvConfigService.saveFromAdmin(body == null
+                ? objectMapper.createObjectNode() : body);
+        auditService.log(actor, "sensors.ftenv_cfg", "cfg_ft_env_pull", "更新环境云平台登录配置");
+        return ApiResponse.ok(saved);
+    }
+
+    @PostMapping("/ftenv-pull-now")
+    public ApiResponse<Map<String, Object>> ftEnvPullNow() {
+        String actor = authUserDetailsService.currentUser().getUsername();
+        try {
+            Map<String, Object> data = ftEnvPullService.pullOnce();
+            data.put("status", viewService.buildStatus());
+            data.put("environment", viewService.buildEnvironment());
+            auditService.log(actor, "sensors.ftenv_pull_now", "ftenv", "立即拉取环境云平台");
+            return ApiResponse.ok(data);
+        } catch (Exception e) {
+            throw new BizException(502, "环境云平台拉取失败：" + e.getMessage());
         }
     }
 

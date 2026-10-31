@@ -206,11 +206,13 @@ public class SensorPayloadIngestor {
         putMetric(item, "humidity", pick(payload, "ambientHumidity", "ambientHum",
                 "ambientHumidity1", "Airhumidity", "amh", "tambientHumidity"));
         putMetric(item, "noise", pick(payload, "noise", "noise1", "noi"));
-        putMetric(item, "pm25", pick(payload, "PM2.5", "p25", "pm25"));
+        putMetric(item, "pm25", pick(payload, "PM2.5", "PM25", "p25", "pm25"));
         putMetric(item, "pm10", pick(payload, "PM10", "p10", "pm10"));
         putMetric(item, "dust", pick(payload, "TSP", "dust"));
         putMetric(item, "pressure", pick(payload, "pressure", "pre"));
-        putMetric(item, "windSpeed", pick(payload, "windSpeed", "wsp"));
+        putMetric(item, "windSpeed", pick(payload, "windSpeed", "wsp", "WS"));
+        putMetric(item, "windDirection", pick(payload, "windDirection", "wdir"));
+        putMetric(item, "rssi", pick(payload, "RSSI", "rssi"));
         putMetric(item, "rainfall", pick(payload, "rainfall", "raininess"));
         putMetric(item, "lng", pick(payload, "longitude"));
         putMetric(item, "lat", pick(payload, "latitude"));

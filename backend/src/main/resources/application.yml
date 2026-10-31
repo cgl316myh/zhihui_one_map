@@ -50,6 +50,15 @@ mine:
     token: ${BDLX_TOKEN:}
     cron: ${BDLX_CRON:0 8 * * * *}
     lookback-hours: ${BDLX_LOOKBACK_HOURS:744}
+  ftenv:
+    enabled: ${FTENV_ENABLED:true}
+    web-url: ${FTENV_WEB_URL:http://182.40.193.119:9010/#/logon}
+    api-base: ${FTENV_API_BASE:http://182.40.193.119:8081}
+    username: ${FTENV_USERNAME:}
+    password: ${FTENV_PASSWORD:}
+    token: ${FTENV_TOKEN:}
+    cron: ${FTENV_CRON:0 18 * * * *}
+    lookback-hours: ${FTENV_LOOKBACK_HOURS:168}
   cors:
     allowed-origins:
       - http://127.0.0.1:5174

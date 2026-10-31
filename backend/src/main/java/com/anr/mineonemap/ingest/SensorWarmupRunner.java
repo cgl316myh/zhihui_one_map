@@ -50,6 +50,8 @@ public class SensorWarmupRunner implements ApplicationRunner {
                     item.put("dust", row.getTsp());
                     item.put("pressure", row.getPressure());
                     item.put("windSpeed", row.getWindSpeed());
+                    item.put("windDirection", row.getWindDirection());
+                    item.put("rssi", row.getRssi());
                     item.put("rainfall", row.getRainfall());
                     item.put("lng", row.getLongitude());
                     item.put("lat", row.getLatitude());

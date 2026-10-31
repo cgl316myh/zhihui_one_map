@@ -294,15 +294,35 @@ function envStatusLabel(status) {
   return ENV_STATUS_LABELS[status] || status;
 }
 
+/** 无经纬度的点不交给 Leaflet，避免 project(null.lat) 打断页面 */
+function validMapLatLng(lat, lng) {
+  const y = Number(lat);
+  const x = Number(lng);
+  return Number.isFinite(y) && Number.isFinite(x) && Math.abs(y) <= 90 && Math.abs(x) <= 180;
+}
+
+function addMarkerSafe(group, lat, lng, options) {
+  if (!group || !validMapLatLng(lat, lng)) {
+    return null;
+  }
+  try {
+    return L.marker([Number(lat), Number(lng)], options).addTo(group);
+  } catch (err) {
+    console.warn('[map] skip invalid marker', lat, lng, err);
+    return null;
+  }
+}
+
 export function renderEnvironmentMarkers(env) {
   const g = layerGroups.environment;
   if (!g) return;
   g.clearLayers();
   markers.environment.clear();
   (env.points || []).forEach((p) => {
-    const m = L.marker([p.lat, p.lng], {
+    const m = addMarkerSafe(g, p.lat, p.lng, {
       icon: pulseIcon(statusColor(p.status), '环'),
-    }).addTo(g);
+    });
+    if (!m) return;
     const metrics = Object.entries(p.metrics || {})
       .map(
         ([k, v]) =>
@@ -339,9 +359,10 @@ export function renderVideoMarkers(video) {
   g.clearLayers();
   markers.video.clear();
   (video.cameras || []).forEach((c) => {
-    const m = L.marker([c.lat, c.lng], {
+    const m = addMarkerSafe(g, c.lat, c.lng, {
       icon: pulseIcon(c.online ? '#3dd6ff' : '#ff4d4f', '视'),
-    }).addTo(g);
+    });
+    if (!m) return;
     m.bindPopup(
       `
       <div class="popup-card video-popup">
@@ -387,9 +408,10 @@ export function renderProductionMarkers(prod, slopePointsMeta) {
   });
   spots.forEach((s) => {
     const st = lineStatus[s.id] || s.status;
-    const m = L.marker([s.lat, s.lng], {
+    const m = addMarkerSafe(g, s.lat, s.lng, {
       icon: pulseIcon(statusColor(st), '产'),
-    }).addTo(g);
+    });
+    if (!m) return;
     m.bindPopup(`<div class="popup-card"><h4>${s.name}</h4><p>状态：${st}</p></div>`, {
       maxWidth: 360,
       minWidth: 280,
@@ -410,9 +432,10 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
   (slopeData.points || []).forEach((p) => {
     const meta = metaMap.get(p.id);
     if (!meta) return;
-    const m = L.marker([meta.lat, meta.lng], {
+    const m = addMarkerSafe(g, meta.lat, meta.lng, {
       icon: pulseIcon(statusColor(p.status), '坡'),
-    }).addTo(g);
+    });
+    if (!m) return;
 
     const chartId = `popup-chart-${p.id}`;
     const th = p.threshold || {};
@@ -439,9 +462,12 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
 
   if (rainMeta && slopeData.rainfall) {
     const r = slopeData.rainfall;
-    const m = L.marker([rainMeta.lat, rainMeta.lng], {
+    const m = addMarkerSafe(g, rainMeta.lat, rainMeta.lng, {
       icon: pulseIcon(statusColor(r.status), '雨'),
-    }).addTo(g);
+    });
+    if (!m) {
+      return;
+    }
     m.bindPopup(
       `
       <div class="popup-card">
