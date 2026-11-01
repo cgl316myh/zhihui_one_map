@@ -33,7 +33,8 @@ mybatis:
 
 mine:
   app:
-    version: ${APP_VERSION:1.2.0}
+    # 默认取自 pom <version>；可用环境变量 APP_VERSION 覆盖
+    version: ${APP_VERSION:@project.version@}
   jwt:
     secret: ${JWT_SECRET:zhihui-one-map-dev-secret-change-me-32bytes-min}
     access-expire-minutes: ${JWT_ACCESS_EXPIRE_MINUTES:120}

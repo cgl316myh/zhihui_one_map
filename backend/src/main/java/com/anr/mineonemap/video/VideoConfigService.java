@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class VideoConfigService {
@@ -35,6 +36,8 @@ public class VideoConfigService {
     private final BizVideoCameraMapper videoCameraMapper;
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
+    /** camId -> ZLM FFmpeg source key */
+    private final ConcurrentHashMap<String, String> ffmpegKeys = new ConcurrentHashMap<>();
 
     public VideoConfigService(CfgMapper cfgMapper, BizVideoCameraMapper videoCameraMapper, ObjectMapper objectMapper) {
         this.cfgMapper = cfgMapper;
@@ -95,9 +98,188 @@ public class VideoConfigService {
                 cam.setOnline(false);
             }
             videoCameraMapper.upsert(cam);
-            registerZlmProxy(platform, cam);
+            // 不预注册拉流：大屏点击播放时再按需 FFmpeg 转码，降低常驻 CPU
         }
         log.info("video cameras updated by {} count={}", actor, cameras.size());
+    }
+
+    public Map<String, Object> startPlayback(String camId) {
+        BizVideoCamera cam = findCamera(camId);
+        if (cam == null) {
+            throw new BizException("摄像头不存在");
+        }
+        JsonNode platform = getPlatformConfig();
+        JsonNode extra = parseExtra(cam.getExtra());
+        boolean camEnabled = !extra.has("enabled") || extra.path("enabled").asBoolean(true);
+        if (!platform.path("enabled").asBoolean(false) || !camEnabled) {
+            throw new BizException("视频未启用");
+        }
+        String stream = extra.path("zlmStream").asText("").trim();
+        if (stream.isBlank()) {
+            stream = streamName(cam.getId());
+        }
+        String base = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
+        String secret = platform.path("zlm").path("secret").asText("");
+        if (base.isBlank()) {
+            throw new BizException("未配置 ZLM baseUrl");
+        }
+        String rtsp = buildRtspUrl(platform, cam);
+        if (rtsp.isBlank()) {
+            throw new BizException("无法构造 RTSP 地址");
+        }
+
+        // 先停旧代理 / 旧转码，避免 11 路常驻
+        delStreamProxy(base, secret, stream);
+        stopFfmpeg(base, secret, cam.getId());
+
+        String dst = "rtmp://127.0.0.1/live/" + stream;
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        if (!secret.isBlank()) {
+            form.add("secret", secret);
+        }
+        form.add("src_url", rtsp);
+        form.add("dst_url", dst);
+        form.add("timeout_ms", "15000");
+        form.add("enable_hls", "1");
+        try {
+            String body = restClient.post()
+                    .uri(base + "/index/api/addFFmpegSource")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
+            log.info("ZLM ffmpeg {} -> {} : {}", stream, maskRtsp(rtsp), body);
+            JsonNode resp = objectMapper.readTree(body == null ? "{}" : body);
+            if (resp.path("code").asInt(-1) != 0) {
+                throw new BizException("FFmpeg 启动失败: " + resp.path("msg").asText(body));
+            }
+            String key = resp.path("data").path("key").asText("");
+            if (!key.isBlank()) {
+                ffmpegKeys.put(cam.getId(), key);
+            }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("addFFmpegSource failed: {}", e.getMessage());
+            throw new BizException("启动转码失败: " + e.getMessage());
+        }
+
+        waitMediaReady(base, secret, stream, 12000);
+
+        Map<String, Object> item = toDashboardCamera(cam, platform, platform.path("provider").asText("hikvision"));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", cam.getId());
+        result.put("zlmStream", stream);
+        result.put("hlsUrl", item.get("hlsUrl"));
+        result.put("transcode", "ffmpeg-h264");
+        return result;
+    }
+
+    public Map<String, Object> stopPlayback(String camId) {
+        JsonNode platform = getPlatformConfig();
+        String base = trimSlash(platform.path("zlm").path("baseUrl").asText(""));
+        String secret = platform.path("zlm").path("secret").asText("");
+        BizVideoCamera cam = findCamera(camId);
+        String stream = "";
+        if (cam != null) {
+            JsonNode extra = parseExtra(cam.getExtra());
+            stream = extra.path("zlmStream").asText("").trim();
+            if (stream.isBlank()) {
+                stream = streamName(cam.getId());
+            }
+        }
+        stopFfmpeg(base, secret, camId);
+        if (!stream.isBlank()) {
+            delStreamProxy(base, secret, stream);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", camId);
+        result.put("stopped", true);
+        return result;
+    }
+
+    private BizVideoCamera findCamera(String camId) {
+        if (camId == null || camId.isBlank()) {
+            return null;
+        }
+        for (BizVideoCamera cam : videoCameraMapper.listAll()) {
+            if (camId.equals(cam.getId())) {
+                return cam;
+            }
+        }
+        return null;
+    }
+
+    private void stopFfmpeg(String base, String secret, String camId) {
+        String key = ffmpegKeys.remove(camId);
+        if (key == null || key.isBlank() || base == null || base.isBlank()) {
+            return;
+        }
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        if (secret != null && !secret.isBlank()) {
+            form.add("secret", secret);
+        }
+        form.add("key", key);
+        try {
+            restClient.post()
+                    .uri(base + "/index/api/delFFmpegSource")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
+        } catch (Exception e) {
+            log.warn("delFFmpegSource {} failed: {}", camId, e.getMessage());
+        }
+    }
+
+    private void delStreamProxy(String base, String secret, String stream) {
+        if (base == null || base.isBlank() || stream == null || stream.isBlank()) {
+            return;
+        }
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        if (secret != null && !secret.isBlank()) {
+            form.add("secret", secret);
+        }
+        form.add("vhost", "__defaultVhost__");
+        form.add("app", "live");
+        form.add("stream", stream);
+        form.add("force", "1");
+        try {
+            // 关闭已有代理/推流（无论来自 addStreamProxy 还是 FFmpeg）
+            restClient.post()
+                    .uri(base + "/index/api/close_stream")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
+        } catch (Exception e) {
+            log.debug("close_stream {} : {}", stream, e.getMessage());
+        }
+    }
+
+    private void waitMediaReady(String base, String secret, String stream, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                String uri = base + "/index/api/getMediaList?schema=rtmp&app=live&stream="
+                        + URLEncoder.encode(stream, StandardCharsets.UTF_8)
+                        + "&secret=" + URLEncoder.encode(secret == null ? "" : secret, StandardCharsets.UTF_8);
+                String body = restClient.get().uri(uri).retrieve().body(String.class);
+                JsonNode resp = objectMapper.readTree(body == null ? "{}" : body);
+                if (resp.path("code").asInt(-1) == 0 && resp.path("data").isArray() && resp.path("data").size() > 0) {
+                    return;
+                }
+            } catch (Exception ignored) {
+                // retry
+            }
+            try {
+                Thread.sleep(400);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        log.warn("media not ready in time for stream={}", stream);
     }
 
     public Map<String, Object> buildDashboardVideoPayload() {

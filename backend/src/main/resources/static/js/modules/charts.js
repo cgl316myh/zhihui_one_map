@@ -327,13 +327,20 @@ export function renderReserveCalendar(reserves) {
 
 export function renderPopupSeries(domId, point, options = {}) {
   if (!point) return;
+  const el = document.getElementById(domId);
+  if (!el) return;
   const maxPts = options.maxPts || 12;
   const series = Array.isArray(point.series) ? point.series : [];
   const short = series.length > maxPts ? series.slice(-maxPts) : series;
+  if (!short.length) {
+    disposeChart(domId);
+    el.innerHTML = '<div class="popup-chart-empty">暂无短时序列数据</div>';
+    return;
+  }
   const times = short.map((s) => (s.t || '').slice(5, 16));
   ensureChart(domId, {
     backgroundColor: 'transparent',
-    grid: { top: 22, right: 8, bottom: 22, left: 32 },
+    grid: { top: 22, right: 8, bottom: 22, left: 36 },
     legend: {
       data: ['X', 'Y', 'H'],
       textStyle: { color: '#456', fontSize: 10 },
@@ -382,6 +389,15 @@ export function renderPopupSeries(domId, point, options = {}) {
       },
     ],
   });
+  // Leaflet 弹窗首次打开时容器宽度可能未就绪
+  setTimeout(() => {
+    const chart = chartRegistry.get(domId);
+    try {
+      chart?.resize?.();
+    } catch {
+      /* ignore */
+    }
+  }, 60);
 }
 
 const ENV_METRIC_COLORS = {

@@ -1,4 +1,5 @@
 import { renderPopupSeries, renderPopupEnvHistory, disposeChart } from './charts.js';
+import { renderVideoTile, stopVideoPlayback } from './videoPlayer.js';
 
 let map = null;
 let baseLayerGroup = null;
@@ -221,6 +222,41 @@ function statusColor(status) {
   return '#2ee6a6';
 }
 
+function slopeStatusLabel(status) {
+  const map = {
+    normal: '正常',
+    warn: '预警',
+    alarm: '报警',
+    fault: '故障',
+    offline: '离线',
+    running: '运行',
+  };
+  const key = String(status || '').toLowerCase();
+  return map[key] || status || '—';
+}
+
+function slopeStatusClass(status) {
+  const key = String(status || '').toLowerCase();
+  if (key === 'alarm' || key === 'fault') return 'st-alarm';
+  if (key === 'warn' || key === 'offline') return 'st-warn';
+  return 'st-ok';
+}
+
+function fmt(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return String(v);
+  return Math.abs(n) >= 100 ? n.toFixed(1) : n.toFixed(2);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function initMap(center, zoom) {
   const el = document.getElementById('map');
   if (!el) return null;
@@ -372,15 +408,26 @@ export function renderVideoMarkers(video) {
       icon: pulseIcon(c.online ? '#3dd6ff' : '#ff4d4f', '视'),
     });
     if (!m) return;
+    const mountId = `popup-video-${c.id}`;
     m.bindPopup(
       `
       <div class="popup-card video-popup">
         <h4>${c.name}</h4>
         <p>${c.online ? '在线' : '离线'} · ${c.scene || ''}</p>
-        <div class="popup-video-ph">${c.online ? '实时预览' : '信号中断'}</div>
+        <div class="popup-video-ph popup-video-mount" id="${mountId}"></div>
       </div>`,
       { maxWidth: 520, minWidth: 440, className: 'leaflet-video-popup' }
     );
+    m.on('popupopen', () => {
+      setTimeout(() => {
+        const el = document.getElementById(mountId);
+        if (el) renderVideoTile(el, c, video, { autoStart: true });
+      }, 40);
+    });
+    m.on('popupclose', () => {
+      const el = document.getElementById(mountId);
+      if (el) stopVideoPlayback(el);
+    });
     markers.video.set(c.id, m);
   });
 }
@@ -448,20 +495,43 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
 
     const chartId = `popup-chart-${p.id}`;
     const th = p.threshold || {};
-    const cleared = p.cleared ? ' · 已消警' : '';
+    const st = p.computedStatus || p.status || '';
+    const stLabel = slopeStatusLabel(st);
+    const stClass = slopeStatusClass(st);
+    const online = p.online === false ? '离线' : '在线';
+    const unit = p.unit || 'mm';
     m.bindPopup(
-      `<div class="popup-card wide">
-        <h4>${p.name}</h4>
-        <p>X ${p.x} / Y ${p.y} / H ${p.h} ${p.unit || 'mm'} · 平面 ${p.plane ?? '—'} · 幅值 ${p.magnitude ?? '—'}${cleared}</p>
-        <p class="popup-th">速率 ${p.planeSpeed ?? '—'} · 加速度 ${p.planeAcc ?? '—'} · 方位 ${p.azimuth ?? '—'}° · 间隔 ${p.intervalHours ?? '—'} h</p>
-        <p class="popup-th">${p.online === false ? '离线' : '在线'} · 维护 ${p.maintainer || '—'} · 阈值 预警 ${th.warn ?? '—'} / 报警 ${th.alarm ?? '—'} · ${p.computedStatus || p.status}</p>
+      `<div class="popup-card wide slope-popup">
+        <div class="slope-pop-hd">
+          <h4>${escapeHtml(p.name || p.id || '')}</h4>
+          <span class="slope-badge ${stClass}">${stLabel}</span>
+        </div>
+        <div class="slope-pop-meta">
+          <span class="${p.online === false ? 'is-off' : 'is-on'}">${online}</span>
+          <span>维护 ${escapeHtml(p.maintainer || '—')}</span>
+          ${p.cleared ? '<span class="slope-cleared">已消警</span>' : ''}
+        </div>
+        <div class="slope-metric-grid">
+          <div class="slope-metric"><em>X</em><b>${fmt(p.x)}</b><i>${unit}</i></div>
+          <div class="slope-metric"><em>Y</em><b>${fmt(p.y)}</b><i>${unit}</i></div>
+          <div class="slope-metric"><em>H</em><b>${fmt(p.h)}</b><i>${unit}</i></div>
+          <div class="slope-metric"><em>平面</em><b>${fmt(p.plane)}</b><i>${unit}</i></div>
+          <div class="slope-metric"><em>幅值</em><b>${fmt(p.magnitude)}</b><i>${unit}</i></div>
+          <div class="slope-metric"><em>方位</em><b>${fmt(p.azimuth)}</b><i>°</i></div>
+          <div class="slope-metric"><em>速率</em><b>${fmt(p.planeSpeed)}</b></div>
+          <div class="slope-metric"><em>加速度</em><b>${fmt(p.planeAcc)}</b></div>
+          <div class="slope-metric"><em>间隔</em><b>${fmt(p.intervalHours)}</b><i>h</i></div>
+        </div>
+        <div class="slope-thresh">
+          阈值 · 预警 <b>${th.warn ?? '—'}</b> / 报警 <b>${th.alarm ?? '—'}</b>
+        </div>
         <div class="popup-chart-label">短历史（近 12 点）</div>
         <div id="${chartId}" class="popup-chart"></div>
       </div>`,
-      { maxWidth: 500, minWidth: 500 }
+      { maxWidth: 520, minWidth: 500, className: 'leaflet-slope-popup' }
     );
     m.on('popupopen', () => {
-      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 40);
+      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 80);
     });
     m.on('popupclose', () => {
       disposeChart(chartId);
