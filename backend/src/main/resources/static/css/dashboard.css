@@ -1063,6 +1063,24 @@ button.slope-item.active {
   background: #f3f6fa;
   border-radius: 4px;
 }
+.panel-chart-empty {
+  height: 100%;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(180, 200, 220, 0.65);
+  font-size: 12px;
+}
+.panel-chart-empty {
+  height: 100%;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(180, 200, 220, 0.65);
+  font-size: 12px;
+}
 .popup-th { font-size: 12px !important; color: #678 !important; }
 
 .slope-popup .slope-pop-hd {

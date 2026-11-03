@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>储量计算方法与数据来源 · 安宁隆瑞采石场</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --line: #2a3b55;
+      --text: #e6eefc;
+      --muted: #9fb0c9;
+      --accent: #3dd6ff;
+      --ok: #2ee6a6;
+      --warn: #ffc857;
+      --code: #0a1524;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #10182a, var(--bg));
+      color: var(--text);
+      line-height: 1.55;
+      padding: 24px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; color: var(--accent); }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+    h3 { margin: 16px 0 8px; font-size: 15px; color: #cfe9ff; }
+    .sub { color: var(--muted); margin-bottom: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .tag.ok { color: var(--ok); border-color: rgba(46,230,166,.45); }
+    .tag.warn { color: var(--warn); border-color: rgba(255,200,87,.45); }
+    .tag.input { color: #9ecbff; border-color: rgba(158,203,255,.4); }
+    .tag.derived { color: var(--accent); border-color: rgba(61,214,255,.4); }
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+      min-width: 860px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #0e1728; color: #cfe9ff; white-space: nowrap; }
+    td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+    td.formula { color: #cfe9ff; font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+    ul, ol { margin: 8px 0; padding-left: 1.25em; color: var(--muted); }
+    li { margin: 4px 0; }
+    a { color: var(--accent); }
+    .note { color: var(--muted); font-size: 13px; margin: 0; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .badge.in {
+      background: rgba(158,203,255,.12);
+      color: #9ecbff;
+      border: 1px solid rgba(158,203,255,.35);
+    }
+    .badge.out {
+      background: rgba(61,214,255,.12);
+      color: var(--accent);
+      border: 1px solid rgba(61,214,255,.35);
+    }
+    footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>储量计算方法与数据来源</h1>
+    <p class="sub">
+      安宁隆瑞混凝土有限责任公司采石场 · 智慧矿山一张图「矿区储量分析」面板<br />
+      计算模块：<code>js/modules/reserves.js</code> · 种子：<code>seed/cfg_reserves.json</code> · 库表：<code>cfg_reserves</code>
+    </p>
+    <div class="meta">
+      <span class="tag ok">单位：万吨</span>
+      <span class="tag">基准时点：2025-12-31</span>
+      <span class="tag input">录入项：年报抄录 / 后台维护</span>
+      <span class="tag derived">派生项：前端公式计算</span>
+    </div>
+
+    <h2>一、指标总表（来源 · 计算方法 · 当前值）</h2>
+    <div class="card">
+      <p class="note" style="margin-bottom:10px">
+        储量<strong>不是</strong>传感器实时采集。年报原始单位为<strong>千吨</strong>，系统统一 ÷10 为<strong>万吨</strong>。
+        <span class="badge in">录入</span> 由年报/后台写入；
+        <span class="badge out">派生</span> 由 <code>computeReservesDerived()</code> 计算。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>大屏/界面指标</th>
+            <th>系统字段</th>
+            <th>类型</th>
+            <th>数据来源</th>
+            <th>计算方法</th>
+            <th>当前值（示例）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>评估利用资源储量<br />（大屏「评估利用」）</td>
+            <td><code>assessedUtilizedReserve</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>年报「保有资源量 / 控制资源量」；人工抄录后入库，可在管理后台「储量参数」修改</td>
+            <td class="formula">年报千吨 ÷ 10 → 万吨<br />96772.59 ÷ 10</td>
+            <td class="num">9677.26 万吨</td>
+          </tr>
+          <tr>
+            <td>设计回采率<br />（大屏「设计回采」）</td>
+            <td><code>designRecoveryRate</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>年报「可信系数」；用于可信储量公式，非传感器测得</td>
+            <td class="formula">直接取年报可信系数<br />本矿取 1（全额可信）</td>
+            <td class="num">1.0（100.0%）</td>
+          </tr>
+          <tr>
+            <td>采矿回采率<br />（大屏「采矿回采」）</td>
+            <td><code>miningRecoveryRate</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>年报可信储量公式中的「回采率」参数（设计取值），与采区表实际回采率不同</td>
+            <td class="formula">直接取年报回采率参数<br />本矿取 0.95</td>
+            <td class="num">0.95（95.0%）</td>
+          </tr>
+          <tr>
+            <td>可采储量</td>
+            <td><code>recoverableReserve</code></td>
+            <td><span class="badge out">派生</span></td>
+            <td>由上三项录入派生；对齐年报「可信储量」口径</td>
+            <td class="formula">评估利用 × 设计回采率 × 采矿回采率<br />9677.26 × 1.0 × 0.95</td>
+            <td class="num">9193.4 万吨</td>
+          </tr>
+          <tr>
+            <td>累计已采出<br />（大屏「已采出」）</td>
+            <td><code>mined</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>相对当前保有基准日的生产台账累计量；管理后台维护。换新年报基准后通常置 0</td>
+            <td class="formula">台账累加（非自动计量）<br />当前基准下为 0</td>
+            <td class="num">0 万吨</td>
+          </tr>
+          <tr>
+            <td>剩余可采</td>
+            <td><code>remaining</code></td>
+            <td><span class="badge out">派生</span></td>
+            <td>由可采储量与已采出派生</td>
+            <td class="formula">可采储量 − 累计已采出<br />9193.4 − 0</td>
+            <td class="num">9193.4 万吨</td>
+          </tr>
+          <tr>
+            <td>日均采出</td>
+            <td><code>avgDailyMined</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>按年报年度开采量摊算后写入配置（可后台改）</td>
+            <td class="formula">年度开采量（万吨）÷ 365<br />141.98 ÷ 365 ≈ 0.389</td>
+            <td class="num">0.389 万吨/天</td>
+          </tr>
+          <tr>
+            <td>预计剩余天数<br />（大屏「预计约 … 天」）</td>
+            <td><code>remainingDays</code></td>
+            <td><span class="badge out">派生</span></td>
+            <td>由剩余可采与日均采出派生（日均 &gt; 0 时重算）</td>
+            <td class="formula">round(剩余可采 ÷ 日均采出)<br />round(9193.4 / 0.389)</td>
+            <td class="num">23633 天</td>
+          </tr>
+          <tr>
+            <td>服务年限</td>
+            <td>（由 remainingDays 展示换算）</td>
+            <td><span class="badge out">派生</span></td>
+            <td>大屏 <code>panels.js</code> 用剩余天数换算年；与预警阈值比较决定文案</td>
+            <td class="formula">剩余天数 ÷ 365<br />23633 ÷ 365</td>
+            <td class="num">约 64.7 年</td>
+          </tr>
+          <tr>
+            <td>服务年限预警阈值</td>
+            <td><code>warningYears</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>管理后台「储量参数」配置；非年报字段</td>
+            <td class="formula">直接配置</td>
+            <td class="num">3 年</td>
+          </tr>
+          <tr>
+            <td>采区 · 采出量</td>
+            <td><code>districts[].output</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>年报各年度「开采量 / 采出量」（千吨÷10）；默认行名为「××年度采剥区」</td>
+            <td class="formula">年报千吨 ÷ 10<br />如 1419.83 → 141.98</td>
+            <td class="num">141.98 / 94.42 / 189.68</td>
+          </tr>
+          <tr>
+            <td>采区 · 动用储量</td>
+            <td><code>districts[].activatedReserve</code></td>
+            <td><span class="badge in">录入</span></td>
+            <td>年报各年度「动用量」（千吨÷10）</td>
+            <td class="formula">年报千吨 ÷ 10<br />如 1486.73 → 148.67</td>
+            <td class="num">148.67 / 99.39 / 199.66</td>
+          </tr>
+          <tr>
+            <td>采区回采率</td>
+            <td><code>districts[].recoveryRatePct</code></td>
+            <td><span class="badge out">派生</span></td>
+            <td>由该行采出、动用派生（动用 &gt; 0）</td>
+            <td class="formula">采出量 ÷ 动用储量<br />如 141.98 / 148.67</td>
+            <td class="num">95.5% / 95.0% / 95.0%</td>
+          </tr>
+          <tr>
+            <td>全矿回采率</td>
+            <td><code>mineRecoveryRatePct</code></td>
+            <td><span class="badge out">派生</span></td>
+            <td>由各采区回采率按<strong>采出量加权</strong>；不是直接用采矿回采率 95%</td>
+            <td class="formula">Σ(采区回采率 × 采出) ÷ Σ(采出)</td>
+            <td class="num">95.2%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>二、年报数值对照（千吨 → 万吨）</h2>
+    <div class="card">
+      <table style="min-width:640px">
+        <thead>
+          <tr>
+            <th>系统字段</th>
+            <th>年报含义</th>
+            <th>年报原值（千吨）</th>
+            <th>系统取值（万吨）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>assessedUtilizedReserve</code></td>
+            <td>保有资源量</td>
+            <td class="num">96772.59</td>
+            <td class="num">9677.26</td>
+          </tr>
+          <tr>
+            <td><code>designRecoveryRate</code></td>
+            <td>可信系数</td>
+            <td class="num">—</td>
+            <td class="num">1.00</td>
+          </tr>
+          <tr>
+            <td><code>miningRecoveryRate</code></td>
+            <td>回采率（可信储量参数）</td>
+            <td class="num">—</td>
+            <td class="num">0.95</td>
+          </tr>
+          <tr>
+            <td><code>recoverableReserve</code></td>
+            <td>可信储量（系统派生对照）</td>
+            <td class="num">91926.51</td>
+            <td class="num">≈9193.4</td>
+          </tr>
+          <tr>
+            <td>2025 采出 / 动用</td>
+            <td>开采量 / 动用量</td>
+            <td class="num">1419.83 / 1486.73</td>
+            <td class="num">141.98 / 148.67</td>
+          </tr>
+          <tr>
+            <td>2024 采出 / 动用</td>
+            <td>开采量 / 动用量</td>
+            <td class="num">944.16 / 993.85</td>
+            <td class="num">94.42 / 99.39</td>
+          </tr>
+          <tr>
+            <td>2023 采出 / 动用</td>
+            <td>开采量 / 动用量</td>
+            <td class="num">1896.76 / 1996.59</td>
+            <td class="num">189.68 / 199.66</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:10px">
+        年报公式：可信储量 = 控制资源量(保有) × 可信系数(1) × 回采率(0.95)。
+        来源 PDF：<code>reportSnapshot.sourcePdf</code>。
+      </p>
+    </div>
+
+    <h2>三、数据链路与维护</h2>
+    <div class="card">
+      <ol>
+        <li>官方年报 PDF → 人工整理为万吨 → 写入 <code>seed/cfg_reserves.json</code> / 库表 <code>cfg_reserves</code>。</li>
+        <li>大屏 <code>GET /api/reserves</code> 读库；前端 <code>reserves.js</code> 派生后由 <code>panels.js</code> 渲染。</li>
+        <li>管理后台「储量参数」可改录入项，保存后大屏刷新可见。</li>
+        <li>「采区」默认是年度采剥汇总行，不是 GIS 空间采区边界；趋势/日历多为示意。</li>
+      </ol>
+    </div>
+
+    <footer>
+      指标总表已按 2025 年报与大屏对齐 · 2026-03-11 ·
+      <a href="../admin.html">管理后台</a> ·
+      <a href="../index.html">一张图</a>
+    </footer>
+  </div>
+</body>
+</html>

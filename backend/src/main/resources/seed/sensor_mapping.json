@@ -6,7 +6,7 @@
       "location": "行政生活区与生产过渡区",
       "lng": 102.44505,
       "lat": 24.78545,
-      "clientIds": ["Pczd8HKi3MdgGTW6SAeB"]
+      "clientIds": ["26072811ZXZ-01"]
     },
     {
       "id": "ENV-02",
@@ -14,7 +14,7 @@
       "location": "破碎/筛分车间下风向边界",
       "lng": 102.44655,
       "lat": 24.78528,
-      "clientIds": []
+      "clientIds": ["26072811ZXZ-02"]
     },
     {
       "id": "ENV-03",
@@ -22,7 +22,7 @@
       "location": "矿区边界临近村庄（厂界）",
       "lng": 102.44705,
       "lat": 24.78745,
-      "clientIds": []
+      "clientIds": ["26072811ZXZ-03"]
     }
   ],
   "slopeDevices": {

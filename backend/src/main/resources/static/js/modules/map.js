@@ -320,6 +320,9 @@ const ENV_METRIC_LABELS = {
   pm25: 'PM2.5',
   pm10: 'PM10',
   dust: '粉尘',
+  pressure: '气压',
+  windSpeed: '风速',
+  windDirection: '风向',
 };
 
 const ENV_STATUS_LABELS = {

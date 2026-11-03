@@ -376,4 +376,35 @@ public interface SensorSchemaMapper {
 
     @Delete("DELETE FROM ts_slope_sample WHERE sampled_at < #{before}")
     int deleteSlopeSamplesBefore(@Param("before") OffsetDateTime before);
+
+    @Select("""
+            SELECT sampled_at AS sampledAt, value
+            FROM ts_env_sample
+            WHERE point_id = #{pointId} AND metric = #{metric}
+            ORDER BY sampled_at DESC
+            LIMIT #{limit}
+            """)
+    List<TsEnvSampleRow> listEnvSamplesDesc(@Param("pointId") String pointId,
+                                            @Param("metric") String metric,
+                                            @Param("limit") int limit);
+
+    @Select("""
+            SELECT collect_time AS sampledAt, rain_hour AS value
+            FROM biz_rain_hist
+            WHERE device_sn = #{deviceSn} AND rain_hour IS NOT NULL
+            ORDER BY collect_time DESC
+            LIMIT #{limit}
+            """)
+    List<TsEnvSampleRow> listRainHistDesc(@Param("deviceSn") String deviceSn,
+                                          @Param("limit") int limit);
+
+    @Select("""
+            SELECT sampled_at AS sampledAt, x, y, h
+            FROM ts_slope_sample
+            WHERE point_id = #{pointId}
+            ORDER BY sampled_at DESC
+            LIMIT #{limit}
+            """)
+    List<TsSlopeSampleRow> listSlopeSamplesDesc(@Param("pointId") String pointId,
+                                                @Param("limit") int limit);
 }

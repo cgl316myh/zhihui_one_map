@@ -141,6 +141,9 @@ function metricLabel(key) {
     pm25: 'PM2.5',
     pm10: 'PM10',
     dust: '粉尘',
+    pressure: '气压',
+    windSpeed: '风速',
+    windDirection: '风向',
   };
   return map[key] || key;
 }
@@ -253,8 +256,8 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
     if (slopeData.rainfall) {
       const r = slopeData.rainfall;
       const yl24 =
-        r.yl24h != null
-          ? `<div><label>近24小时</label><b>${r.yl24h}</b><i>mm</i></div>`
+        r.yl24h != null && r.yl24h !== ''
+          ? `<div><label>近24小时</label><b>${fmtMm(r.yl24h)}</b><i>mm</i></div>`
           : '';
       rain.innerHTML = `
       <div class="rain-card ${statusClass(r.status)}">
@@ -263,8 +266,8 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
           <em class="${statusClass(r.status)}">${statusText(r.status)}</em>
         </div>
         <div class="rain-vals">
-          <div><label>时段雨量</label><b>${r.valueMm}</b><i>mm</i></div>
-          <div><label>区间累计</label><b>${r.cumulativeMm}</b><i>mm</i></div>
+          <div><label>时段雨量</label><b>${fmtMm(r.valueMm)}</b><i>mm</i></div>
+          <div><label>区间累计</label><b>${fmtMm(r.cumulativeMm)}</b><i>mm</i></div>
           ${yl24}
         </div>
         ${r.maintainer || r.online === false ? `<div class="metric-loc">${r.online === false ? '离线' : '在线'} · 维护 ${r.maintainer || '—'}</div>` : ''}
@@ -448,6 +451,12 @@ export function setSlopePollStatus(ok, message) {
 function fmtNum(n) {
   if (n == null || Number.isNaN(Number(n))) return '—';
   return Number(n).toFixed(2);
+}
+
+function fmtMm(n) {
+  if (n == null || n === '' || n === 'null' || Number.isNaN(Number(n))) return '—';
+  const v = Number(n);
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
 function formatTime(iso) {

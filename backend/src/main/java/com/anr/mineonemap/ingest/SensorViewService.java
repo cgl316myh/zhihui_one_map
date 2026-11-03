@@ -1,6 +1,8 @@
 package com.anr.mineonemap.ingest;
 
 import com.anr.mineonemap.domain.BizBdlxAlarm;
+import com.anr.mineonemap.domain.TsEnvSampleRow;
+import com.anr.mineonemap.domain.TsSlopeSampleRow;
 import com.anr.mineonemap.mapper.SensorSchemaMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,16 +42,38 @@ public class SensorViewService {
         ArrayNode points = objectMapper.createArrayNode();
         Set<Object> usedKeys = new HashSet<>();
         JsonNode stations = cfg.path("environmentStations");
+        // 先绑有展示名的站点（ENV-*），再处理云平台自动登记的设备站，避免实时数据被设备站先占光
+        List<JsonNode> preferred = new ArrayList<>();
+        List<JsonNode> auto = new ArrayList<>();
         if (stations.isArray()) {
             for (JsonNode st : stations) {
-                Map<String, Object> matched = matchMeteo(st, meteo, unused, usedKeys);
-                if (matched != null) {
-                    usedKeys.add(matched.get("id"));
-                    points.add(envPointFromMatch(st, matched, cfg));
+                if (isPreferredEnvStation(st)) {
+                    preferred.add(st);
                 } else {
-                    points.add(envOfflineShell(st));
+                    auto.add(st);
                 }
             }
+        }
+        for (JsonNode st : preferred) {
+            Map<String, Object> matched = matchMeteo(st, meteo, unused, usedKeys);
+            if (matched != null) {
+                usedKeys.add(matched.get("id"));
+                points.add(envPointFromMatch(st, matched, cfg));
+            } else {
+                points.add(envOfflineShell(st));
+            }
+        }
+        for (JsonNode st : auto) {
+            Map<String, Object> matched = matchMeteo(st, meteo, unused, usedKeys);
+            if (matched == null) {
+                continue; // 无独有数据则不重复落点
+            }
+            Object key = matched.get("id");
+            if (usedKeys.contains(key)) {
+                continue;
+            }
+            usedKeys.add(key);
+            points.add(envPointFromMatch(st, matched, cfg));
         }
 
         boolean anyMetrics = false;
@@ -69,7 +93,7 @@ public class SensorViewService {
                 points.add(envSynthesized(i + 1, e.getKey(), e.getValue(), cfg));
                 i++;
             }
-            anyMetrics = points.size() > 0;
+            anyMetrics = false;
             for (JsonNode p : points) {
                 if (p.path("metrics").size() > 0) {
                     anyMetrics = true;
@@ -84,6 +108,22 @@ public class SensorViewService {
         out.put("source", anyMetrics ? "spring-ingest" : "bridge-no-data");
         out.set("points", points);
         return out;
+    }
+
+    /** 人工配置的展示站点优先于云平台 ensureStation 自动登记的设备站 */
+    private static boolean isPreferredEnvStation(JsonNode st) {
+        String id = st.path("id").asText("");
+        if (id.regionMatches(true, 0, "ENV-", 0, 4)) {
+            return true;
+        }
+        String name = st.path("name").asText("");
+        String client = "";
+        JsonNode ids = st.path("clientIds");
+        if (ids.isArray() && !ids.isEmpty()) {
+            client = ids.get(0).asText("");
+        }
+        // 名称与 id/client 不同，视为有人工展示名
+        return !name.isBlank() && !name.equals(id) && !name.equals(client);
     }
 
     public JsonNode buildSlope() {
@@ -154,7 +194,7 @@ public class SensorViewService {
             }
             Object upd = rainItem.get("collectTime") != null ? rainItem.get("collectTime") : rainItem.get("receivedAt");
             rainfall.put("updatedAt", upd == null ? null : String.valueOf(upd));
-            rainfall.set("series", objectMapper.createArrayNode());
+            rainfall.set("series", loadRainSeries(rainSn));
         }
 
         boolean live = points.size() > 0 || rainfall != null;
@@ -236,28 +276,52 @@ public class SensorViewService {
 
     private Map<String, Object> matchMeteo(JsonNode st, Map<String, Map<String, Object>> meteo,
                                            List<Map<String, Object>> unused, Set<Object> usedKeys) {
+        Map<String, Object> bound = null;
         JsonNode clientIds = st.path("clientIds");
         if (clientIds.isArray()) {
             for (JsonNode c : clientIds) {
                 Map<String, Object> m = meteo.get(c.asText());
-                if (m != null) {
-                    return m;
+                if (m != null && !usedKeys.contains(m.get("id"))) {
+                    bound = m;
+                    break;
                 }
             }
         }
-        JsonNode deviceSns = st.path("deviceSns");
-        if (deviceSns.isArray()) {
-            for (JsonNode snNode : deviceSns) {
-                String sn = snNode.asText();
-                if (meteo.containsKey(sn)) {
-                    return meteo.get(sn);
-                }
-                for (Map<String, Object> v : meteo.values()) {
-                    if (sn.equals(String.valueOf(v.getOrDefault("deviceSn", "")))) {
-                        return v;
+        if (bound == null) {
+            JsonNode deviceSns = st.path("deviceSns");
+            if (deviceSns.isArray()) {
+                for (JsonNode snNode : deviceSns) {
+                    String sn = snNode.asText();
+                    Map<String, Object> byKey = meteo.get(sn);
+                    if (byKey != null && !usedKeys.contains(byKey.get("id"))) {
+                        bound = byKey;
+                        break;
+                    }
+                    for (Map<String, Object> v : meteo.values()) {
+                        if (sn.equals(String.valueOf(v.getOrDefault("deviceSn", "")))
+                                && !usedKeys.contains(v.get("id"))) {
+                            bound = v;
+                            break;
+                        }
+                    }
+                    if (bound != null) {
+                        break;
                     }
                 }
             }
+        }
+        // 绑定传感器过旧时，改用尚未占用的新鲜推送（云平台实时站）
+        if (bound != null && isMeteoFresh(bound)) {
+            return bound;
+        }
+        for (Map<String, Object> v : unused) {
+            Object k = v.get("id");
+            if (!usedKeys.contains(k) && isMeteoFresh(v)) {
+                return v;
+            }
+        }
+        if (bound != null) {
+            return bound;
         }
         for (Map<String, Object> v : unused) {
             Object k = v.get("id");
@@ -266,6 +330,34 @@ public class SensorViewService {
             }
         }
         return null;
+    }
+
+    /** 48h 内有 receivedAt/detectedTime 视为新鲜 */
+    private static boolean isMeteoFresh(Map<String, Object> item) {
+        if (item == null) {
+            return false;
+        }
+        for (String k : new String[]{"receivedAt", "detectedTime"}) {
+            Object v = item.get(k);
+            if (v == null) {
+                continue;
+            }
+            try {
+                OffsetDateTime t = OffsetDateTime.parse(String.valueOf(v).replace(' ', 'T'));
+                return t.isAfter(OffsetDateTime.now(SensorLatestStore.TZ8).minusHours(48));
+            } catch (Exception ignored) {
+                try {
+                    // 兼容 "2026-11-01T16:47:03.231153+08:00" / 无偏移本地串
+                    String s = String.valueOf(v).trim();
+                    if (s.length() >= 19) {
+                        OffsetDateTime t = OffsetDateTime.parse(s.substring(0, 19) + "+08:00");
+                        return t.isAfter(OffsetDateTime.now(SensorLatestStore.TZ8).minusHours(48));
+                    }
+                } catch (Exception ignored2) {
+                }
+            }
+        }
+        return false;
     }
 
     private ObjectNode envPointFromMatch(JsonNode st, Map<String, Object> matched, JsonNode cfg) {
@@ -277,6 +369,9 @@ public class SensorViewService {
         putMetricPair(metrics, units, matched, "pm25", "μg/m³");
         putMetricPair(metrics, units, matched, "pm10", "μg/m³");
         putMetricPair(metrics, units, matched, "dust", "μg/m³");
+        putMetricPair(metrics, units, matched, "pressure", "kPa");
+        putMetricPair(metrics, units, matched, "windSpeed", "m/s");
+        putMetricPair(metrics, units, matched, "windDirection", "°");
 
         ObjectNode p = objectMapper.createObjectNode();
         p.put("id", st.path("id").asText());
@@ -291,7 +386,9 @@ public class SensorViewService {
         p.set("units", units);
         p.put("source", matched.get("source") == null ? null : String.valueOf(matched.get("source")));
         p.put("detectedTime", matched.get("detectedTime") == null ? null : String.valueOf(matched.get("detectedTime")));
-        p.put("sensorKey", matched.get("id") == null ? null : String.valueOf(matched.get("id")));
+        String sensorKey = matched.get("id") == null ? null : String.valueOf(matched.get("id"));
+        p.put("sensorKey", sensorKey);
+        p.set("history", loadEnvHistory(sensorKey));
         return p;
     }
 
@@ -374,7 +471,7 @@ public class SensorViewService {
         p.set("threshold", th);
         Object upd = g.get("collectTime") != null ? g.get("collectTime") : g.get("receivedAt");
         p.put("updatedAt", upd == null ? null : String.valueOf(upd));
-        p.set("series", objectMapper.createArrayNode());
+        p.set("series", loadSlopeSeries(sn));
         return p;
     }
 
@@ -401,6 +498,123 @@ public class SensorViewService {
         } catch (Exception ignored) {
         }
         return arr;
+    }
+
+    /** 边坡短历史：ts_slope_sample → {t,x,y,h} */
+    private ArrayNode loadSlopeSeries(String sn) {
+        ArrayNode series = objectMapper.createArrayNode();
+        if (sn == null || sn.isBlank()) {
+            return series;
+        }
+        List<TsSlopeSampleRow> rows;
+        try {
+            rows = schemaMapper.listSlopeSamplesDesc(sn, 48);
+        } catch (Exception e) {
+            return series;
+        }
+        if (rows == null || rows.isEmpty()) {
+            return series;
+        }
+        List<TsSlopeSampleRow> asc = new ArrayList<>(rows);
+        Collections.reverse(asc);
+        for (TsSlopeSampleRow row : asc) {
+            if (row == null || row.getSampledAt() == null) {
+                continue;
+            }
+            ObjectNode pt = objectMapper.createObjectNode();
+            pt.put("t", row.getSampledAt().toString());
+            putNum(pt, "x", row.getX());
+            putNum(pt, "y", row.getY());
+            putNum(pt, "h", row.getH());
+            series.add(pt);
+        }
+        return series;
+    }
+
+    /** 环境短历史：ts_env_sample 多指标合并为 popup/侧栏 history */
+    private ArrayNode loadEnvHistory(String sensorKey) {
+        ArrayNode history = objectMapper.createArrayNode();
+        if (sensorKey == null || sensorKey.isBlank()) {
+            return history;
+        }
+        String[] metrics = {"noise", "pm25", "pm10", "temperature", "humidity", "dust", "windSpeed"};
+        Map<String, ObjectNode> byTime = new TreeMap<>();
+        for (String metric : metrics) {
+            List<TsEnvSampleRow> rows;
+            try {
+                rows = schemaMapper.listEnvSamplesDesc(sensorKey, metric, 48);
+            } catch (Exception e) {
+                continue;
+            }
+            if (rows == null) {
+                continue;
+            }
+            for (TsEnvSampleRow row : rows) {
+                if (row == null || row.getSampledAt() == null || row.getValue() == null) {
+                    continue;
+                }
+                String t = row.getSampledAt().toString();
+                ObjectNode pt = byTime.computeIfAbsent(t, k -> {
+                    ObjectNode n = objectMapper.createObjectNode();
+                    n.put("t", formatEnvHistTime(row.getSampledAt()));
+                    return n;
+                });
+                pt.put(metric, row.getValue());
+            }
+        }
+        if (byTime.isEmpty()) {
+            return history;
+        }
+        List<ObjectNode> asc = new ArrayList<>(byTime.values());
+        int from = Math.max(0, asc.size() - 24);
+        for (int i = from; i < asc.size(); i++) {
+            history.add(asc.get(i));
+        }
+        return history;
+    }
+
+    private static String formatEnvHistTime(OffsetDateTime at) {
+        if (at == null) {
+            return "";
+        }
+        // 对齐前端 mock：MM-dd HH:mm
+        return String.format("%02d-%02d %02d:%02d",
+                at.getMonthValue(), at.getDayOfMonth(), at.getHour(), at.getMinute());
+    }
+
+    /** 雨量趋势：优先 ts_env_sample.rainHour，其次 biz_rain_hist */
+    private ArrayNode loadRainSeries(String rainSn) {
+        ArrayNode series = objectMapper.createArrayNode();
+        if (rainSn == null || rainSn.isBlank()) {
+            return series;
+        }
+        List<TsEnvSampleRow> rows = null;
+        try {
+            rows = schemaMapper.listEnvSamplesDesc(rainSn, "rainHour", 96);
+        } catch (Exception ignored) {
+        }
+        if (rows == null || rows.isEmpty()) {
+            try {
+                rows = schemaMapper.listRainHistDesc(rainSn, 96);
+            } catch (Exception ignored) {
+                rows = List.of();
+            }
+        }
+        if (rows == null || rows.isEmpty()) {
+            return series;
+        }
+        List<TsEnvSampleRow> asc = new ArrayList<>(rows);
+        Collections.reverse(asc);
+        for (TsEnvSampleRow row : asc) {
+            if (row == null || row.getSampledAt() == null || row.getValue() == null) {
+                continue;
+            }
+            ObjectNode pt = objectMapper.createObjectNode();
+            pt.put("t", row.getSampledAt().toString());
+            pt.put("value", row.getValue());
+            series.add(pt);
+        }
+        return series;
     }
 
     private static boolean anyBdlx(Map<String, Map<String, Object>> gnss, Map<String, Map<String, Object>> rains) {

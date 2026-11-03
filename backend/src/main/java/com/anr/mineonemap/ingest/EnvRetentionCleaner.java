@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -17,15 +18,27 @@ public class EnvRetentionCleaner {
 
     private final SensorConfigService configService;
     private final SensorSchemaMapper schemaMapper;
+    private final DbBackupService dbBackupService;
 
-    public EnvRetentionCleaner(SensorConfigService configService, SensorSchemaMapper schemaMapper) {
+    public EnvRetentionCleaner(SensorConfigService configService, SensorSchemaMapper schemaMapper,
+                               DbBackupService dbBackupService) {
         this.configService = configService;
         this.schemaMapper = schemaMapper;
+        this.dbBackupService = dbBackupService;
     }
 
-    /** 每天凌晨 3:10 清理过期时序 */
+    /** 每天凌晨 3:10：先备份库，再清理过期时序 */
     @Scheduled(cron = "0 10 3 * * *")
     public void clean() {
+        try {
+            Path bak = dbBackupService.backupNow();
+            if (bak != null) {
+                log.info("Pre-retention DB backup: {}", bak);
+            }
+        } catch (Exception e) {
+            log.warn("Pre-retention DB backup failed (continue clean): {}", e.getMessage());
+        }
+
         int months = configService.getEnvRetentionMonths();
         OffsetDateTime before = OffsetDateTime.now(TZ8).minusMonths(months);
         int env = schemaMapper.deleteEnvSamplesBefore(before);

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>新 GNSS 转发(8088) 与现 BDLX 能力对照表</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --border: rgba(80, 140, 220, 0.22);
+      --text: #e8f0ff;
+      --muted: #8fa3c4;
+      --ok: #2ee6a6;
+      --no: #ff7b72;
+      --partial: #ffc857;
+      --info: #3dd6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+    h1 { margin: 0 0 8px; font-size: 24px; color: var(--info); }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      border-left: 4px solid var(--info);
+      padding-left: 10px;
+    }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .banner {
+      background: linear-gradient(135deg, rgba(61,214,255,0.12), rgba(110,168,254,0.08));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 12px 0 22px;
+      color: #c5d4ec;
+    }
+    p, li { color: #c5d4ec; }
+    code {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.9em;
+      color: #b8d4ff;
+    }
+    pre {
+      background: #0a101c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      color: #cfe0ff;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 10px 0 18px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: rgba(61,214,255,0.08); color: #cfe8ff; }
+    td.yes { color: var(--ok); font-weight: 600; }
+    td.no { color: var(--no); }
+    td.part { color: var(--partial); }
+    .legend span { margin-right: 14px; }
+    .yes-l { color: var(--ok); }
+    .no-l { color: var(--no); }
+    .part-l { color: var(--partial); }
+    a { color: var(--info); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>新 GNSS 转发(8088) 与现 BDLX 能力对照表</h1>
+    <div class="meta">
+      整理日期：2026-11-01 · 仅文档，未改业务代码 ·
+      相关文档：
+      <a href="./GNSS边坡数据接口说明-设备转发8088.html">GNSS 边坡接口说明</a>
+    </div>
+
+    <div class="banner">
+      <strong>一句话：</strong>8088 适合「免验证码拉 GNSS 位移」；BDLX 仍是「点表 + 位移派生量 + 雨量 + 告警」的完整源。
+      若只切 GNSS 位移到 8088、仍保留 BDLX 雨量/告警，则 <strong>BDLX 验证码登录仍要保留</strong>。
+    </div>
+
+    <p class="legend">
+      图例：
+      <span class="yes-l">有</span> /
+      <span class="part-l">部分/可自算</span> /
+      <span class="no-l">无</span>
+    </p>
+
+    <h2>1. 基本信息</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">项</th>
+          <th>新 GNSS 转发（8088）</th>
+          <th>现 BDLX（易尔）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>文档/门户</td>
+          <td><code>http://47.110.40.155:8088/document</code></td>
+          <td>浏览器页 <code>http://bdlx.jgtop1.com/</code>（配置项 <code>mine.bdlx.web-url</code>）</td>
+        </tr>
+        <tr>
+          <td>API 根地址</td>
+          <td><code>http://47.110.40.155:8088</code></td>
+          <td><code>http://wtapi.jgtop1.com</code>（配置项 <code>mine.bdlx.api-base</code>）</td>
+        </tr>
+        <tr>
+          <td>当前代码源标识</td>
+          <td class="part">尚未接入（建议如 <code>gnss-relay-8088</code>）</td>
+          <td><code>bdlx-pull</code></td>
+        </tr>
+        <tr>
+          <td>定时拉取（现网）</td>
+          <td class="no">无（未接）</td>
+          <td>有，默认 cron <code>0 8 * * * *</code>（每小时第 8 分）</td>
+        </tr>
+        <tr>
+          <td>联调账号（本项目）</td>
+          <td>用户 <code>15925118626</code>（密码见 GNSS 说明文档）</td>
+          <td>后台 <code>mine.bdlx.username/password</code> 或注入 <code>BDLX_TOKEN</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 登录与鉴权</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">项</th>
+          <th>新 GNSS 转发（8088）</th>
+          <th>现 BDLX</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>登录 URL</td>
+          <td><code>POST /api/user/login</code><br /><code>http://47.110.40.155:8088/api/user/login</code></td>
+          <td><code>POST /auth/login</code><br /><code>http://wtapi.jgtop1.com/auth/login</code></td>
+        </tr>
+        <tr>
+          <td>验证码</td>
+          <td class="yes">不需要</td>
+          <td class="no">需要 · <code>GET /auth/code</code> 取算术图，登录体带 <code>uuid</code>+<code>code</code></td>
+        </tr>
+        <tr>
+          <td>密码处理</td>
+          <td>明文密码做 <strong>Base64</strong> 后放 JSON</td>
+          <td>明文密码做 <strong>RSA</strong> 加密后放 JSON</td>
+        </tr>
+        <tr>
+          <td>登录体字段</td>
+          <td><code>username</code>, <code>password</code>(Base64)</td>
+          <td><code>username</code>, <code>password</code>(RSA), <code>code</code>, <code>uuid</code>, <code>rememberMe</code></td>
+        </tr>
+        <tr>
+          <td>业务请求鉴权</td>
+          <td>请求头 <code>token: "1234567" + 登录token</code></td>
+          <td>请求头带 JWT（代码内内存 token；亦可配置直接注入跳过登录）</td>
+        </tr>
+        <tr>
+          <td>Token 有效期</td>
+          <td>文档写明约 <strong>8 小时</strong></td>
+          <td>以厂商会话为准；失败需重登（常再次碰到验证码）</td>
+        </tr>
+        <tr>
+          <td>手工填验证码场景</td>
+          <td class="yes">无</td>
+          <td>自动识别失败时，管理后台需手工提交验证码</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. 能力对照（业务功能）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">能力</th>
+          <th>新 GNSS 转发（8088）</th>
+          <th>现 BDLX</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GNSS 位移 X/Y/H</td>
+          <td class="yes">有</td>
+          <td class="yes">有</td>
+          <td>8088 为 <code>baseX/Y/Z</code>（单位 m）；BDLX 为 <code>totalX/Y/H</code> 等（系统按 mm 使用）</td>
+        </tr>
+        <tr>
+          <td>经纬高</td>
+          <td class="yes">有（lon/lat/height）</td>
+          <td class="yes">有（点表）</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>按时间段拉历史</td>
+          <td class="yes">有</td>
+          <td class="yes">有</td>
+          <td>8088 默认近 1 小时；BDLX 现网默认近约 1 个月（<code>lookbackHours=744</code>）</td>
+        </tr>
+        <tr>
+          <td>一次拉多设备</td>
+          <td class="yes">有（MultiDevice）</td>
+          <td class="part">先点表再逐点历史</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>设备/点表清单</td>
+          <td class="part">靠返回数据中的 sn/name</td>
+          <td class="yes">有独立点表接口</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>平面位移 / 速率 / 加速度 / 方位</td>
+          <td class="no">无现成字段</td>
+          <td class="yes">有</td>
+          <td>8088 侧若需要，需本地用时序自行计算</td>
+        </tr>
+        <tr>
+          <td>雨量</td>
+          <td class="no">文档无</td>
+          <td class="yes">有（雨量点 + 历史）</td>
+          <td>保留雨量 ⇒ 仍依赖 BDLX（或改接其它雨量源）</td>
+        </tr>
+        <tr>
+          <td>厂商告警列表/颜色</td>
+          <td class="no">文档无</td>
+          <td class="yes">有 <code>/api/alarm/list</code></td>
+          <td>保留告警 ⇒ 仍依赖 BDLX（或改本地阈值告警）</td>
+        </tr>
+        <tr>
+          <td>在线/维护人等运维态</td>
+          <td class="part">文档未强调</td>
+          <td class="yes">点表带 online/maintainer 等</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>免验证码稳定拉取</td>
+          <td class="yes">是</td>
+          <td class="no">否（除非长期注入有效 Token）</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. 接口 URL 对照</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:16%">用途</th>
+          <th>新 GNSS 转发（8088）</th>
+          <th>现 BDLX</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>取验证码</td>
+          <td class="no">—</td>
+          <td><code>GET http://wtapi.jgtop1.com/auth/code</code></td>
+        </tr>
+        <tr>
+          <td>登录</td>
+          <td><code>POST http://47.110.40.155:8088/api/user/login</code></td>
+          <td><code>POST http://wtapi.jgtop1.com/auth/login</code></td>
+        </tr>
+        <tr>
+          <td>点/设备列表</td>
+          <td class="part">无独立文档接口；可用全量位移结果反推 SN</td>
+          <td>
+            <code>GET /api/basicPoint?page=0&amp;size=200</code><br />
+            备选 <code>GET /api/basicPoint/getPoint?page=0&amp;size=200</code>
+          </td>
+        </tr>
+        <tr>
+          <td>单点 GNSS 历史/偏移</td>
+          <td>
+            <code>GET /api/relay-config/getPushDataList</code><br />
+            Query：<code>sn</code>（必填）、<code>beginTimeStr</code>、<code>endTimeStr</code>
+          </td>
+          <td>
+            <code>POST /api/analysis/getHistoryData</code><br />
+            Body：点位/时间窗等（代码 <code>BdlxVendorClient</code>）
+          </td>
+        </tr>
+        <tr>
+          <td>多点 GNSS</td>
+          <td>
+            <code>GET /api/relay-config/getPushDataListMultiDevice</code><br />
+            Query：<code>beginTimeStr</code>、<code>endTimeStr</code>（均可选）
+          </td>
+          <td>遍历点表后多次调历史接口</td>
+        </tr>
+        <tr>
+          <td>告警</td>
+          <td class="no">—</td>
+          <td><code>GET /api/alarm/list?page=0&amp;size=500</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. GNSS 位移字段映射（便于后续接入）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>系统内部（现 BDLX 入库）</th>
+          <th>新 GNSS 转发字段</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>deviceSn</code> / 点映射键</td><td><code>sn</code></td><td>实测 SN 与现配置一致，如 <code>17625038476</code></td></tr>
+        <tr><td><code>x</code></td><td><code>baseX</code></td><td>8088 单位 m → 系统常用 mm 需 ×1000</td></tr>
+        <tr><td><code>y</code></td><td><code>baseY</code></td><td>同上</td></tr>
+        <tr><td><code>h</code></td><td><code>baseZ</code></td><td>同上（Z≈H）</td></tr>
+        <tr><td><code>lon</code> / <code>lat</code></td><td><code>lon</code> / <code>lat</code></td><td>文档称 -1 表示未填</td></tr>
+        <tr><td><code>collectTime</code></td><td><code>dateTime</code></td><td><code>yyyy-MM-dd HH:mm:ss</code></td></tr>
+        <tr><td><code>plane</code> / <code>planeSpeed</code> / <code>planeAcc</code> / <code>azimuth</code> 等</td><td class="no">无对应字段</td><td>需本地计算或继续用 BDLX</td></tr>
+        <tr><td>名称展示</td><td><code>name</code>（实测有）</td><td>如 <code>LRCS25038476(堆石平台)</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2>6. 替换策略对照（决策用）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28%">策略</th>
+          <th>验证码</th>
+          <th>位移</th>
+          <th>雨量</th>
+          <th>告警</th>
+          <th>评价</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A. 全部继续 BDLX</td>
+          <td class="no">仍要</td>
+          <td class="yes">BDLX</td>
+          <td class="yes">BDLX</td>
+          <td class="yes">BDLX</td>
+          <td>现状，能力最全，登录最脆</td>
+        </tr>
+        <tr>
+          <td>B. GNSS→8088，雨量/告警仍 BDLX</td>
+          <td class="no">仍要（为雨量/告警登 BDLX）</td>
+          <td class="yes">8088</td>
+          <td class="yes">BDLX</td>
+          <td class="yes">BDLX</td>
+          <td>位移可免验证码，但整体仍绑 BDLX 登录</td>
+        </tr>
+        <tr>
+          <td>C. GNSS→8088，雨量改环境云等，告警改本地阈值</td>
+          <td class="yes">可去掉 BDLX</td>
+          <td class="yes">8088</td>
+          <td class="part">其它源</td>
+          <td class="part">本地</td>
+          <td>才能真正告别验证码</td>
+        </tr>
+        <tr>
+          <td>D. 仅注入长期 BDLX Token</td>
+          <td class="part">可暂避验证码</td>
+          <td class="yes">BDLX</td>
+          <td class="yes">BDLX</td>
+          <td class="yes">BDLX</td>
+          <td>Token 过期后仍会回到验证码问题</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>7. 调用示例速查</h2>
+    <h3>8088（无验证码）</h3>
+    <pre># 登录
+POST http://47.110.40.155:8088/api/user/login
+Content-Type: application/json
+{"username":"...","password":"&lt;明文密码的Base64&gt;"}
+
+# 全量位移（默认近1小时）
+GET http://47.110.40.155:8088/api/relay-config/getPushDataListMultiDevice
+token: 1234567&lt;login.data.token&gt;
+
+# 单设备
+GET http://47.110.40.155:8088/api/relay-config/getPushDataList?sn=17625038476&amp;beginTimeStr=...&amp;endTimeStr=...
+token: 1234567&lt;login.data.token&gt;</pre>
+
+    <h3>BDLX（需验证码）</h3>
+    <pre># 验证码
+GET http://wtapi.jgtop1.com/auth/code
+
+# 登录（password=RSA，code=算式结果）
+POST http://wtapi.jgtop1.com/auth/login
+{"username":"...","password":"&lt;RSA&gt;","uuid":"...","code":"48","rememberMe":false}
+
+# 点表 / 历史 / 告警
+GET  http://wtapi.jgtop1.com/api/basicPoint?page=0&amp;size=200
+POST http://wtapi.jgtop1.com/api/analysis/getHistoryData
+GET  http://wtapi.jgtop1.com/api/alarm/list?page=0&amp;size=500</pre>
+
+    <p style="color:#8fa3c4;margin-top:28px;">
+      本地路径：
+      <code>docs/GNSS转发8088与BDLX能力对照表.html</code>
+      · 等你指令后再改代码。
+    </p>
+  </div>
+</body>
+</html>

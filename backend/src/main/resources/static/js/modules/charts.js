@@ -79,7 +79,14 @@ const axisStyle = {
 /** 雨量独立趋势：取近期点，过密时抽样，避免折线糊成一团 */
 export function renderRainTrend(rainfall) {
   if (!rainfall) return;
+  const el = document.getElementById('chart-rain-trend');
+  if (!el) return;
   const raw = Array.isArray(rainfall.series) ? rainfall.series : [];
+  if (!raw.length) {
+    disposeChart('chart-rain-trend');
+    el.innerHTML = '<div class="panel-chart-empty">暂无雨量趋势（等待历史采样）</div>';
+    return;
+  }
   const maxPts = 48;
   const step = raw.length > maxPts ? Math.ceil(raw.length / maxPts) : 1;
   const series = raw.filter((_, i) => i % step === 0 || i === raw.length - 1);
@@ -120,9 +127,16 @@ export function renderRainTrend(rainfall) {
 
 export function renderSlopeTrend(point) {
   if (!point) return;
+  const el = document.getElementById('chart-slope-trend');
+  if (!el) return;
   const maxPts = 24;
   const series = Array.isArray(point.series) ? point.series : [];
   const short = series.length > maxPts ? series.slice(-maxPts) : series;
+  if (!short.length) {
+    disposeChart('chart-slope-trend');
+    el.innerHTML = '<div class="panel-chart-empty">暂无位移短历史</div>';
+    return;
+  }
   const times = short.map((s) => (s.t || '').slice(5, 16));
   ensureChart('chart-slope-trend', {
     backgroundColor: 'transparent',
@@ -452,6 +466,9 @@ function metricName(key) {
     pm25: 'PM2.5',
     pm10: 'PM10',
     dust: '粉尘',
+    pressure: '气压',
+    windSpeed: '风速',
+    windDirection: '风向',
   };
   return map[key] || key;
 }
@@ -459,8 +476,8 @@ function metricName(key) {
 export function renderPopupEnvHistory(domId, point) {
   if (!point) return;
   const hist = Array.isArray(point.history) ? point.history : [];
-  const keys = ['noise', 'pm10', 'pm25', 'dust'].filter((k) =>
-    hist.some((h) => h[k] != null)
+  const keys = ['noise', 'pm10', 'pm25', 'dust', 'temperature', 'humidity', 'windSpeed'].filter(
+    (k) => hist.some((h) => h[k] != null)
   );
   ensureChart(domId, {
     backgroundColor: 'transparent',

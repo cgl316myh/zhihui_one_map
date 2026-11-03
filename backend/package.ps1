@@ -71,7 +71,8 @@ if ($SetVersion) {
 
 if ($newVersion -ne $oldVersion) {
   $pom = Set-ProjectVersion $pom $newVersion
-  Set-Content -LiteralPath $PomPath -Value $pom -Encoding UTF8 -NoNewline
+  $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+  [IO.File]::WriteAllText($PomPath, $pom, $utf8NoBom)
   # 同步 Java 默认回退版本（仅注释/缺省配置用）
   $appInfo = Join-Path $BackendRoot "src\main\java\com\anr\mineonemap\dashboard\AppInfoController.java"
   if (Test-Path -LiteralPath $appInfo) {
@@ -82,7 +83,7 @@ if ($newVersion -ne $oldVersion) {
       "@Value(`"`${mine.app.version:$newVersion}`")"
     )
     if ($java2 -ne $java) {
-      Set-Content -LiteralPath $appInfo -Value $java2 -Encoding UTF8 -NoNewline
+      [IO.File]::WriteAllText($appInfo, $java2, $utf8NoBom)
     }
   }
   Write-Host "VERSION $oldVersion -> $newVersion" -ForegroundColor Cyan

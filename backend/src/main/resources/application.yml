@@ -60,6 +60,13 @@ mine:
     token: ${FTENV_TOKEN:}
     cron: ${FTENV_CRON:0 18 * * * *}
     lookback-hours: ${FTENV_LOOKBACK_HOURS:168}
+  # 与 EnvRetentionCleaner（每天 03:10）联动：先 pg_dump 再清 3 个月以外时序
+  db-backup:
+    enabled: ${DB_BACKUP_ENABLED:true}
+    dir: ${DB_BACKUP_DIR:D:/MineOneMap/backup/db}
+    pg-dump: ${DB_BACKUP_PG_DUMP:}
+    keep-days: ${DB_BACKUP_KEEP_DAYS:14}
+    timeout-sec: ${DB_BACKUP_TIMEOUT_SEC:600}
   cors:
     allowed-origins:
       - http://127.0.0.1:5174
