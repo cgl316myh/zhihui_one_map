@@ -512,7 +512,6 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
         <div class="slope-pop-meta">
           <span class="${p.online === false ? 'is-off' : 'is-on'}">${online}</span>
           <span>维护 ${escapeHtml(p.maintainer || '—')}</span>
-          ${p.cleared ? '<span class="slope-cleared">已消警</span>' : ''}
         </div>
         <div class="slope-metric-grid">
           <div class="slope-metric"><em>X</em><b>${fmt(p.x)}</b><i>${unit}</i></div>

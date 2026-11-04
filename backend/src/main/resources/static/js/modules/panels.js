@@ -293,12 +293,11 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
           .map((p) => {
             const active = focus && p.id === focus.id ? 'active' : '';
             const th = p.threshold || {};
-            const cleared = p.cleared ? `<span class="cleared-tag">已消警</span>` : '';
             return `
         <button type="button" class="slope-item ${statusClass(p.status)} ${active}" data-slope-id="${p.id}">
           <div class="metric-head">
             <strong>${p.name}</strong>
-            <em class="${statusClass(p.status)}">${statusText(p.status)}${cleared}</em>
+            <em class="${statusClass(p.status)}">${statusText(p.status)}</em>
           </div>
           <div class="xyz">
             <span>X <b>${fmtNum(p.x)}</b></span>
