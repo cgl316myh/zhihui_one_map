@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>矿区储量数据获取与计算说明 · 智慧矿山一张图</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --line: #2a3b55;
+      --text: #e6eefc;
+      --muted: #9fb0c9;
+      --accent: #3dd6ff;
+      --ok: #2ee6a6;
+      --warn: #ffc857;
+      --code: #0a1524;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #10182a, var(--bg));
+      color: var(--text);
+      line-height: 1.55;
+      padding: 24px;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; color: var(--accent); }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+    h3 { margin: 16px 0 8px; font-size: 15px; color: #cfe9ff; }
+    .sub { color: var(--muted); margin-bottom: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .tag.ok { color: var(--ok); border-color: rgba(46,230,166,.45); }
+    .tag.warn { color: var(--warn); border-color: rgba(255,200,87,.45); }
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+    }
+    pre {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 8px 0 0;
+      color: #d7e7ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #0e1728; color: #cfe9ff; white-space: nowrap; }
+    td.num { font-variant-numeric: tabular-nums; text-align: right; }
+    ul, ol { margin: 8px 0; padding-left: 1.25em; color: var(--muted); }
+    li { margin: 4px 0; }
+    a { color: var(--accent); }
+    .formula {
+      font-size: 14px;
+      color: #cfe9ff;
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 8px 0;
+    }
+    .flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .flow-step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .flow-step b {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(61,214,255,.15);
+      color: var(--accent);
+      font-size: 13px;
+    }
+    .note { color: var(--muted); font-size: 13px; margin: 0; }
+    footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>矿区储量数据获取与计算说明</h1>
+    <p class="sub">
+      安宁隆瑞混凝土有限责任公司采石场 · 智慧矿山一张图「矿区储量分析」面板<br />
+      对应大屏区块：服务年限 / 可采储量 / 剩余可采 / 全矿回采率 / 采区回采率表
+    </p>
+    <div class="meta">
+      <span class="tag ok">单位：万吨</span>
+      <span class="tag">基准时点：2025-12-31</span>
+      <span class="tag">计算模块：js/modules/reserves.js</span>
+      <span class="tag warn">录入在管理后台；大屏只读派生结果</span>
+    </div>
+
+    <h2>一、数据如何获取（从年报到大屏）</h2>
+    <div class="card">
+      <p class="note">储量<strong>不是</strong>传感器实时采集，而是由矿山储量年度报告整理后，经后台配置入库，前端按固定公式派生展示。</p>
+      <div class="flow">
+        <div class="flow-step">
+          <b>1</b>
+          <div>
+            <strong>官方年报</strong>
+            <div class="note">《安宁隆瑞混凝土有限责任公司采石场 2025 年矿山储量年度报告》，统计截止日 2025-12-31。报告原始单位为<strong>千吨</strong>。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <b>2</b>
+          <div>
+            <strong>种子 / 默认配置</strong>
+            <div class="note">换算为万吨（÷10）后写入 <code>src/backend/src/main/resources/seed/cfg_reserves.json</code>；库表 <code>cfg_reserves</code> 为空或缺 2025 数据时由 <code>DataInitializer</code> 导入/覆盖。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <b>3</b>
+          <div>
+            <strong>数据库与接口</strong>
+            <div class="note">运行时真源为 PostgreSQL 表 <code>cfg_reserves.payload</code>（JSON）。大屏：<code>GET /api/reserves</code>；管理端：<code>GET/PUT /api/admin/reserves</code>。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <b>4</b>
+          <div>
+            <strong>前端派生计算</strong>
+            <div class="note"><code>reserves.js</code> 的 <code>computeReservesDerived()</code> 根据录入字段重算可采储量、剩余、服务天数、采区/全矿回采率；<code>panels.js</code> 的 <code>renderReserves()</code> 渲染截图中的 KPI 与表格。</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <b>5</b>
+          <div>
+            <strong>人工维护</strong>
+            <div class="note">管理后台 →「储量参数」可改评估利用、回采率、已采出、日均采出、采区行等；保存后写入库表，大屏刷新可见。API 模式下不以浏览器 localStorage 为准。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>二、大屏各指标如何计算</h2>
+
+    <div class="card">
+      <h3>1. 可采储量</h3>
+      <div class="formula">可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率</div>
+      <pre>9677.26 × 1.0 × 0.95 = 9193.397 → 展示 9193.4 万吨</pre>
+      <ul>
+        <li><strong>评估利用资源储量</strong>（<code>assessedUtilizedReserve</code>）：对齐年报「保有资源量 / 控制资源量」。年报 96772.59 千吨 → 系统 9677.26 万吨。</li>
+        <li><strong>设计回采率</strong>（<code>designRecoveryRate</code>）：对齐年报「可信系数」，当前 <code>1.0</code>（100%）。</li>
+        <li><strong>采矿回采率</strong>（<code>miningRecoveryRate</code>）：对齐年报回采率，当前 <code>0.95</code>（95%）。</li>
+        <li>年报「可信储量」口径：保有 × 可信系数 × 回采率；与上式一致（91926.51 千吨 ≈ 9192.65 万吨，与系统四舍五入到 2 位后的 9193.4 同量级）。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>2. 剩余可采</h3>
+      <div class="formula">剩余可采 = 可采储量 − 累计已采出</div>
+      <pre>9193.4 − 0 = 9193.4 万吨</pre>
+      <ul>
+        <li>当前台账以<strong>截止 2025-12-31 的保有/可信储量</strong>为起点，<code>mined = 0</code>，故剩余可采 = 可采储量。</li>
+        <li>投产后续计采出后，在后台更新「累计已采出」即可压低剩余可采。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>3. 服务年限与预计天数</h3>
+      <div class="formula">预计剩余天数 = round(剩余可采 ÷ 日均采出)　（日均 &gt; 0）</div>
+      <div class="formula">服务年限（年）= 预计剩余天数 ÷ 365　（保留 1 位小数）</div>
+      <pre>日均采出 avgDailyMined = 0.389 万吨/天
+  （按 2025 年开采量 141.98 万吨 ÷ 365 ≈ 0.389）
+
+剩余天数 = round(9193.4 / 0.389) = 23633 天
+服务年限 ≈ 23633 / 365 ≈ 64.7 年</pre>
+      <ul>
+        <li>预警阈值 <code>warningYears</code> 默认 3 年；服务年限 ≤ 预警时大屏改警示文案。</li>
+        <li>截图中「服务年限约 64.7 年（预警阈值 3 年）」即由此得到。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>4. 采区回采率（表）</h3>
+      <div class="formula">采区回采率 = 采出量 ÷ 动用储量</div>
+      <p class="note">「采区」行默认是<strong>年度采剥汇总</strong>（年报年度开采/动用），不是 GIS 空间采区边界。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>采区名称</th>
+            <th>采出 output</th>
+            <th>动用 activatedReserve</th>
+            <th>回采率</th>
+            <th>年报原值（千吨）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2025年度采剥区</td>
+            <td class="num">141.98</td>
+            <td class="num">148.67</td>
+            <td class="num">141.98 / 148.67 ≈ 95.5%</td>
+            <td class="num">1419.83 / 1486.73</td>
+          </tr>
+          <tr>
+            <td>2024年度采剥区</td>
+            <td class="num">94.42</td>
+            <td class="num">99.39</td>
+            <td class="num">94.42 / 99.39 ≈ 95.0%</td>
+            <td class="num">944.16 / 993.85</td>
+          </tr>
+          <tr>
+            <td>2023年度采剥区</td>
+            <td class="num">189.68</td>
+            <td class="num">199.66</td>
+            <td class="num">189.68 / 199.66 ≈ 95.0%</td>
+            <td class="num">1896.76 / 1996.59</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>5. 全矿回采率（按采出量加权）</h3>
+      <div class="formula">全矿回采率 = Σ(采区回采率 × 采区采出量) ÷ Σ(采区采出量)</div>
+      <pre>分子 = 0.955×141.98 + 0.95×94.42 + 0.95×189.68
+分母 = 141.98 + 94.42 + 189.68 = 426.08
+全矿回采率 ≈ 95.2%（大屏展示 mineRecoveryRatePct）</pre>
+      <p class="note">注意：全矿回采率来自采区表加权，<strong>不是</strong>直接用采矿回采率 95.0%；因 2025 行 95.5% 权重拉高后约为 95.2%。</p>
+    </div>
+
+    <h2>三、年报字段对照（千吨 → 万吨）</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>系统字段</th>
+            <th>年报含义</th>
+            <th>年报原值（千吨）</th>
+            <th>系统取值（万吨）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>assessedUtilizedReserve</code></td>
+            <td>保有资源量</td>
+            <td class="num">96772.59</td>
+            <td class="num">9677.26</td>
+          </tr>
+          <tr>
+            <td><code>designRecoveryRate</code></td>
+            <td>可信系数</td>
+            <td class="num">—</td>
+            <td class="num">1.00</td>
+          </tr>
+          <tr>
+            <td><code>miningRecoveryRate</code></td>
+            <td>回采率 95%</td>
+            <td class="num">—</td>
+            <td class="num">0.95</td>
+          </tr>
+          <tr>
+            <td><code>recoverableReserve</code>（派生）</td>
+            <td>可信储量</td>
+            <td class="num">91926.51</td>
+            <td class="num">≈9193.4（系统推算）</td>
+          </tr>
+          <tr>
+            <td><code>mined</code></td>
+            <td>台账累计已采出（相对当前保有基准）</td>
+            <td class="num">—</td>
+            <td class="num">0</td>
+          </tr>
+          <tr>
+            <td><code>avgDailyMined</code></td>
+            <td>2025 开采量 ÷ 365</td>
+            <td class="num">1419.83 / 年</td>
+            <td class="num">0.389</td>
+          </tr>
+          <tr>
+            <td><code>warningYears</code></td>
+            <td>服务年限预警阈值</td>
+            <td class="num">—</td>
+            <td class="num">3</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:10px">
+        完整快照见配置 JSON 中的 <code>reportSnapshot</code>、<code>dataBasis</code>；
+        种子文件：<code>seed/cfg_reserves.json</code>。
+      </p>
+    </div>
+
+    <h2>四、代码位置速查</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>环节</th><th>路径</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>公式实现</td>
+            <td><code>src/backend/.../static/js/modules/reserves.js</code> → <code>computeReservesDerived</code></td>
+          </tr>
+          <tr>
+            <td>大屏渲染</td>
+            <td><code>.../static/js/modules/panels.js</code> → <code>renderReserves</code></td>
+          </tr>
+          <tr>
+            <td>管理端录入</td>
+            <td><code>.../static/js/admin.js</code>（储量参数面板）</td>
+          </tr>
+          <tr>
+            <td>大屏 API</td>
+            <td><code>DashboardController</code> → <code>GET /api/reserves</code></td>
+          </tr>
+          <tr>
+            <td>管理 API</td>
+            <td><code>ReservesAdminController</code> → <code>/api/admin/reserves</code></td>
+          </tr>
+          <tr>
+            <td>库表</td>
+            <td><code>cfg_reserves</code>（JSON payload）</td>
+          </tr>
+          <tr>
+            <td>默认种子</td>
+            <td><code>src/backend/src/main/resources/seed/cfg_reserves.json</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>五、维护注意</h2>
+    <div class="card">
+      <ol>
+        <li>取得新年度矿山储量报告后：更新保有资源量、采区采出/动用、日均采出，并同步 <code>reportSnapshot</code>。</li>
+        <li>「累计已采出」相对<strong>当前保有基准日</strong>记账；换新年报基准后通常重置为 0，再按生产台账累加。</li>
+        <li>趋势曲线 / 日采出日历多为示意插值，便于大屏展示，不能当作独立勘探成果。</li>
+        <li>管理端 PUT 会保护库中已有 2025 采区与年报快照，避免旧客户端误覆盖（见 <code>protectYear2025</code>）。</li>
+      </ol>
+    </div>
+
+    <footer>
+      文档对照大屏「矿区储量分析」与 seed/cfg_reserves.json（2025 年报）· 整理于 2026-03-11 ·
+      主文档见 <code>docs/储量计算方法与数据来源.html</code>
+    </footer>
+  </div>
+</body>
+</html>

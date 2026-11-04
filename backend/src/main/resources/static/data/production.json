@@ -1,0 +1,59 @@
+{
+  "updatedAt": "2026-07-29T21:00:00+08:00",
+  "lines": [
+    {
+      "id": "CRUSH",
+      "name": "破碎工段",
+      "status": "running",
+      "devices": [
+        {
+          "id": "C-01",
+          "name": "粗碎机",
+          "status": "running",
+          "sensorSim": { "currentA": 186, "bearingTemp": 52.3, "freqHz": 48.5 }
+        },
+        {
+          "id": "C-02",
+          "name": "细碎机",
+          "status": "running",
+          "sensorSim": { "currentA": 142, "bearingTemp": 49.8, "freqHz": 47.2 }
+        }
+      ]
+    },
+    {
+      "id": "SCREEN",
+      "name": "筛分工段",
+      "status": "warn",
+      "devices": [
+        { "id": "S-01", "name": "振动筛", "status": "running", "vibrateHz": 16.2, "flowTph": 186 },
+        { "id": "B-01", "name": "1# 皮带", "status": "warn", "speedRpm": 118, "alarm": "轻微跑偏" },
+        { "id": "B-02", "name": "2# 皮带", "status": "running", "speedRpm": 122, "alarm": null }
+      ]
+    }
+  ],
+  "mapSpots": [
+    {
+      "id": "CRUSH",
+      "name": "破碎工段",
+      "lng": 102.44635,
+      "lat": 24.78515,
+      "status": "running"
+    },
+    {
+      "id": "SCREEN",
+      "name": "筛分工段",
+      "lng": 102.44685,
+      "lat": 24.78575,
+      "status": "warn"
+    }
+  ],
+  "processFlow": [
+    { "id": "DIG", "name": "采掘", "bind": "CRUSH" },
+    { "id": "HAUL", "name": "运输", "bind": "CRUSH" },
+    { "id": "COARSE", "name": "粗碎", "bindDevice": "C-01", "bind": "CRUSH" },
+    { "id": "FINE", "name": "中细碎", "bindDevice": "C-02", "bind": "CRUSH" },
+    { "id": "SCREEN", "name": "振动筛分", "bind": "SCREEN" },
+    { "id": "SILO", "name": "成品料仓", "bind": "SCREEN" }
+  ],
+  "processNote": "采掘 → 运输 → 粗碎 → 中细碎 → 振动筛分 → 成品料仓"
+}

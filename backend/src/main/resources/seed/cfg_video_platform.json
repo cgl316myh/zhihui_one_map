@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "provider": "hikvision",
+  "hikvision": {
+    "host": "",
+    "rtspPort": 554,
+    "username": "admin",
+    "password": ""
+  },
+  "hls": {
+    "fallbackUrl": ""
+  },
+  "zlm": {
+    "baseUrl": "http://127.0.0.1:8080",
+    "publicBaseUrl": "",
+    "secret": ""
+  }
+}

@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/zhihui_one_map
+    username: postgres
+    password: suhuanAdmin0!
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    time-zone: Asia/Shanghai
+
+# 本机 IIS 常占 8080、GeoServer 常占 8081，开发默认改用 8082
+server:
+  port: ${SERVER_PORT:8082}
+
+logging:
+  level:
+    com.anr.mineonemap: DEBUG
+    org.springframework.security: INFO
+
+mine:
+  bdlx:
+    username: ${BDLX_USERNAME:15925118626}
+    password: ${BDLX_PASSWORD:228218494@qq.com}
+  ftenv:
+    username: ${FTENV_USERNAME:26072811ZXZ@ft.com}
+    password: ${FTENV_PASSWORD:123456}

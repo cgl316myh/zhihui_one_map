@@ -1,0 +1,10 @@
+-- 边坡云平台登录信息可在管理后台查看/修改（写入 cfg_bdlx_pull）
+
+ALTER TABLE cfg_bdlx_pull
+    ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS web_url VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS api_base VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS username VARCHAR(128),
+    ADD COLUMN IF NOT EXISTS password VARCHAR(256),
+    ADD COLUMN IF NOT EXISTS cron VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS lookback_hours INT;

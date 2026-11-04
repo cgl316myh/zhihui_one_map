@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "layers": [
+    {
+      "id": "kuangjie_line",
+      "name": "矿界（线）",
+      "group": "矿业权",
+      "url": "/data/cad/kuangjie_line.geojson",
+      "geom": "line",
+      "enabled": true,
+      "defaultOn": true,
+      "order": 10,
+      "zIndex": 450,
+      "style": {
+        "color": "#e74c3c",
+        "weight": 3,
+        "opacity": 0.95
+      },
+      "popupFields": ["Text", "Name", "Layer"]
+    },
+    {
+      "id": "kuangjie_point",
+      "name": "矿界（点）",
+      "group": "矿业权",
+      "url": "/data/cad/kuangjie_point.geojson",
+      "geom": "point",
+      "enabled": true,
+      "defaultOn": true,
+      "order": 20,
+      "zIndex": 460,
+      "showLabels": true,
+      "style": {
+        "radius": 7,
+        "color": "#16a34a",
+        "fillColor": "#22c55e",
+        "weight": 2,
+        "opacity": 1,
+        "fillOpacity": 0.9
+      },
+      "popupFields": ["Text", "Name", "Layer"]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "updatedAt": "2026-07-21T10:00:00+08:00",
+  "note": "演示阈值：昼 06:00–22:00，夜其余时段。将来由 Spring Boot + PG 承接。",
+  "dayHours": [6, 22],
+  "day": {
+    "noise": { "warn": 65, "alarm": 75, "unit": "dB" },
+    "pm25": { "warn": 55, "alarm": 75, "unit": "μg/m³" },
+    "pm10": { "warn": 80, "alarm": 150, "unit": "μg/m³" },
+    "dust": { "warn": 1.5, "alarm": 3.0, "unit": "mg/m³" }
+  },
+  "night": {
+    "noise": { "warn": 55, "alarm": 65, "unit": "dB" },
+    "pm25": { "warn": 45, "alarm": 65, "unit": "μg/m³" },
+    "pm10": { "warn": 70, "alarm": 120, "unit": "μg/m³" },
+    "dust": { "warn": 1.0, "alarm": 2.0, "unit": "mg/m³" }
+  }
+}

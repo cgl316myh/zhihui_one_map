@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>边坡数据：定时拉取 → MQTT 订阅 · 改造评估</title>
+  <style>
+    :root {
+      --bg: #0b1220; --border: rgba(80,140,220,.22); --text: #e8f0ff;
+      --muted: #8fa3c4; --ok: #2ee6a6; --warn: #ffc857; --bad: #ff7b72; --info: #3dd6ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI","Microsoft YaHei",sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 28px 20px 72px; }
+    h1 { margin: 0 0 8px; font-size: 22px; color: var(--info); }
+    h2 { margin: 28px 0 12px; font-size: 17px; border-left: 4px solid var(--info); padding-left: 10px; }
+    h3 { margin: 16px 0 8px; font-size: 14px; color: #c9dcff; }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+    .banner, .note { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin: 12px 0 18px; color: #c5d4ec; }
+    .banner { background: linear-gradient(135deg, rgba(61,214,255,.12), rgba(110,168,254,.08)); }
+    .note { background: rgba(255,200,87,.06); border-color: rgba(255,200,87,.35); color: #ffe6b0; }
+    p, li { color: #c5d4ec; }
+    code { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: Consolas,monospace; font-size: .9em; color: #b8d4ff; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 16px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: rgba(61,214,255,.08); color: #cfe8ff; }
+    .s { color: var(--ok); font-weight: 600; }
+    .m { color: var(--warn); font-weight: 600; }
+    .l { color: var(--bad); font-weight: 600; }
+    ol.steps li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>边坡数据：定时拉取 → MQTT 订阅 · 改造评估</h1>
+    <div class="meta">2026-11-01 · 仅评估，未改业务代码 · 基于现网 BDLX 小时拉取 + 已有 MQTT 接入骨架</div>
+
+    <div class="banner">
+      <strong>结论先看：</strong>若厂商已按现有入模字段往 MQTT 推 GNSS（尤其 <code>sn/baseX/baseY/baseZ/dateTime</code>），
+      对本系统而言改动属 <span class="s">小～中</span>——订阅与落库链路<strong>已经存在</strong>。
+      若还要求「完全替代 BDLX」的雨量、告警、长历史回补、派生量与现网逐字段一致，则升到 <span class="m">中</span>～<span class="l">大</span>，且很大一块取决于<strong>对方是否提供 MQTT 主题与报文</strong>，不在我们代码里。
+    </div>
+
+    <h2>1. 现状（As-Is）</h2>
+    <table>
+      <thead><tr><th>路径</th><th>机制</th><th>写入</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>主路径：BDLX 定时拉</td>
+          <td><code>BdlxPullScheduler</code> 启动约 25s + cron 每小时</td>
+          <td><code>biz_slope_latest</code> / <code>ts_slope_sample</code> + 内存 GNSS</td>
+          <td>含点表、历史、雨量、告警；登录常要验证码</td>
+        </tr>
+        <tr>
+          <td>旁路：MQTT 订阅</td>
+          <td><code>MqttIngestService</code> → <code>SensorPayloadIngestor</code></td>
+          <td>同类 latest/时序表 + 内存</td>
+          <td>已识别 GNSS（含乙方 <code>baseX/Y/Z</code>）与雨量 Topic（如 <code>…/YK</code>）</td>
+        </tr>
+        <tr>
+          <td>大屏读数</td>
+          <td><code>GET /api/slope</code> 读内存最新值 + 短历史</td>
+          <td>—</td>
+          <td>与拉取/推送来源解耦；前端轮询即可，不必为 MQTT 改大屏协议</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 目标（To-Be）几种口径</h2>
+    <table>
+      <thead><tr><th>口径</th><th>含义</th><th>改动量</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>A. 仅位移改 MQTT</td>
+          <td>GNSS 最新值以订阅为准；BDLX 可关或降级为兜底</td>
+          <td class="s">小～中</td>
+        </tr>
+        <tr>
+          <td>B. 位移 MQTT + 派生量本地算</td>
+          <td>平面/速率/加速度/方位由时序计算</td>
+          <td class="m">中</td>
+        </tr>
+        <tr>
+          <td>C. 完全去掉 BDLX</td>
+          <td>雨量、告警也改推送或其它源 + 本地阈值</td>
+          <td class="l">大（多源协同）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      前置条件（决定能不能做、做多大）：对方是否提供 Broker 地址、账号、Topic、QoS、报文 JSON 样例、推送频率、断线重连与补传策略。
+      若对方<strong>没有 MQTT</strong>，只有 HTTP（如 8088），则「改成 MQTT」本身不成立，应评估「改成 8088 定时/按需拉」——那是另一条方案。
+    </div>
+
+    <h2>3. 对本仓库的改动面（按模块）</h2>
+    <table>
+      <thead><tr><th>模块</th><th>是否已有基础</th><th>若上 MQTT 主路径还要做什么</th><th>规模</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>MQTT 连接/订阅</td>
+          <td class="s">已有</td>
+          <td>改配置：host/port/topic(s)/账号；确认通达与 ACL</td>
+          <td class="s">配置级</td>
+        </tr>
+        <tr>
+          <td>报文归一化入库</td>
+          <td class="s">已有（兼容 baseX/Y/Z）</td>
+          <td>核对单位（m→mm）、字段别名、Topic 分流规则；必要时小幅改 <code>SensorPayloadIngestor</code></td>
+          <td class="s">小</td>
+        </tr>
+        <tr>
+          <td>大屏 API / 前端</td>
+          <td class="s">读内存，无关推拉</td>
+          <td>一般不用改；最多状态文案「MQTT 实时」</td>
+          <td class="s">极小</td>
+        </tr>
+        <tr>
+          <td>关闭/降级 BDLX 小时拉</td>
+          <td>开关已有 <code>mine.bdlx.enabled</code></td>
+          <td>策略：双写观察期 → 再关；保留手工「立即拉取」作急救</td>
+          <td class="s">小</td>
+        </tr>
+        <tr>
+          <td>派生量（平面/速率等）</td>
+          <td class="m">MQTT 路径通常只落原始位移</td>
+          <td>新增计算或入库后处理；对齐现弹窗字段</td>
+          <td class="m">中</td>
+        </tr>
+        <tr>
+          <td>断流兜底 / 历史回补</td>
+          <td>定时拉天生能回补</td>
+          <td>MQTT 静默时：告警 + 可选短周期 HTTP 补拉（8088 或 BDLX）</td>
+          <td class="m">中</td>
+        </tr>
+        <tr>
+          <td>雨量 / 厂商告警</td>
+          <td>现绑 BDLX</td>
+          <td>另接 Topic 或其它 API；告警可改本地阈值</td>
+          <td class="l">大（若要坚持去掉 BDLX）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. 工作量粗估（人天，含联调）</h2>
+    <table>
+      <thead><tr><th>范围</th><th>条件</th><th>估时</th><th>风险</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>试点：开 MQTT 收 GNSS，与 BDLX 双跑对比</td>
+          <td>对方 Topic/样例齐备，字段接近现入模</td>
+          <td>1～3 人日</td>
+          <td>低：可随时退回纯 BDLX</td>
+        </tr>
+        <tr>
+          <td>MQTT 为主，BDLX 仅兜底/关停位移拉</td>
+          <td>推送稳定 ≥1～2 周</td>
+          <td>再 +2～5 人日（监控、补拉、单位/符号校准）</td>
+          <td>中：断流空洞</td>
+        </tr>
+        <tr>
+          <td>补齐派生量 + 本地告警阈值</td>
+          <td>产品确认算法与阈值</td>
+          <td>+3～7 人日</td>
+          <td>中：与 BDLX 数值不完全一致</td>
+        </tr>
+        <tr>
+          <td>雨量也迁走 + 彻底关 BDLX</td>
+          <td>雨量另有可靠源</td>
+          <td>+5～10 人日级（含验收）</td>
+          <td>高：多源一致性与运维</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. 风险与依赖</h2>
+    <ul>
+      <li><strong>外部依赖最大：</strong>没有 MQTT 推送就谈不上「改成订阅」；8088 目前是 HTTP 文档，不等于已有 MQTT。</li>
+      <li><strong>静默风险：</strong>订阅模式下设备不推或网络断，大屏会停在旧值；需心跳/超时离线与补拉策略。</li>
+      <li><strong>历史空洞：</strong>MQTT 通常只给「当前点」；长历史仍要 HTTP 区间查询或库内已存时序。</li>
+      <li><strong>验证码：</strong>仅位移走 MQTT 且关掉 BDLX 位移拉，可减少验证码；若雨量/告警仍走 BDLX，验证码问题仍在。</li>
+      <li><strong>Clean Session / 持久会话：</strong>现客户端 <code>cleanSession=true</code>，断线期间消息可能丢，需与厂商约定 QoS 与补传。</li>
+    </ul>
+
+    <h2>6. 推荐实施步骤（方案）</h2>
+    <ol class="steps">
+      <li><strong>澄清来源：</strong>向厂商确认边坡 GNSS 是否已有 MQTT；拿到 Broker、Topic、样例 JSON、频率。若无，改评估「8088 HTTP 拉」而非 MQTT。</li>
+      <li><strong>对照报文：</strong>与 <code>SensorPayloadIngestor</code> 字段表对齐（sn、baseX/Y/Z 或 x/y/h、时间、单位）。</li>
+      <li><strong>双跑试点：</strong>配置订阅，BDLX 仍开；对比同 SN 最新值与时序差异。</li>
+      <li><strong>定主备：</strong>MQTT 为主后，BDLX 降为「超时未更新则拉一次」或关闭位移部分。</li>
+      <li><strong>按需增强：</strong>本地算平面/速率；告警改阈值；雨量另源——再决定能否关 BDLX。</li>
+      <li><strong>验收：</strong>断网恢复、夜间静默、重启 warmup、大屏弹窗字段完整性。</li>
+    </ol>
+
+    <h2>7. 和「改用 8088 HTTP」的对比（便于选型）</h2>
+    <table>
+      <thead><tr><th>维度</th><th>MQTT 订阅</th><th>8088 HTTP（定时/按需）</th></tr></thead>
+      <tbody>
+        <tr><td>验证码</td><td>不涉及（若不再登 BDLX）</td><td>登录无验证码，token ~8h 续登</td></tr>
+        <tr><td>本仓库基础</td><td>订阅与 GNSS 入模已有</td><td>需新写/扩拉取客户端（中小改动）</td></tr>
+        <tr><td>实时性</td><td>推送即时</td><td>取决于拉周期</td></tr>
+        <tr><td>历史回补</td><td>弱（除非另有补传）</td><td>文档支持时间窗查询，更强</td></tr>
+        <tr><td>前提</td><td>必须有人推 MQTT</td><td>文档与账号已具备，可立即联调</td></tr>
+      </tbody>
+    </table>
+
+    <p style="color:#8fa3c4;margin-top:28px;">
+      本地路径：<code>docs/边坡数据MQTT订阅改造评估.html</code>
+    </p>
+  </div>
+</body>
+</html>

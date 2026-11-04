@@ -1,0 +1,33 @@
+{
+  "updatedAt": "2026-08-13T00:00:00+08:00",
+  "note": "静态兜底；正式配置以管理后台 / 数据库为准。password 勿写入仓库。",
+  "http": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 5173,
+    "pushPath": "/api/push",
+    "staticDir": "../frontend"
+  },
+  "tcp": {
+    "enabled": false,
+    "host": "0.0.0.0",
+    "port": 9000,
+    "frameHint": "JSON 行 / 长度前缀（预留）"
+  },
+  "mqtt": {
+    "enabled": true,
+    "host": "121.196.215.170",
+    "port": 1883,
+    "username": "admin",
+    "password": "",
+    "clientId": "mine-onemap-api",
+    "topic": "",
+    "topics": [
+      "$iot/an20260811/gnss",
+      "$iot/an20260811/YK"
+    ],
+    "keepalive": 60,
+    "reconnectDelaySec": 30
+  },
+  "pollHintSec": 30
+}

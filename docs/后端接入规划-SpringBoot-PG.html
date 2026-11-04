@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>后端接入规划 · Spring Boot + MyBatis + PostgreSQL</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --line: #2a3b55;
+      --text: #e6eefc;
+      --muted: #9fb0c9;
+      --accent: #3dd6ff;
+      --ok: #2ee6a6;
+      --warn: #ffc857;
+      --code: #0a1524;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #10182a, var(--bg));
+      color: var(--text);
+      line-height: 1.55;
+      padding: 24px;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; color: var(--accent); }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+    h3 { margin: 16px 0 8px; font-size: 15px; color: #cfe9ff; }
+    .sub { color: var(--muted); margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .tag.ok { color: var(--ok); border-color: rgba(46,230,166,.45); }
+    .tag.warn { color: var(--warn); border-color: rgba(255,200,87,.45); }
+    .tag.method {
+      color: #061018;
+      background: var(--ok);
+      border-color: transparent;
+      font-weight: 700;
+    }
+    .tag.post { background: var(--warn); }
+    .tag.put { background: #7eb6ff; color: #061018; }
+    .tag.delete { background: #ff6b7a; color: #061018; }
+    .tag.path { color: var(--accent); border-color: rgba(61,214,255,.35); }
+    .tag.role { color: #cfe9ff; border-color: rgba(207,233,255,.35); }
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+    }
+    pre {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 8px 0 0;
+      color: #d7e7ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: rgba(61,214,255,.08); color: var(--accent); }
+    a { color: var(--accent); }
+    .note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .toc a { display: inline-block; margin: 0 10px 8px 0; }
+    ul { margin: 8px 0; padding-left: 1.25em; color: var(--muted); }
+    ul li { margin: 4px 0; }
+    ol { margin: 8px 0; padding-left: 1.25em; color: var(--muted); }
+    ol li { margin: 6px 0; }
+    .flow {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #d7e7ff;
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre;
+    }
+    footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>后端接入规划 · Spring Boot + MyBatis + PostgreSQL</h1>
+    <p class="sub">
+      安宁隆瑞混凝土有限责任公司采石场 · 智慧矿山一张图<br />
+      本文档为<strong>架构规划</strong>，描述如何将当前「前端 localStorage + 静态 JSON + Python sensor_bridge」演进为服务端权威数据源。落地工程需另行确认执行。
+    </p>
+    <div class="meta">
+      <span class="tag ok">Java 17</span>
+      <span class="tag ok">Spring Boot 3.x</span>
+      <span class="tag ok">MyBatis</span>
+      <span class="tag ok">PostgreSQL</span>
+      <span class="tag warn">JWT Bearer</span>
+      <span class="tag">分阶段接入</span>
+      <span class="tag">文档版本 2026-08-01</span>
+    </div>
+
+    <div class="card toc">
+      <strong>目录</strong><br />
+      <a href="#s1">1. 目标与范围</a>
+      <a href="#s1b">1.1 PostgreSQL 连接约定</a>
+      <a href="#s1c">1.2 GitHub 分支策略</a>
+      <a href="#s2">2. 现状对照</a>
+      <a href="#s3">3. 目录规划</a>
+      <a href="#s4">4. 表设计</a>
+      <a href="#s5">5. API 清单</a>
+      <a href="#s6">6. 里程碑</a>
+      <a href="#s7">7. 前端改造</a>
+      <a href="#s8">8. 风险与兼容</a>
+    </div>
+
+    <h2 id="s1">一、目标与范围</h2>
+    <div class="card">
+      <h3>目标</h3>
+      <ul>
+        <li>用 <strong>Spring Boot + MyBatis + PostgreSQL</strong> 替换浏览器内「伪后端」（用户、阈值、储量、地图、字典、审计等 localStorage）。</li>
+        <li>大屏读接口尽量保持现有 JSON DTO，降低前端改动面。</li>
+        <li>鉴权统一为 <strong>JWT Bearer</strong>；角色仍为 <code>admin</code> / <code>user</code>。</li>
+      </ul>
+      <h3>一期范围（做）</h3>
+      <ul>
+        <li>认证注册、用户管理、字典、操作审计</li>
+        <li>后台配置：环境阈值、储量参数、地图源与密钥、传感器网关配置镜像</li>
+        <li>业务主数据：生产、视频、点位元数据；大屏读接口聚合</li>
+        <li>告警列表由服务端按环境/边坡/生产/视频状态汇聚</li>
+      </ul>
+      <h3>一期不做（明确排除）</h3>
+      <ul>
+        <li>全量时序仓库化与历史曲线长期归档（表结构预留，写入放二期）</li>
+        <li>立即淘汰 Python <code>sensor_bridge</code>（一期继续负责 MQTT/HTTP 采集）</li>
+        <li>改写边坡第三方厂商原始协议（仍通过 bridge 或兼容 DTO）</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>技术约定</h3>
+      <table>
+        <thead>
+          <tr><th>项</th><th>约定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>工程位置</td><td><code>src/backend/</code>，模块名 <code>mine-one-map-api</code></td></tr>
+          <tr><td>接入策略</td><td>分阶段：Spring 先接管认证与配置与业务主数据；实时采集暂留 sensor_bridge</td></tr>
+          <tr><td>鉴权</td><td>JWT Bearer（登录发 Token；管理接口与需登录读接口校验）</td></tr>
+          <tr><td>演示模式</td><td>保留前端 <code>STATIC_DEMO</code>；接真后端时关闭，Vite <code>/api</code> 代理指向 Spring（如 <code>8080</code>）</td></tr>
+          <tr><td>用户密码哈希</td><td>BCrypt；迁移时废弃前端 SHA-256 本地哈希</td></tr>
+          <tr><td>Git 主干</td><td><strong>禁止在 <code>master</code> 上直接开发</strong>；日常在 <code>develop</code> / feature 分支进行</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" id="s1b">
+      <h3>1.1 PostgreSQL 本地 / 开发环境约定</h3>
+      <p class="note">以下为<strong>开发默认值</strong>，写入 <code>application-dev.yml</code> 或本地环境变量；生产环境必须更换密码，且<strong>不得</strong>把生产口令提交到 GitHub。</p>
+      <table>
+        <thead>
+          <tr><th>项</th><th>约定值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>主机</td><td><code>127.0.0.1</code></td><td>本地开发</td></tr>
+          <tr><td>端口</td><td><code>5432</code></td><td>PostgreSQL 默认端口</td></tr>
+          <tr><td>数据库名</td><td><code>zhihui_one_map</code></td><td>与仓库名对齐；建库：<code>CREATE DATABASE zhihui_one_map;</code></td></tr>
+          <tr><td>用户名</td><td><code>postgres</code></td><td>开发环境直接用超级用户，不单独建业务账号</td></tr>
+          <tr><td>密码</td><td><code>postgres</code>（默认）</td><td>按本机 postgres 口令修改；可用环境变量 <code>DB_PASSWORD</code> 覆盖</td></tr>
+          <tr><td>JDBC URL</td><td><code>jdbc:postgresql://127.0.0.1:5432/zhihui_one_map</code></td><td>Spring DataSource</td></tr>
+          <tr><td>时区 / 编码</td><td>Asia/Shanghai · UTF-8</td><td>与前端展示一致</td></tr>
+        </tbody>
+      </table>
+      <pre># 建库示例（psql -U postgres）
+CREATE DATABASE zhihui_one_map OWNER postgres ENCODING 'UTF8';
+
+# application-dev.yml 示意
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/zhihui_one_map
+    username: postgres
+    password: ${DB_PASSWORD:postgres}</pre>
+      <p class="note">生产环境建议改用独立业务账号与 Secrets，勿长期用超级用户跑应用。</p>
+    </div>
+
+    <div class="card" id="s1c">
+      <h3>1.2 GitHub 分支策略（后端接入起强制执行）</h3>
+      <ul>
+        <li><strong>不再在 <code>master</code> 上直接开发或提交功能代码。</strong><code>master</code> 仅接收经评审合并的稳定版本（演示站 / Pages 仍可从 <code>master</code> 发布）。</li>
+        <li>长期开发集成分支：<code>develop</code>（后端接入工作的默认基线）。</li>
+        <li>所有功能、修复从 <code>develop</code> 拉出短生命周期分支，完成后 PR 合回 <code>develop</code>；阶段稳定后再合入 <code>master</code>。</li>
+      </ul>
+      <h3>分支命名方式</h3>
+      <table>
+        <thead>
+          <tr><th>类型</th><th>命名格式</th><th>示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>长期开发线</td>
+            <td><code>develop</code></td>
+            <td><code>develop</code></td>
+          </tr>
+          <tr>
+            <td>功能（按里程碑）</td>
+            <td><code>feature/m&lt;N&gt;-&lt;短横线描述&gt;</code></td>
+            <td><code>feature/m1-backend-skeleton</code><br /><code>feature/m1-auth-jwt</code><br /><code>feature/m2-admin-config-api</code></td>
+          </tr>
+          <tr>
+            <td>功能（按模块）</td>
+            <td><code>feature/&lt;模块&gt;-&lt;短横线描述&gt;</code></td>
+            <td><code>feature/backend-flyway-init</code><br /><code>feature/frontend-api-client</code></td>
+          </tr>
+          <tr>
+            <td>缺陷修复</td>
+            <td><code>fix/&lt;短横线描述&gt;</code></td>
+            <td><code>fix/login-token-expire</code></td>
+          </tr>
+          <tr>
+            <td>文档 / 规划</td>
+            <td><code>docs/&lt;短横线描述&gt;</code></td>
+            <td><code>docs/backend-integration-plan</code></td>
+          </tr>
+          <tr>
+            <td>发布候选（可选）</td>
+            <td><code>release/v&lt;主.次.修订&gt;</code></td>
+            <td><code>release/v0.2.0</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">规则：全小写；单词用短横线 <code>-</code>；禁止空格与中文；描述尽量短（建议 ≤ 5 段）。</p>
+      <pre># 首次建立开发线（在仓库根目录 src/ 执行）
+git checkout master
+git pull origin master
+git checkout -b develop
+git push -u origin develop
+
+# 开始 M1：从 develop 拉功能分支（勿在 master 上改）
+git checkout develop
+git pull origin develop
+git checkout -b feature/m1-backend-skeleton
+
+# 开发完成后
+git push -u origin feature/m1-backend-skeleton
+# 在 GitHub 上创建 PR：feature/m1-backend-skeleton → develop
+# 阶段验收后再 PR：develop → master</pre>
+      <p class="note">Pages 自动部署若绑定 <code>master</code>：功能未完成前不要合并进 <code>master</code>，避免演示站半成品上线。</p>
+    </div>
+
+    <div class="card">
+      <h3>目标架构（一期）</h3>
+      <div class="flow">Devices (MQTT / HTTP)
+        │
+        ▼
+sensor_bridge (采集 / 内存 latest)
+        │  同步或代理
+        ▼
+Spring Boot API  ─────►  PostgreSQL
+   ▲         ▲
+   │         │
+admin.html   index.html（一张图）</div>
+      <p class="note">过渡期：大屏也可短暂直读 bridge 的 <code>/api/slope</code>、<code>/api/environment</code>；目标态统一经 Spring 出口，便于鉴权与审计。</p>
+    </div>
+
+    <h2 id="s2">二、现状对照表</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>模块</th>
+            <th>当前来源</th>
+            <th>localStorage / 其它</th>
+            <th>目标（一期）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>登录 / 用户</td>
+            <td><code>js/auth/users.js</code> 种子账号</td>
+            <td><code>mine-one-map-users-v1</code><br /><code>mine-one-map-session-v1</code></td>
+            <td><code>sys_user</code> + JWT<br /><code>/api/auth/*</code>、<code>/api/admin/users</code></td>
+          </tr>
+          <tr>
+            <td>环境阈值</td>
+            <td><code>public/data/env-thresholds.json</code></td>
+            <td><code>mine-one-map-env-thresholds</code></td>
+            <td><code>cfg_env_threshold</code><br /><code>/api/admin/thresholds</code></td>
+          </tr>
+          <tr>
+            <td>储量参数</td>
+            <td><code>public/data/reserves.json</code></td>
+            <td><code>mine-one-map-reserves-v2</code></td>
+            <td><code>cfg_reserves</code><br /><code>/api/admin/reserves</code>、<code>GET /api/reserves</code></td>
+          </tr>
+          <tr>
+            <td>地图源密钥</td>
+            <td><code>public/data/map-config.json</code></td>
+            <td><code>mine-one-map-map-config-v1</code></td>
+            <td><code>cfg_map</code><br /><code>/api/admin/map</code>、<code>GET /api/config/public</code></td>
+          </tr>
+          <tr>
+            <td>传感器接入配置</td>
+            <td><code>sensor-bridge-config.json</code> / <code>sensor_bridge/config.json</code></td>
+            <td><code>mine-one-map-sensor-bridge-config-v1</code><br />网关 <code>PUT /api/config</code></td>
+            <td><code>cfg_sensor_bridge</code>；Spring 落库后可选同步到 bridge</td>
+          </tr>
+          <tr>
+            <td>字典</td>
+            <td><code>js/auth/dict.js</code> 种子</td>
+            <td><code>mine-one-map-dict-v1</code></td>
+            <td><code>sys_dict_*</code><br /><code>/api/admin/dict</code></td>
+          </tr>
+          <tr>
+            <td>操作日志</td>
+            <td>仅浏览器</td>
+            <td><code>mine-one-map-audit-log-v1</code>（上限约 500）</td>
+            <td><code>sys_audit_log</code><br /><code>/api/admin/audit</code></td>
+          </tr>
+          <tr>
+            <td>环境 / 边坡实时</td>
+            <td>静态 JSON 或 bridge</td>
+            <td><code>STATIC_DEMO</code> / 轮询</td>
+            <td>Spring 读 bridge 最新态或代理；DTO 兼容</td>
+          </tr>
+          <tr>
+            <td>生产 / 视频</td>
+            <td><code>production.json</code> / <code>video.json</code></td>
+            <td>—</td>
+            <td><code>biz_*</code> 表 + 读接口</td>
+          </tr>
+          <tr>
+            <td>报警列表</td>
+            <td>前端 <code>buildAlertsFromMock</code></td>
+            <td>—</td>
+            <td><code>GET /api/alerts</code> 服务端汇聚</td>
+          </tr>
+          <tr>
+            <td>布局 / 底图偏好</td>
+            <td>—</td>
+            <td><code>mine-one-map-layout</code> 等</td>
+            <td><strong>仍可留前端</strong>（纯 UI 偏好）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="s3">三、仓库目录规划</h2>
+    <div class="card">
+      <pre>src/
+├── frontend/                 # 现有 Vite 一张图 / 后台
+├── sensor_bridge/            # 一期保留：MQTT / HTTP 采集
+└── backend/                  # 新建 mine-one-map-api
+    ├── pom.xml               # 或 build.gradle.kts
+    ├── src/main/java/com/anr/mineonemap/
+    │   ├── MineOneMapApplication.java
+    │   ├── config/           # Security、CORS、MyBatis、JWT
+    │   ├── common/           # 统一响应、异常、分页
+    │   ├── auth/             # 登录注册、JWT、UserDetails
+    │   ├── admin/            # 用户/字典/阈值/储量/地图/传感器/审计
+    │   ├── dashboard/        # 大屏只读：env/slope/prod/video/reserves/alerts
+    │   ├── ingest/           # 一期：从 bridge 拉取或接收同步的适配层
+    │   └── domain/           # 实体 / Mapper 接口
+    ├── src/main/resources/
+    │   ├── application.yml
+    │   ├── mapper/*.xml
+    │   └── db/migration/     # Flyway 或 Liquibase（推荐 Flyway）
+    └── README.md</pre>
+      <p class="note">包边界：<code>admin</code> 写配置；<code>dashboard</code> 只读聚合；<code>ingest</code> 不对前端暴露不稳定协议。</p>
+    </div>
+
+    <h2 id="s4">四、PostgreSQL 表设计（一期）</h2>
+
+    <div class="card">
+      <h3>4.1 系统与权限</h3>
+      <table>
+        <thead>
+          <tr><th>表</th><th>用途</th><th>关键字段（示意）</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sys_user</code></td>
+            <td>用户账号</td>
+            <td>id, username, password_hash, display_name, role(<code>admin</code>/<code>user</code>), enabled, last_login_at, created_at, updated_at</td>
+          </tr>
+          <tr>
+            <td><code>sys_audit_log</code></td>
+            <td>操作审计</td>
+            <td>id, actor, action, target, result, summary, ip, created_at</td>
+          </tr>
+          <tr>
+            <td><code>sys_dict_type</code></td>
+            <td>字典类型</td>
+            <td>code, name, remark</td>
+          </tr>
+          <tr>
+            <td><code>sys_dict_item</code></td>
+            <td>字典项</td>
+            <td>type_code, item_code, label, sort_no, enabled</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>4.2 配置类（后台可改）</h3>
+      <table>
+        <thead>
+          <tr><th>表</th><th>用途</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>cfg_env_threshold</code></td>
+            <td>环境昼/夜阈值</td>
+            <td>可用 JSONB 存完整阈值树，或按 metric+period 行式；建议一期 JSONB 对齐现有文件结构</td>
+          </tr>
+          <tr>
+            <td><code>cfg_map</code></td>
+            <td>默认底图、最小缩放、天地图 tk、basemaps</td>
+            <td>JSONB；敏感 tk 仅 admin 写，公开接口可脱敏或下发只读</td>
+          </tr>
+          <tr>
+            <td><code>cfg_sensor_bridge</code></td>
+            <td>MQTT/HTTP/站点映射</td>
+            <td>JSONB 对齐 <code>sensor_bridge/config.json</code>；保存后可选推送到 bridge</td>
+          </tr>
+          <tr>
+            <td><code>cfg_reserves</code></td>
+            <td>储量输入参数</td>
+            <td>评估利用、回采率、已采出、日均、采区数组(JSONB)、趋势/预测可选</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>4.3 业务主数据</h3>
+      <table>
+        <thead>
+          <tr><th>表</th><th>用途</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>biz_production</code></td>
+            <td>生产工段与设备快照</td>
+            <td>一期可用单行 JSONB 对齐 <code>production.json</code>；后续拆 line/device</td>
+          </tr>
+          <tr>
+            <td><code>biz_video_camera</code></td>
+            <td>视频点位</td>
+            <td>id, name, lng, lat, online, scene, sort_no</td>
+          </tr>
+          <tr>
+            <td><code>biz_map_point</code></td>
+            <td>边坡/雨量/环境点位元数据</td>
+            <td>对齐 <code>slope-points.json</code> 与环境坐标；type + 外部设备 id</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>4.4 二期预留（建表可空跑，一期可不写）</h3>
+      <ul>
+        <li><code>ts_env_sample</code>：环境时序（point_id, metric, value, sampled_at）</li>
+        <li><code>ts_slope_sample</code>：边坡位移时序（point_id, x, y, h, magnitude, sampled_at）</li>
+      </ul>
+      <p class="note">一期历史曲线仍可沿用点位内嵌短历史或 bridge 内存；入库与查询放 M4 之后。</p>
+    </div>
+
+    <h2 id="s5">五、API 分组清单</h2>
+    <p class="note">统一前缀 <code>/api</code>。除特别说明外，管理接口需 <span class="tag role">ROLE_ADMIN</span>；大屏读接口需登录（admin 或 user）。响应建议：<code>{ code, message, data }</code>。</p>
+
+    <div class="card">
+      <h3>5.1 认证 <code>/api/auth</code></h3>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag method post">POST</span></td>
+            <td><span class="tag path">/api/auth/login</span></td>
+            <td>匿名</td>
+            <td>用户名+密码(+验证码可选) → accessToken / expiresIn / user</td>
+          </tr>
+          <tr>
+            <td><span class="tag method post">POST</span></td>
+            <td><span class="tag path">/api/auth/register</span></td>
+            <td>匿名或开关控制</td>
+            <td>注册默认 role=user</td>
+          </tr>
+          <tr>
+            <td><span class="tag method post">POST</span></td>
+            <td><span class="tag path">/api/auth/refresh</span></td>
+            <td>持 refresh 或未过期 token</td>
+            <td>刷新 accessToken（可选）</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/auth/me</span></td>
+            <td>登录</td>
+            <td>当前用户资料</td>
+          </tr>
+          <tr>
+            <td><span class="tag method post">POST</span></td>
+            <td><span class="tag path">/api/auth/logout</span></td>
+            <td>登录</td>
+            <td>可选黑名单；前端删 Token 即可</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>5.2 管理后台 <code>/api/admin</code></h3>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method post">POST</span> <span class="tag method put">PUT</span> <span class="tag method delete">DEL</span></td>
+            <td><span class="tag path">/api/admin/users</span></td>
+            <td>用户 CRUD、启用禁用、重置密码</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method put">PUT</span></td>
+            <td><span class="tag path">/api/admin/thresholds</span></td>
+            <td>环境昼/夜阈值</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method put">PUT</span></td>
+            <td><span class="tag path">/api/admin/reserves</span></td>
+            <td>储量参数；服务端可派生可采/回采率</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method put">PUT</span></td>
+            <td><span class="tag path">/api/admin/map</span></td>
+            <td>地图源与密钥</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method put">PUT</span></td>
+            <td><span class="tag path">/api/admin/sensors</span></td>
+            <td>sensor_bridge 配置镜像；可选触发同步</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span> <span class="tag method post">POST</span> <span class="tag method put">PUT</span> <span class="tag method delete">DEL</span></td>
+            <td><span class="tag path">/api/admin/dict</span></td>
+            <td>字典类型与字典项</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/admin/audit</span></td>
+            <td>审计查询（分页、按 action/actor 过滤）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>5.3 大屏读接口（DTO 兼容现网关 / mock）</h3>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/environment</span></td>
+            <td>环境点列表 + metrics；与现 JSON / bridge 对齐</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/slope</span></td>
+            <td>边坡位移 + 雨量；保留 <code>points</code> / <code>rainfall</code> / <code>updatedAt</code> / <code>live</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/production</span></td>
+            <td>生产工段</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/video</span></td>
+            <td>摄像头列表（或 <code>/api/video/cameras</code>）</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/reserves</span></td>
+            <td>储量只读派生结果</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/alerts</span></td>
+            <td>服务端汇聚最近报警</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/sensors/latest</span></td>
+            <td>过渡兼容：聚合 env+slope（或反向代理 bridge）</td>
+          </tr>
+          <tr>
+            <td><span class="tag method get">GET</span></td>
+            <td><span class="tag path">/api/config/public</span></td>
+            <td>非密钥地图默认项、轮询间隔等</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">轮询间隔建议与现网一致：边坡约 30s；环境可复用同一 bundle 或独立接口。</p>
+    </div>
+
+    <h2 id="s6">六、分阶段里程碑</h2>
+    <div class="card">
+      <ol>
+        <li>
+          <strong>M1 · 工程骨架</strong><br />
+          创建 <code>src/backend</code>；接 PG；Flyway 初版表；Spring Security + JWT；种子用户 <code>admin</code>/<code>user</code>；<code>POST /api/auth/login</code> 联调通过。
+        </li>
+        <li>
+          <strong>M2 · 后台配置落库</strong><br />
+          阈值 / 储量 / 地图 / 传感器配置 / 字典 / 审计 CRUD；改造 <code>admin.html</code> 调 API，去掉对应 localStorage 权威源。
+        </li>
+        <li>
+          <strong>M3 · 大屏读接口</strong><br />
+          <code>production</code> / <code>video</code> / <code>reserves</code> / <code>alerts</code> 由 Spring 提供；env/slope 经 Spring 代理或拉取 bridge；关闭 <code>STATIC_DEMO</code> 做联调；Vite 代理改 <code>8080</code>。
+        </li>
+        <li>
+          <strong>M4 · 采集收敛</strong><br />
+          bridge 最新态写入 PG（或 MQTT 迁入 Spring）；启用 <code>ts_*</code> 时序表；历史曲线改查库。
+        </li>
+      </ol>
+    </div>
+
+    <h2 id="s7">七、前端改造要点</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>文件</th><th>改造要点</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>js/demoMode.js</code></td>
+            <td>接真后端时 <code>STATIC_DEMO = false</code>；区分「静态演示」与「API 模式」</td>
+          </tr>
+          <tr>
+            <td><code>js/auth/users.js</code> / <code>session.js</code></td>
+            <td>登录改调 <code>/api/auth/login</code>；Token 存 sessionStorage/memory；请求头 <code>Authorization: Bearer …</code></td>
+          </tr>
+          <tr>
+            <td><code>js/admin.js</code></td>
+            <td>各面板 save/load 改 REST；失败提示；审计由服务端写</td>
+          </tr>
+          <tr>
+            <td><code>js/app.js</code> / <code>js/api/*</code></td>
+            <td><code>loadMockBundle</code> 改为 API bundle 或分接口；slope 轮询 <code>baseUrl</code> 指向 Spring</td>
+          </tr>
+          <tr>
+            <td><code>vite.config.js</code></td>
+            <td><code>/api</code> proxy target：开发指向 <code>http://127.0.0.1:8080</code>（Spring）；bridge 可挂子路径或由 Spring 转发</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">可继续保留静态 JSON 作为离线演示与 GitHub Pages 回退；正式环境以 PG 为准。</p>
+    </div>
+
+    <h2 id="s8">八、风险与兼容</h2>
+    <div class="card">
+      <ul>
+        <li><strong>GitHub Pages</strong>：无服务端，继续 <code>STATIC_DEMO</code> + <code>public/data/*.json</code>；本规划不影响静态演示站。</li>
+        <li><strong>天地图密钥等</strong>：勿再仅存前端可写 localStorage；改服务端下发，admin 写库。</li>
+        <li><strong>DTO 漂移</strong>：env/slope 以现有 <code>sensor_bridge</code> 与 <code>docs/边坡系统接口说明.html</code> 为准，Spring 做适配层，避免大屏大改。</li>
+        <li><strong>双写窗口</strong>：M2–M3 期间禁止「前端 localStorage 与 PG」双权威；以服务端为准，必要时提供「导入 JSON 一次」迁移工具。</li>
+        <li><strong>CORS</strong>：前后端分端口时显式配置允许源与 Authorization 头。</li>
+        <li><strong>密码迁移</strong>：旧本地 SHA-256 哈希不可直接复用；上线前重置演示账号或强制改密。</li>
+        <li><strong>库口令</strong>：开发默认 <code>postgres</code>/<code>postgres</code>；本机密码不同时用 <code>DB_PASSWORD</code> 覆盖，勿把生产口令提交进仓库。</li>
+        <li><strong>分支误用</strong>：误在 <code>master</code> 提交时，应迁到 <code>feature/*</code> 再 PR，避免直接 force 改写已发布历史。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>一键只启 backend（已落地）</h3>
+      <ul>
+        <li>Vite 构建产物在 Maven 阶段拷贝到 <code>classpath:/static/</code>，与 API 同端口。</li>
+        <li>启动：<code>cd src/backend &amp;&amp; .\run.ps1</code> 或 <code>mvn spring-boot:run</code>。</li>
+        <li>访问：<code>http://127.0.0.1:8080/</code>（登录）、<code>/index.html</code>、<code>/admin.html</code>。</li>
+        <li>跳过前端构建：<code>-Dskip.frontend=true</code>。</li>
+      </ul>
+    </div>
+
+    <footer>
+      规划文档 · Spring Boot + MyBatis + PostgreSQL · 2026-08-01 ·
+      <a href="./边坡系统接口说明.html">边坡接口说明</a> ·
+      <a href="./储量计算方法与数据来源.html">储量说明</a> ·
+      <a href="../admin.html">管理后台</a> ·
+      <a href="../index.html">一张图</a>
+    </footer>
+  </div>
+</body>
+</html>
