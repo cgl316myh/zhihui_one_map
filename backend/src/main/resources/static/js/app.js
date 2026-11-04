@@ -40,8 +40,10 @@ import {
 import {
   applySlopeEvaluation,
   clearSlopeAlarm,
+  clearAllActiveSlopeAlarms,
   revokeSlopeClear,
   resetAllSlopeClears,
+  getClearedSlopeMap,
 } from './modules/slopeEval.js';
 import {
   initReserves,
@@ -227,6 +229,11 @@ function slopeActionHandlers() {
       clearSlopeAlarm(id, { previousStatus });
       if (rawSlopeData) applySlope(rawSlopeData);
     },
+    onClearAll: () => {
+      // 用已评估数据批量消警（含厂商告警 / 雨量）
+      clearAllActiveSlopeAlarms(window.__lastSlopeData || rawSlopeData);
+      if (rawSlopeData) applySlope(rawSlopeData);
+    },
     onRevoke: (id) => {
       revokeSlopeClear(id);
       if (rawSlopeData) applySlope(rawSlopeData);
@@ -235,6 +242,7 @@ function slopeActionHandlers() {
       resetAllSlopeClears();
       if (rawSlopeData) applySlope(rawSlopeData);
     },
+    getClearedMap: () => getClearedSlopeMap(),
   };
 }
 

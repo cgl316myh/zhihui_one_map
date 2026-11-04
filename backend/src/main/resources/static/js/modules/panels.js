@@ -325,6 +325,27 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
         !focus.cleared &&
         (focus.computedStatus === 'warn' || focus.computedStatus === 'alarm');
       const canRevoke = Boolean(focus.cleared);
+      const clearedMap = handlers.getClearedMap?.() || {};
+      const hasActiveAlarm = points.some(
+        (p) =>
+          !p.cleared &&
+          (p.computedStatus === 'warn' ||
+            p.computedStatus === 'alarm' ||
+            p.status === 'warn' ||
+            p.status === 'alarm')
+      );
+      const rain = slopeData.rainfall;
+      const rainAbnormal =
+        rain &&
+        (rain.status === 'warn' || rain.status === 'alarm') &&
+        !(rain.id && clearedMap[rain.id]);
+      const vendorAlarms = (Array.isArray(slopeData.alarms) ? slopeData.alarms : []).some((a) => {
+        const key = a?.pointId || (a?.id != null ? `BDLX-${a.id}` : null);
+        return Boolean(key) && !clearedMap[key];
+      });
+      const canClearAll = hasActiveAlarm || rainAbnormal || vendorAlarms;
+      const hasAnyCleared =
+        points.some((p) => p.cleared) || Object.keys(clearedMap).length > 0;
       actions.innerHTML = `
         <div class="slope-actions">
           <span class="metric-loc">选中：${focus.name}</span>
@@ -334,14 +355,26 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
               : ''
           }
           ${
+            canClearAll
+              ? `<button type="button" class="tool-btn" id="btn-slope-clear-all">全部消警</button>`
+              : ''
+          }
+          ${
             canRevoke
               ? `<button type="button" class="tool-btn ghost" id="btn-slope-revoke">恢复预警态</button>`
               : ''
           }
-          <button type="button" class="tool-btn ghost" id="btn-slope-reset-clears">清除全部消警</button>
+          ${
+            hasAnyCleared
+              ? `<button type="button" class="tool-btn ghost" id="btn-slope-reset-clears">撤销全部消警</button>`
+              : ''
+          }
         </div>`;
       actions.querySelector('#btn-slope-clear')?.addEventListener('click', () => {
         handlers.onClear?.(focus.id, focus.computedStatus);
+      });
+      actions.querySelector('#btn-slope-clear-all')?.addEventListener('click', () => {
+        handlers.onClearAll?.();
       });
       actions.querySelector('#btn-slope-revoke')?.addEventListener('click', () => {
         handlers.onRevoke?.(focus.id);

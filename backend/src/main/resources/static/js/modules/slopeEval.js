@@ -54,6 +54,44 @@ export function resetAllSlopeClears() {
   return {};
 }
 
+/**
+ * 对当前仍为 warn/alarm 的边坡点（及异常雨量）批量写入消警。
+ * 与 resetAllSlopeClears（撤销全部消警记录）相反。
+ */
+export function clearAllActiveSlopeAlarms(slopeData) {
+  const map = loadCleared();
+  const now = new Date().toISOString();
+  const points = Array.isArray(slopeData?.points) ? slopeData.points : [];
+  points.forEach((p) => {
+    if (!p?.id) return;
+    const computed = p.computedStatus || computeSlopeStatus(p);
+    if (computed === 'warn' || computed === 'alarm') {
+      map[p.id] = {
+        at: now,
+        previousStatus: computed,
+      };
+    }
+  });
+  const rain = slopeData?.rainfall;
+  if (rain?.id && (rain.status === 'warn' || rain.status === 'alarm')) {
+    map[rain.id] = {
+      at: now,
+      previousStatus: rain.status,
+    };
+  }
+  // 厂商告警若挂在 pointId 上，一并按点消警；无 pointId 的用告警 id
+  (Array.isArray(slopeData?.alarms) ? slopeData.alarms : []).forEach((a) => {
+    const key = a?.pointId || (a?.id != null ? `BDLX-${a.id}` : null);
+    if (!key) return;
+    map[key] = {
+      at: now,
+      previousStatus: a.level || 'warn',
+    };
+  });
+  saveCleared(map);
+  return map;
+}
+
 /** 位移幅值：取 |X|/|Y|/|H|/plane 最大绝对值 */
 export function slopeMagnitude(point) {
   if (!point) return 0;

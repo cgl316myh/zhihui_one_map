@@ -1,7 +1,10 @@
 /**
  * 由当前大屏已加载的环境 / 边坡 / 生产 / 视频状态在前端汇聚「最近报警」。
  * 数据源为接口/库表结果，不读取演示 JSON。
+ * 边坡消警态（localStorage）会过滤已消警的点位与 BDLX 告警。
  */
+
+import { getClearedSlopeMap } from './slopeEval.js';
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -36,6 +39,7 @@ export function buildAlertsFromMock(sources = {}) {
   const { environment, slope, production, video } = sources;
   const items = [];
   const stamp = formatNow();
+  const cleared = getClearedSlopeMap();
 
   (environment?.points || []).forEach((p) => {
     if (p.status === 'warn' || p.status === 'alarm') {
@@ -58,7 +62,11 @@ export function buildAlertsFromMock(sources = {}) {
   });
 
   const rain = slope?.rainfall;
-  if (rain && (rain.status === 'warn' || rain.status === 'alarm')) {
+  if (
+    rain &&
+    (rain.status === 'warn' || rain.status === 'alarm') &&
+    !(rain.id && cleared[rain.id])
+  ) {
     pushItem(items, {
       id: `RAIN-${rain.id || 'rain'}`,
       level: rain.status === 'alarm' ? 'alarm' : 'warn',
@@ -71,6 +79,9 @@ export function buildAlertsFromMock(sources = {}) {
 
   (slope?.alarms || []).forEach((a) => {
     if (!a || !a.title) return;
+    const alarmKey = a.pointId || (a.id != null ? `BDLX-${a.id}` : null);
+    if (alarmKey && cleared[alarmKey]) return;
+    if (a.pointId && cleared[a.pointId]) return;
     pushItem(items, {
       id: `BDLX-${a.id || a.pointId || items.length}`,
       level: a.level || (a.color === 'red' ? 'alarm' : a.color === 'blue' ? 'info' : 'warn'),
@@ -82,6 +93,7 @@ export function buildAlertsFromMock(sources = {}) {
   });
 
   (slope?.points || []).forEach((p) => {
+    if (p.cleared || cleared[p.id]) return;
     if (p.status === 'warn' || p.status === 'alarm') {
       pushItem(items, {
         id: `SLP-${p.id}`,
