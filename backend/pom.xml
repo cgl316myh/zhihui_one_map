@@ -13,7 +13,7 @@
 
   <groupId>com.anr</groupId>
   <artifactId>mine-one-map-api</artifactId>
-  <version>1.3.5</version>
+  <version>1.3.6</version>
   <name>mine-one-map-api</name>
   <description>智慧矿山一张图 · Spring Boot API</description>
 

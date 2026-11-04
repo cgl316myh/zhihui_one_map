@@ -13,7 +13,7 @@ import java.util.Map;
 @RequestMapping("/api")
 public class AppInfoController {
 
-    @Value("${mine.app.version:1.3.5}")
+    @Value("${mine.app.version:1.3.6}")
     private String version;
 
     @GetMapping("/version")
