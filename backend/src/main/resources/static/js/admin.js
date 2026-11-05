@@ -466,6 +466,44 @@ function openUserModal(user) {
   };
 }
 
+/* —— 报警显示开关 —— */
+let alertDisplayEnabled = false;
+
+async function loadAlertDisplay() {
+  if (isStaticHosting()) return;
+  try {
+    const r = await apiGet('/api/admin/alert-display');
+    if (r.ok && r.data && typeof r.data.enabled === 'boolean') {
+      alertDisplayEnabled = r.data.enabled === true;
+    }
+  } catch {
+    /* keep default off */
+  }
+}
+
+async function saveAlertDisplay(enabled) {
+  if (isStaticHosting()) {
+    alertDisplayEnabled = enabled === true;
+    flash(enabled ? '已开启报警显示（本地）' : '已关闭报警显示（本地）');
+    renderThresholds();
+    return;
+  }
+  const r = await apiPut('/api/admin/alert-display', { enabled: enabled === true });
+  if (!r.ok) {
+    flash(r.message || '保存失败', false);
+    return;
+  }
+  alertDisplayEnabled = r.data?.enabled === true;
+  appendAuditLog({
+    actor: session.username,
+    action: 'alert_display_save',
+    result: 'ok',
+    summary: alertDisplayEnabled ? '开启大屏报警显示' : '关闭大屏报警显示（一律正常）',
+  });
+  flash(alertDisplayEnabled ? '已开启报警显示，大屏刷新后生效' : '已关闭报警显示，大屏环境/边坡将显示为正常');
+  renderThresholds();
+}
+
 /* —— 阈值 —— */
 function renderThresholds() {
   const th = getEnvThresholds();
@@ -523,12 +561,27 @@ function renderThresholds() {
   };
 
   const box = $('panel-thresholds');
+  const onCls = alertDisplayEnabled ? 'btn' : 'btn ghost';
+  const offCls = !alertDisplayEnabled ? 'btn' : 'btn ghost';
   box.innerHTML = `
     <div class="thresh-page">
+      <section class="thresh-period-card" style="margin-bottom:16px">
+        <header class="thresh-period-hd">
+          <div>
+            <h3>大屏报警显示</h3>
+            <p>关闭后，环境 / 边坡一律显示「正常」，报警列表为空（默认关闭）</p>
+          </div>
+          <span class="thresh-badge ${alertDisplayEnabled ? '' : 'ghost'}">${alertDisplayEnabled ? '当前：显示报警' : '当前：不报警'}</span>
+        </header>
+        <div class="thresh-page-actions" style="padding:0 4px 8px;gap:8px;display:flex">
+          <button type="button" class="${onCls}" id="btn-alert-on">是（显示报警）</button>
+          <button type="button" class="${offCls}" id="btn-alert-off">否（不报警）</button>
+        </div>
+      </section>
       <div class="thresh-page-hd">
         <div>
           <h2>环境阈值配置</h2>
-          <p class="muted">昼 / 夜两套阈值并排维护。保存后写入本地，一张图按当前时段重算状态。</p>
+          <p class="muted">昼 / 夜两套阈值并排维护。保存后写入数据库，一张图按当前时段重算状态。</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn ghost" id="btn-th-reset">恢复默认</button>
@@ -539,8 +592,11 @@ function renderThresholds() {
         ${periodCard('day', '昼间', '06:00 – 22:00')}
         ${periodCard('night', '夜间', '22:00 – 次日 06:00')}
       </div>
-      <p class="thresh-foot muted">说明：数值达到「预警」即判 warn，达到「报警」即判 alarm；报警优先级更高。</p>
+      <p class="thresh-foot muted">说明：数值达到「预警」即判 warn，达到「报警」即判 alarm；报警优先级更高。上方「报警显示」关闭时，阈值仍保留但不在大屏体现。</p>
     </div>`;
+
+  $('btn-alert-on')?.addEventListener('click', () => saveAlertDisplay(true));
+  $('btn-alert-off')?.addEventListener('click', () => saveAlertDisplay(false));
 
   $('btn-th-save')?.addEventListener('click', () => {
     const next = { day: {}, night: {} };
@@ -2408,6 +2464,7 @@ async function boot() {
     } catch {
       /* keep empty */
     }
+    await loadAlertDisplay();
     try {
       const rvRes = await apiGet('/api/admin/reserves');
       if (rvRes.ok && rvRes.data) fileReserves = rvRes.data;

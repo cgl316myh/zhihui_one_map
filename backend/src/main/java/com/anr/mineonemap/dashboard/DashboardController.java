@@ -1,6 +1,7 @@
 package com.anr.mineonemap.dashboard;
 
 import com.anr.mineonemap.common.ApiResponse;
+import com.anr.mineonemap.config.AlertDisplayService;
 import com.anr.mineonemap.domain.BizMapPoint;
 import com.anr.mineonemap.domain.BizVideoCamera;
 import com.anr.mineonemap.ingest.SensorViewService;
@@ -25,29 +26,32 @@ public class DashboardController {
     private final BizVideoCameraMapper videoCameraMapper;
     private final BizMapPointMapper mapPointMapper;
     private final VideoConfigService videoConfigService;
+    private final AlertDisplayService alertDisplayService;
     private final ObjectMapper objectMapper;
 
     public DashboardController(SensorViewService sensorViewService, CfgMapper cfgMapper,
                                  BizVideoCameraMapper videoCameraMapper,
                                  BizMapPointMapper mapPointMapper,
                                  VideoConfigService videoConfigService,
+                                 AlertDisplayService alertDisplayService,
                                  ObjectMapper objectMapper) {
         this.sensorViewService = sensorViewService;
         this.cfgMapper = cfgMapper;
         this.videoCameraMapper = videoCameraMapper;
         this.mapPointMapper = mapPointMapper;
         this.videoConfigService = videoConfigService;
+        this.alertDisplayService = alertDisplayService;
         this.objectMapper = objectMapper;
     }
 
     @GetMapping("/environment")
     public ApiResponse<JsonNode> environment() {
-        return ApiResponse.ok(sensorViewService.buildEnvironment());
+        return ApiResponse.ok(alertDisplayService.muteIfDisabled(sensorViewService.buildEnvironment()));
     }
 
     @GetMapping("/slope")
     public ApiResponse<JsonNode> slope() {
-        return ApiResponse.ok(sensorViewService.buildSlope());
+        return ApiResponse.ok(alertDisplayService.muteIfDisabled(sensorViewService.buildSlope()));
     }
 
     @GetMapping("/production")
@@ -109,6 +113,16 @@ public class DashboardController {
 
     @GetMapping("/alerts")
     public ApiResponse<Map<String, Object>> alerts() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        boolean enabled = alertDisplayService.isEnabled();
+        result.put("alertsEnabled", enabled);
+        result.put("updatedAt", java.time.OffsetDateTime.now().toString());
+        if (!enabled) {
+            result.put("items", List.of());
+            result.put("source", "alerts-disabled");
+            return ApiResponse.ok(result);
+        }
+
         JsonNode env = sensorViewService.buildEnvironment();
         JsonNode slope = sensorViewService.buildSlope();
         JsonNode prod = parsePayload(cfgMapper.getProductionPayload());
@@ -137,18 +151,16 @@ public class DashboardController {
                 alerts.add(alert("video", cam.getId(), "offline", cam.getName() + " 离线"));
             }
         }
-        Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", alerts);
         result.put("source", "server-aggregate");
-        result.put("updatedAt", java.time.OffsetDateTime.now().toString());
         return ApiResponse.ok(result);
     }
 
     @GetMapping("/sensors/latest")
     public ApiResponse<Map<String, JsonNode>> sensorsLatest() {
         Map<String, JsonNode> result = new LinkedHashMap<>();
-        result.put("environment", sensorViewService.buildEnvironment());
-        result.put("slope", sensorViewService.buildSlope());
+        result.put("environment", alertDisplayService.muteIfDisabled(sensorViewService.buildEnvironment()));
+        result.put("slope", alertDisplayService.muteIfDisabled(sensorViewService.buildSlope()));
         result.put("status", sensorViewService.buildStatus());
         return ApiResponse.ok(result);
     }
@@ -170,6 +182,7 @@ public class DashboardController {
             pollMs = Math.max(30000, sensorBridge.path("frontend").path("pollIntervalMs").asInt(30000));
         }
         result.put("pollIntervalMs", pollMs);
+        result.put("alertsEnabled", alertDisplayService.isEnabled());
         result.put("source", "database");
         return ApiResponse.ok(result);
     }

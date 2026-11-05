@@ -1,0 +1,5 @@
+{
+  "enabled": false,
+  "updatedAt": "2026-11-05T00:00:00+08:00",
+  "note": "默认不报警。enabled=true 时大屏才显示环境/边坡预警与报警列表"
+}

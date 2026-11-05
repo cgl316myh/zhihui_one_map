@@ -46,6 +46,13 @@ import {
   getClearedSlopeMap,
 } from './modules/slopeEval.js';
 import {
+  initAlertsEnabled,
+  isAlertsEnabled,
+  muteEnvironmentIfNeeded,
+  muteSlopeIfNeeded,
+  setAlertsEnabledLocal,
+} from './modules/alertDisplay.js';
+import {
   initReserves,
   getReserves,
 } from './modules/reserves.js';
@@ -193,12 +200,15 @@ function bindLogout() {
 
 function refreshEnvironment() {
   if (!mockData?.environment) return;
-  mockData.environment = applyEnvThresholds(mockData.environment, getEnvThresholds());
+  let env = applyEnvThresholds(mockData.environment, getEnvThresholds());
+  env = muteEnvironmentIfNeeded(env);
+  mockData.environment = env;
   selectedEnvId = renderEnvironment(mockData.environment, selectedEnvId);
   renderEnvironmentMarkers(mockData.environment);
   refreshAlerts();
   const period = getActivePeriodKey() === 'day' ? '昼间' : '夜间';
-  setEnvPollStatus(true, `${period}阈值生效`);
+  const muteTip = isAlertsEnabled() ? '' : ' · 报警显示已关闭';
+  setEnvPollStatus(true, `${period}阈值生效${muteTip}`);
 }
 
 function refreshThresholdForm() {
@@ -249,7 +259,8 @@ function slopeActionHandlers() {
 function applySlope(data) {
   if (!data) return;
   rawSlopeData = data;
-  const evaluated = applySlopeEvaluation(data);
+  let evaluated = applySlopeEvaluation(data);
+  evaluated = muteSlopeIfNeeded(evaluated);
   window.__lastSlopeData = evaluated;
   selectedSlopeId =
     renderSlopePanel(evaluated, selectedSlopeId, slopeActionHandlers()) ||
@@ -258,6 +269,22 @@ function applySlope(data) {
     renderSlopeMarkers(evaluated, mockData.slopePoints.points || []);
   }
   refreshAlerts(evaluated);
+}
+
+async function syncAlertsEnabledFromServer() {
+  try {
+    const r = await apiGet('/api/config/public');
+    if (r.ok && r.data && typeof r.data.alertsEnabled === 'boolean') {
+      const prev = isAlertsEnabled();
+      setAlertsEnabledLocal(r.data.alertsEnabled);
+      if (prev !== isAlertsEnabled()) {
+        refreshEnvironment();
+        if (rawSlopeData) applySlope(rawSlopeData);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 function onSlopeData(data) {
@@ -309,6 +336,7 @@ async function boot() {
 
   initEnvThresholds(mockData.envThresholds);
   initReserves(mockData.reserves);
+  initAlertsEnabled(mockData.publicConfig?.alertsEnabled === true);
 
   const center = mockData.slopePoints?.mapCenter ||
     mockData.publicConfig?.mapCenter ||
@@ -360,6 +388,8 @@ async function boot() {
   }
 
   startSlopePolling(onSlopeData, onSlopeError);
+  // 后台改开关后，大屏随轮询同步
+  setInterval(syncAlertsEnabledFromServer, Math.max(15000, pollMs));
 
   window.__sensorDebug = {
     stop: () => {

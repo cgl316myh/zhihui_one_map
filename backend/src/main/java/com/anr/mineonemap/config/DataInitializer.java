@@ -70,6 +70,8 @@ public class DataInitializer implements ApplicationRunner {
                 json -> cfgMapper.updateVideoPlatform(json, "system"));
         seedIfEmpty("cfg_cad_layers.json", cfgMapper::getCadLayersPayload,
                 json -> cfgMapper.updateCadLayers(json, "system"));
+        seedIfEmpty("cfg_alert_display.json", cfgMapper::getAlertDisplayPayload,
+                json -> cfgMapper.updateAlertDisplay(json, "system"));
         ensureCadLayersSeed();
         ensureReserves2025();
         seedIfEmpty("biz_production.json", cfgMapper::getProductionPayload,

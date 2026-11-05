@@ -70,4 +70,13 @@ public interface CfgMapper {
             updated_at = NOW(), updated_by = #{updatedBy} WHERE id = 1
             """)
     int updateCadLayers(@Param("payload") String payload, @Param("updatedBy") String updatedBy);
+
+    @Select("SELECT payload::text FROM cfg_alert_display WHERE id = 1")
+    String getAlertDisplayPayload();
+
+    @Update("""
+            UPDATE cfg_alert_display SET payload = CAST(#{payload} AS jsonb),
+            updated_at = NOW(), updated_by = #{updatedBy} WHERE id = 1
+            """)
+    int updateAlertDisplay(@Param("payload") String payload, @Param("updatedBy") String updatedBy);
 }

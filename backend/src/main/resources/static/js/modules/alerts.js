@@ -5,6 +5,7 @@
  */
 
 import { getClearedSlopeMap } from './slopeEval.js';
+import { isAlertsEnabled } from './alertDisplay.js';
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -39,6 +40,13 @@ export function buildAlertsFromMock(sources = {}) {
   const { environment, slope, production, video } = sources;
   const items = [];
   const stamp = formatNow();
+  if (!isAlertsEnabled()) {
+    return {
+      updatedAt: new Date().toISOString(),
+      source: 'alerts-disabled',
+      items: [],
+    };
+  }
   const cleared = getClearedSlopeMap();
 
   (environment?.points || []).forEach((p) => {
