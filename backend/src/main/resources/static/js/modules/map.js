@@ -498,7 +498,8 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
 
     const chartId = `popup-chart-${p.id}`;
     const th = p.threshold || {};
-    const st = p.computedStatus || p.status || '';
+    // 与侧栏一致：用展示态 status（消警 / 关闭报警显示后均为 normal）
+    const st = p.status || 'normal';
     const stLabel = slopeStatusLabel(st);
     const stClass = slopeStatusClass(st);
     const online = p.online === false ? '离线' : '在线';

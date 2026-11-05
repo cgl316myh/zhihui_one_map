@@ -92,6 +92,9 @@ public class AlertDisplayService {
                     if (pc.has("status")) {
                         pc.put("status", "normal");
                     }
+                    if (pc.has("computedStatus")) {
+                        pc.put("computedStatus", "normal");
+                    }
                     next.add(pc);
                 } else {
                     next.add(p);

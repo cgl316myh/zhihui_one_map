@@ -43,6 +43,7 @@ export function muteSlopeIfNeeded(slope) {
     points: (slope.points || []).map((p) => ({
       ...p,
       status: 'normal',
+      computedStatus: 'normal',
       cleared: false,
     })),
   };
