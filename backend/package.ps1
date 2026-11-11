@@ -11,7 +11,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 $BackendRoot = $PSScriptRoot
-$RepoRoot = (Resolve-Path (Join-Path $BackendRoot "..\..")).Path
+# backend 可能在仓库根下 backend/，也可能在 src/backend/
+$RepoRoot = $null
+foreach ($rel in @('..', '..\..')) {
+  $cand = Join-Path $BackendRoot $rel
+  if (Test-Path -LiteralPath (Join-Path $cand '.tools')) {
+    $RepoRoot = (Resolve-Path -LiteralPath $cand).Path
+    break
+  }
+}
+if (-not $RepoRoot) {
+  $RepoRoot = (Resolve-Path (Join-Path $BackendRoot '..')).Path
+}
 $PomPath = Join-Path $BackendRoot "pom.xml"
 $UploadsDir = Join-Path $RepoRoot ".tools\uploads"
 $MvnCandidates = @(

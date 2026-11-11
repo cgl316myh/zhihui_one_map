@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>地图点位 · 最大化模态窗改造方案</title>
+  <style>
+    :root {
+      --bg: #0f1419; --panel: #1a2332; --text: #e7ecf3; --muted: #9aa8bc;
+      --accent: #3d9cf0; --ok: #3ecf8e; --line: #2a3648; --code: #0b1220;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text); line-height: 1.65;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1000px 500px at 0% 0%, #1a3550, transparent 55%), var(--bg);
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 36px 22px 72px; }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    h2 { margin: 2rem 0 0.7rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--line); }
+    h3 { margin: 1.2rem 0 0.45rem; color: #d5e4f7; font-size: 1.02rem; }
+    .lead { color: var(--muted); margin: 0 0 1.2rem; }
+    .tag {
+      display: inline-block; font-size: 0.78rem; padding: 3px 10px; border-radius: 999px;
+      border: 1px solid var(--line); background: #243044; color: var(--muted); margin: 0 6px 6px 0;
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 14px 16px; margin: 10px 0;
+    }
+    .muted { color: var(--muted); }
+    .ok { color: var(--ok); }
+    code, pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.85rem; }
+    pre {
+      background: var(--code); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 14px; overflow-x: auto; color: #d7e6ff;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 10px 0; }
+    th, td { border: 1px solid var(--line); padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #222c3d; }
+    ol { padding-left: 1.25rem; }
+    li { margin: 0.45rem 0; }
+    .mock {
+      position: relative; height: 220px; border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(160deg, #1e3a2f, #152030 60%);
+    }
+    .mock-map { position: absolute; inset: 0; opacity: 0.55; }
+    .mock-mask {
+      position: absolute; inset: 0; background: rgba(0,0,0,.55);
+      display: flex; align-items: stretch; justify-content: stretch; padding: 10px;
+    }
+    .mock-modal {
+      flex: 1; background: #121a26; border: 1px solid #3a4d66; border-radius: 10px;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .mock-hd {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 600;
+    }
+    .mock-bd { flex: 1; padding: 12px 14px; color: var(--muted); font-size: 0.9rem; }
+    .x { color: #9ec9ff; cursor: default; }
+    footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>地图点位单击 → 最大化模态窗</h1>
+    <p class="lead">目标：把 Leaflet 地图气泡弹窗（bindPopup）改为几乎全屏的模态窗；内容与现网一致（环境 / 边坡 / 视频 / 生产）。本文仅方案，<strong>等你下令后再改代码</strong>。</p>
+    <span class="tag">现状：map.js bindPopup</span>
+    <span class="tag">参考：admin.js modal-mask</span>
+    <span class="tag">文档：docs/地图点位最大化模态窗方案.html</span>
+
+    <h2>1. 现状</h2>
+    <div class="card">
+      <p class="muted" style="margin:0">
+        点位单击走 Leaflet <code>m.bindPopup(...)</code> + <code>popupopen/popupclose</code>，内容在地图锚点旁小卡片里渲染。<br />
+        涉及：环境、边坡、视频、生产（<code>static/js/modules/map.js</code>）。样式在 <code>dashboard.css</code> 的 <code>.popup-card</code> / <code>.leaflet-*-popup</code>。<br />
+        管理后台已有轻量模态（<code>admin.css</code> 的 <code>.modal-mask</code> / <code>.modal</code>），大屏可复用交互模式，但需单独做「最大化」样式，避免和后台表单模态混用视觉。
+      </p>
+    </div>
+
+    <h2>2. 目标交互（示意）</h2>
+    <div class="mock" aria-hidden="true">
+      <div class="mock-map"></div>
+      <div class="mock-mask">
+        <div class="mock-modal">
+          <div class="mock-hd"><span>边坡监测点 · XXX</span><span class="x">✕</span></div>
+          <div class="mock-bd">最大化内容区：指标列表 + 图表 / 视频播放器（原 popup-card 内容迁入）</div>
+        </div>
+      </div>
+    </div>
+    <ul>
+      <li>单击点位 → 打开<strong>遮罩 + 近全屏面板</strong>（建议占视口约 92%～96%，四边留边距）</li>
+      <li>关闭：右上角 ✕、点遮罩、Esc</li>
+      <li>打开新点时先关旧窗，保证同时只有一个模态</li>
+      <li>视频：打开时挂载播放，关闭时 <code>stopVideoPlayback</code>；图表同理 dispose</li>
+    </ul>
+
+    <h2>3. HTML 结构方案（建议写在 index.html）</h2>
+    <p>在大屏 <code>index.html</code> 的 <code>&lt;body&gt;</code> 末尾（<code>#map</code> 所在主布局外）增加<strong>唯一</strong>模态壳，避免每个点生成一套 DOM：</p>
+<pre>&lt;!-- 地图点位详情：最大化模态（默认隐藏） --&gt;
+&lt;div id="map-point-modal" class="map-point-modal" hidden aria-hidden="true"&gt;
+  &lt;div class="map-point-modal__mask" data-modal-dismiss&gt;&lt;/div&gt;
+  &lt;div class="map-point-modal__panel" role="dialog" aria-modal="true"
+       aria-labelledby="map-point-modal-title"&gt;
+    &lt;header class="map-point-modal__hd"&gt;
+      &lt;h3 id="map-point-modal-title"&gt;点位详情&lt;/h3&gt;
+      &lt;button type="button" class="map-point-modal__close" data-modal-dismiss
+              aria-label="关闭"&gt;×&lt;/button&gt;
+    &lt;/header&gt;
+    &lt;div class="map-point-modal__bd" id="map-point-modal-body"&gt;
+      &lt;!-- 由 JS 填入原 popup-card 内容 --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <h3>推荐 CSS 要点（dashboard.css 新增）</h3>
+<pre>.map-point-modal[hidden] { display: none !important; }
+.map-point-modal {
+  position: fixed; inset: 0; z-index: 5000;
+  display: flex; align-items: stretch; justify-content: stretch;
+}
+.map-point-modal__mask {
+  position: absolute; inset: 0; background: rgba(4, 10, 18, 0.62);
+}
+.map-point-modal__panel {
+  position: relative; z-index: 1;
+  margin: 2vh 2vw; flex: 1;
+  display: flex; flex-direction: column;
+  background: #121a26; border: 1px solid #334155; border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.45); min-height: 0;
+}
+.map-point-modal__hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid #2a3648;
+}
+.map-point-modal__bd {
+  flex: 1; overflow: auto; padding: 16px; min-height: 0;
+}
+/* 图表/视频在大窗内拉高 */
+.map-point-modal__bd .popup-chart { height: 280px; }
+.map-point-modal__bd .popup-video-mount { min-height: 60vh; }</pre>
+
+    <h2>4. JS 改造要点（非 HTML，但必须配套）</h2>
+    <table>
+      <thead><tr><th>项</th><th>做法</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>取消 Leaflet 气泡</td>
+          <td>环境/边坡/视频/生产：去掉 <code>bindPopup</code>，改为 <code>m.on('click', () =&gt; openMapPointModal(...))</code></td>
+        </tr>
+        <tr>
+          <td>打开 API</td>
+          <td>新增 <code>openMapPointModal({ title, html, onOpen, onClose })</code>：写 title、把 html 塞进 <code>#map-point-modal-body</code>、去 hidden、执行 onOpen（挂图表/视频）</td>
+        </tr>
+        <tr>
+          <td>关闭 API</td>
+          <td><code>closeMapPointModal()</code>：先 onClose 释放播放器/图表，再清空 body、加回 hidden</td>
+        </tr>
+        <tr>
+          <td>内容复用</td>
+          <td>继续用现有 <code>.popup-card</code> HTML 字符串，减少重写；仅容器从 leaflet-popup 换成模态 body</td>
+        </tr>
+        <tr>
+          <td>程序化定位</td>
+          <td>现有 <code>m.openPopup()</code> 处改为同样走 <code>openMapPointModal</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. 建议改动文件清单</h2>
+    <ol>
+      <li><code>static/index.html</code> — 增加模态壳（上文结构）</li>
+      <li><code>static/css/dashboard.css</code> — 最大化模态样式</li>
+      <li><code>static/js/modules/map.js</code> — click 打开模态；移除 bindPopup</li>
+      <li>（可选）抽 <code>static/js/modules/mapPointModal.js</code> 专管开/关，保持 map.js 精简</li>
+    </ol>
+
+    <h2>6. 范围确认（请你拍板后再开发）</h2>
+    <div class="card">
+      <ol style="margin:0;padding-left:1.2rem">
+        <li><strong>哪些点？</strong>默认建议四类全改（环境 / 边坡 / 视频 / 生产）。若只要边坡+视频也可以。</li>
+        <li><strong>「最大化」程度？</strong>A. 近全屏（约 96% 视口，推荐）　B. 真全屏（贴边 0 边距）　C. 大居中窗（约 80%）</li>
+        <li><strong>是否保留小气泡作次要交互？</strong>推荐：不保留，单击只开模态，交互更统一。</li>
+      </ol>
+    </div>
+
+    <h2>7. 验收建议</h2>
+    <ul>
+      <li>四类点单击均开大窗，标题正确，关闭后无残留遮罩</li>
+      <li>视频点：打开能播，关闭停止拉流；快速连点不同点无双播放器</li>
+      <li>边坡/环境：图表在大窗内可读，关闭无控制台报错</li>
+      <li>Esc / 遮罩 / ✕ 三种关闭方式可用</li>
+    </ul>
+
+    <footer>
+      状态：方案待确认 · 未改业务代码。你确认范围与最大化规格后，再说「按方案改」即可开工。
+    </footer>
+  </div>
+</body>
+</html>

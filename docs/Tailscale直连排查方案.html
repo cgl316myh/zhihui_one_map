@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tailscale 直连排查方案 · 本机 ↔ Server99</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e7ecf3;
+      --muted: #9aa8bc;
+      --accent: #3d9cf0;
+      --ok: #3ecf8e;
+      --warn: #f0b429;
+      --bad: #f07178;
+      --line: #2a3648;
+      --code: #0b1220;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1b3a5a 0%, transparent 50%),
+                  radial-gradient(900px 500px at 100% 0%, #1a2f28 0%, transparent 45%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 40px 24px 80px; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; letter-spacing: 0.02em; }
+    h2 {
+      font-size: 1.15rem;
+      margin: 2.2rem 0 0.8rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--line);
+      color: #fff;
+    }
+    h3 { font-size: 1rem; margin: 1.4rem 0 0.5rem; color: #d5e4f7; }
+    p, li { color: var(--text); }
+    .lead { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.98rem; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .tag {
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #243044;
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+    .tag.ok { color: var(--ok); border-color: #2d5a45; background: #142820; }
+    .tag.warn { color: var(--warn); border-color: #5a4a20; background: #2a220e; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 12px 0;
+    }
+    .grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 760px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+    }
+    .card h3 { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    code, pre {
+      font-family: Consolas, "Cascadia Mono", "Sarasa Mono SC", monospace;
+      font-size: 0.86rem;
+    }
+    pre {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      color: #d7e6ff;
+      margin: 8px 0 14px;
+    }
+    .copy-hint { font-size: 0.8rem; color: var(--muted); margin-top: -6px; margin-bottom: 14px; }
+    ol.steps { padding-left: 1.25rem; }
+    ol.steps > li { margin: 0.7rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin: 10px 0 16px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #222c3d; color: #cfe0f5; }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .path {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin: 10px 0;
+      font-size: 0.9rem;
+    }
+    .node {
+      background: #243044;
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .arrow { color: var(--muted); }
+    .node.bad-path { border-color: #6a3038; background: #2a1518; color: #ffc9cd; }
+    .node.good-path { border-color: #2d5a45; background: #142820; color: #b8f0d4; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    a { color: var(--accent); }
+    .checklist label {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--line);
+      cursor: pointer;
+    }
+    .checklist input { margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tailscale 直连排查方案</h1>
+    <p class="lead">目标：让本机（singlemypc）与云南 Server99（yunnan-server99）建立 <strong>direct</strong> 直连，避免流量绕行旧金山 DERP 中继导致上传极慢。</p>
+    <div class="meta">
+      <span class="tag">文档路径：docs/Tailscale直连排查方案.html</span>
+      <span class="tag warn">当前问题：经 DERP(sfo) 中继</span>
+      <span class="tag ok">目标状态：via … direct</span>
+    </div>
+
+    <h2>1. 背景结论（已实测）</h2>
+    <div class="card">
+      <div class="path">
+        <span class="node bad-path">本机 Wi‑Fi</span>
+        <span class="arrow">→</span>
+        <span class="node bad-path">Tailscale DERP(sfo 旧金山)</span>
+        <span class="arrow">→</span>
+        <span class="node bad-path">Server99</span>
+      </div>
+      <p class="muted" style="margin-bottom:0">实测上传约 <strong class="bad">0.05 Mbps</strong>（4MB 约 11 分钟），延迟常在 <strong class="warn">0.5–2 秒</strong>。阿里云北京 ECS 不在这条链路上，与本次上传慢无关。</p>
+    </div>
+    <div class="card">
+      <div class="path">
+        <span class="node good-path">本机</span>
+        <span class="arrow">→</span>
+        <span class="node good-path">UDP 直连（P2P）</span>
+        <span class="arrow">→</span>
+        <span class="node good-path">Server99</span>
+      </div>
+      <p class="muted" style="margin-bottom:0">直连成功后，大文件传输通常可提升一个数量级以上；仍受双方实际上行带宽限制。</p>
+    </div>
+
+    <h2>2. 复杂度说明</h2>
+    <table>
+      <thead>
+        <tr><th>情况</th><th>难度</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>一方有公网 + UDP 可打通</td>
+          <td class="ok">低</td>
+          <td>多数只需检查防火墙/端口，几分钟验证</td>
+        </tr>
+        <tr>
+          <td>本机运营商 NAT / 公司网 / 对称 NAT</td>
+          <td class="warn">中～高</td>
+          <td>可能直连失败，需改网络或退回国内自建 DERP / 公网直传</td>
+        </tr>
+        <tr>
+          <td>软件侧配置</td>
+          <td class="ok">低</td>
+          <td>一般不必改复杂配置文件；关键看 <code>tailscale ping</code> 结果</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>对你们：Server99 有公网与 UPnP，条件较好；<strong>本机侧（Wi‑Fi / NAT）更可能是瓶颈</strong>。</p>
+
+    <h2>3. 成功标准</h2>
+    <div class="card">
+      <pre>tailscale ping yunnan-server99</pre>
+      <p class="copy-hint">在本机 PowerShell 执行。成功示例关键词：</p>
+      <pre>pong from yunnan-server99 (...) via &lt;ip:port&gt; in XXms
+# 或提示中出现 direct
+# 失败特征：via DERP(sfo) / via DERP(...) 且提示 direct connection not established</pre>
+    </div>
+
+    <h2>4. 分步操作清单</h2>
+
+    <h3>步骤 A · 本机（singlemypc）</h3>
+    <div class="card checklist">
+      <label><input type="checkbox" /> Tailscale 客户端已登录，能看到 <code>yunnan-server99</code></label>
+      <label><input type="checkbox" /> 尽量改用有线网络（减少 Wi‑Fi / 漫游 NAT 问题）</label>
+      <label><input type="checkbox" /> Windows 防火墙未拦截 Tailscale（安装官方客户端时通常已自动放行）</label>
+      <label><input type="checkbox" /> 关闭或暂时退出可能劫持 UDP 的加速器 / 公司代理 / 安全软件“网络防护”</label>
+    </div>
+    <pre># 本机执行
+tailscale status
+tailscale netcheck
+tailscale ping -c 8 yunnan-server99</pre>
+    <p class="copy-hint">关注：是否仍写着 <code>active; relay "sfo"</code>；ping 是否变成 direct。</p>
+
+    <h3>步骤 B · Server99（yunnan-server99）</h3>
+    <div class="card checklist">
+      <label><input type="checkbox" /> 管理员 PowerShell 中 Tailscale 在线</label>
+      <label><input type="checkbox" /> 系统防火墙允许 Tailscale / 入站 UDP（常见 41641，以实际为准）</label>
+      <label><input type="checkbox" /> 若前面还有光猫/路由器硬防火墙：对 Server99 放行 UDP（或确认 UPnP 仍有效）</label>
+      <label><input type="checkbox" /> 安全组/云防火墙（若有）未误拦 UDP</label>
+    </div>
+    <pre># Server99 执行
+tailscale status
+tailscale netcheck
+tailscale ping -c 8 singlemypc
+
+# 查看本机防火墙中与 Tailscale / 41641 相关的规则（可选）
+Get-NetFirewallRule -DisplayName *Tailscale* | Select-Object DisplayName, Enabled, Direction, Action
+Get-NetUDPEndpoint -LocalPort 41641 -ErrorAction SilentlyContinue</pre>
+
+    <h3>步骤 C · 对照判断</h3>
+    <table>
+      <thead>
+        <tr><th>现象</th><th>含义</th><th>下一步</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="ok">ping 显示 direct</span></td>
+          <td>直连成功</td>
+          <td>再传一个 50–100MB 文件验证速度即可</td>
+        </tr>
+        <tr>
+          <td><span class="warn">仍 DERP(sfo) / 未 direct</span></td>
+          <td>UDP 打洞失败</td>
+          <td>本机换有线/手机热点对比；检查双方防火墙；见第 5 节备选</td>
+        </tr>
+        <tr>
+          <td>ping 超时或大量丢包</td>
+          <td>链路不稳或策略拦截</td>
+          <td>先保证 <code>tailscale status</code> 双方 online，再查 UDP</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. 直连搞不定时的备选（由易到难）</h2>
+    <ol class="steps">
+      <li><strong>大文件不走 Tailscale</strong>：用 Server99 公网 IP 做 SSH/SMB 端口映射，或同局域网用 <code>192.168.2.199</code>。</li>
+      <li><strong>国内中转</strong>：本机 → 北京阿里云 / OSS → 再拉到云南（两段都是国内）。</li>
+      <li><strong>自建国内 DERP</strong>：在北京 ECS 跑 derper，客户端自定义 DERP map（比直连配置略多，但可控）。</li>
+      <li><strong>自建 WireGuard</strong>：适合要长期稳定组网、且能接受改客户端方案时。</li>
+    </ol>
+
+    <h2>6. 关键节点速查</h2>
+    <div class="grid two">
+      <div class="card">
+        <h3>本机</h3>
+        <p class="muted" style="margin:0">
+          Tailscale：<code>100.95.58.63</code>（singlemypc）<br />
+          局域网：WLAN <code>192.168.1.110</code><br />
+          最近官方 DERP：东京（约 65ms）
+        </p>
+      </div>
+      <div class="card">
+        <h3>Server99</h3>
+        <p class="muted" style="margin:0">
+          Tailscale：<code>100.122.107.85</code>（yunnan-server99）<br />
+          局域网：<code>192.168.2.199</code>（1 Gbps）<br />
+          公网约：<code>112.117.63.50</code>
+        </p>
+      </div>
+    </div>
+
+    <h2>7. 建议执行顺序（最短路径）</h2>
+    <ol class="steps">
+      <li>本机、Server99 各执行一次 <code>tailscale ping</code>，截图/复制结果。</li>
+      <li>若非 direct：本机改有线或临时用手机热点再 ping 一次（判断是否本机 NAT 问题）。</li>
+      <li>仍失败：检查 Server99 入站 UDP / 前端路由；仍失败则改用公网直传或北京中转，不必死磕。</li>
+      <li>直连成功后再传 JAR/瓦片等大文件。</li>
+    </ol>
+
+    <div class="card">
+      <h3 style="margin-top:0">一句话</h3>
+      <p style="margin-bottom:0">直连配置本身不复杂，<strong>成败取决于 UDP 能否打通</strong>；用 <code>tailscale ping</code> 是否出现 <strong>direct</strong> 作为唯一验收标准即可。</p>
+    </div>
+
+    <footer>
+      生成说明：基于本机 ↔ Server99 实测（DERP sfo、上传约 0.05 Mbps）。文档位置：<code>docs/Tailscale直连排查方案.html</code>。
+      本地双击用浏览器打开即可查看；勾选框仅保存在当前页面会话中。
+    </footer>
+  </div>
+</body>
+</html>
