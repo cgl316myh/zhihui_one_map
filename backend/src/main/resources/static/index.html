@@ -84,7 +84,8 @@
 
       <section class="center-col" id="sec-map">
         <div class="map-shell">
-          <div class="map-overlay bottom-left">
+          <div class="map-overlay bottom-left map-overlay-tools">
+            <div class="map-tools-row">
             <div class="layer-box tool-box control-tools" id="tool-box">
               <div class="layer-box-hd">
                 <span>控制和工具</span>
@@ -131,6 +132,8 @@
                   <div class="tool-tip warn" id="basemap-tip" hidden></div>
                 </div>
               </div>
+            </div>
+            <div id="map-point-modal-dock" class="map-point-mini-dock" hidden aria-hidden="true"></div>
             </div>
           </div>
           <div id="map"></div>
@@ -184,6 +187,25 @@
     </main>
   </div>
 
+  <!-- 地图点位详情：近全屏模态（可最小化） -->
+  <div id="map-point-modal" class="map-point-modal" hidden aria-hidden="true">
+    <div class="map-point-modal__mask" data-modal-dismiss></div>
+    <div
+      class="map-point-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="map-point-modal-title"
+    >
+      <header class="map-point-modal__hd">
+        <h3 id="map-point-modal-title">点位详情</h3>
+        <div class="map-point-modal__actions">
+          <button type="button" class="map-point-modal__btn" data-modal-minimize title="最小化">—</button>
+          <button type="button" class="map-point-modal__btn map-point-modal__close" data-modal-dismiss title="关闭" aria-label="关闭">×</button>
+        </div>
+      </header>
+      <div class="map-point-modal__bd" id="map-point-modal-body"></div>
+    </div>
+  </div>
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="vendor/echarts/echarts.min.js"></script>
   <script type="module">

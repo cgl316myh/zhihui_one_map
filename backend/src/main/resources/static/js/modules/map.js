@@ -1,5 +1,6 @@
 import { renderPopupSeries, renderPopupEnvHistory, disposeChart } from './charts.js';
 import { renderVideoTile, stopVideoPlayback } from './videoPlayer.js';
+import { openMapPointModal, closeMapPointModal } from './mapPointModal.js';
 
 let map = null;
 let baseLayerGroup = null;
@@ -318,6 +319,13 @@ function envStatusLabel(status) {
   return ENV_STATUS_LABELS[status] || status;
 }
 
+function envStatusClass(status) {
+  const key = String(status || '').toLowerCase();
+  if (key === 'alarm' || key === 'fault') return 'st-alarm';
+  if (key === 'warn' || key === 'offline') return 'st-warn';
+  return 'st-ok';
+}
+
 /** 无经纬度的点不交给 Leaflet，避免 project(null.lat) 打断页面 */
 function validMapLatLng(lat, lng) {
   const y = Number(lat);
@@ -347,32 +355,38 @@ export function renderEnvironmentMarkers(env) {
       icon: pulseIcon(statusColor(p.status), '环'),
     });
     if (!m) return;
+    const stLabel = envStatusLabel(p.status) || '—';
+    const stClass = envStatusClass(p.status);
     const metrics = Object.entries(p.metrics || {})
-      .map(
-        ([k, v]) =>
-          `<li>${envMetricLabel(k)}: <b>${v}</b>${(p.units && p.units[k]) || ''}</li>`
-      )
+      .map(([k, v]) => {
+        const unit = (p.units && p.units[k]) || '';
+        return `<div class="slope-metric"><em>${envMetricLabel(k)}</em><b>${v}</b><i>${unit}</i></div>`;
+      })
       .join('');
     const chartId = `popup-env-${p.id}`;
     const hasHist = Array.isArray(p.history) && p.history.length;
-    m.bindPopup(
-      `
-      <div class="popup-card ${hasHist ? 'wide' : ''}">
-        <h4>${p.name}</h4>
-        <p>${p.location || ''} · ${envStatusLabel(p.status)}</p>
-        <ul>${metrics}</ul>
+    const html = `
+      <div class="popup-card modal-card wide slope-popup env-popup">
+        <div class="slope-pop-hd">
+          <span class="slope-badge ${stClass}">${stLabel}</span>
+        </div>
+        <div class="slope-pop-meta">
+          <span>${p.location || '—'}</span>
+        </div>
+        <div class="slope-metric-grid">${metrics}</div>
         ${hasHist ? `<div class="popup-chart-label">近 24h</div><div id="${chartId}" class="popup-chart"></div>` : ''}
-      </div>`,
-      { maxWidth: hasHist ? 500 : 360, minWidth: hasHist ? 500 : 300 }
-    );
-    if (hasHist) {
-      m.on('popupopen', () => {
-        setTimeout(() => renderPopupEnvHistory(chartId, p), 40);
+      </div>`;
+    const openEnv = () =>
+      openMapPointModal({
+        id: `env-${p.id}`,
+        title: p.name || '环境监测点',
+        kind: '环',
+        html,
+        onOpen: hasHist ? () => renderPopupEnvHistory(chartId, p) : undefined,
+        onClose: hasHist ? () => disposeChart(chartId) : undefined,
       });
-      m.on('popupclose', () => {
-        disposeChart(chartId);
-      });
-    }
+    m.on('click', openEnv);
+    m._openPointModal = openEnv;
     markers.environment.set(p.id, m);
   });
 }
@@ -388,25 +402,28 @@ export function renderVideoMarkers(video) {
     });
     if (!m) return;
     const mountId = `popup-video-${c.id}`;
-    m.bindPopup(
-      `
-      <div class="popup-card video-popup">
-        <h4>${c.name}</h4>
+    const html = `
+      <div class="popup-card modal-card video-popup">
         <p>${c.online ? '在线' : '离线'} · ${c.scene || ''}</p>
         <div class="popup-video-ph popup-video-mount" id="${mountId}"></div>
-      </div>`,
-      { maxWidth: 520, minWidth: 440, className: 'leaflet-video-popup' }
-    );
-    m.on('popupopen', () => {
-      setTimeout(() => {
-        const el = document.getElementById(mountId);
-        if (el) renderVideoTile(el, c, video, { autoStart: true });
-      }, 40);
-    });
-    m.on('popupclose', () => {
-      const el = document.getElementById(mountId);
-      if (el) stopVideoPlayback(el);
-    });
+      </div>`;
+    const openVideo = () =>
+      openMapPointModal({
+        id: `video-${c.id}`,
+        title: c.name || '视频监控点',
+        kind: '视',
+        html,
+        onOpen: () => {
+          const el = document.getElementById(mountId);
+          if (el) renderVideoTile(el, c, video, { autoStart: true });
+        },
+        onClose: () => {
+          const el = document.getElementById(mountId);
+          if (el) stopVideoPlayback(el);
+        },
+      });
+    m.on('click', openVideo);
+    m._openPointModal = openVideo;
     markers.video.set(c.id, m);
   });
 }
@@ -447,10 +464,15 @@ export function renderProductionMarkers(prod, slopePointsMeta) {
       icon: pulseIcon(statusColor(st), '产'),
     });
     if (!m) return;
-    m.bindPopup(`<div class="popup-card"><h4>${s.name}</h4><p>状态：${st}</p></div>`, {
-      maxWidth: 360,
-      minWidth: 280,
-    });
+    const openProd = () =>
+      openMapPointModal({
+        id: `prod-${s.id}`,
+        title: s.name || '生产点位',
+        kind: '产',
+        html: `<div class="popup-card modal-card"><p>状态：${st}</p></div>`,
+      });
+    m.on('click', openProd);
+    m._openPointModal = openProd;
     markers.production.set(s.id, m);
   });
 }
@@ -480,10 +502,8 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
     const stClass = slopeStatusClass(st);
     const online = p.online === false ? '离线' : '在线';
     const unit = p.unit || 'mm';
-    m.bindPopup(
-      `<div class="popup-card wide slope-popup">
+    const html = `<div class="popup-card modal-card wide slope-popup">
         <div class="slope-pop-hd">
-          <h4>${escapeHtml(p.name || p.id || '')}</h4>
           <span class="slope-badge ${stClass}">${stLabel}</span>
         </div>
         <div class="slope-pop-meta">
@@ -506,15 +526,18 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
         </div>
         <div class="popup-chart-label">短历史（近 12 点）</div>
         <div id="${chartId}" class="popup-chart"></div>
-      </div>`,
-      { maxWidth: 520, minWidth: 500, className: 'leaflet-slope-popup' }
-    );
-    m.on('popupopen', () => {
-      setTimeout(() => renderPopupSeries(chartId, p, { maxPts: 12 }), 80);
-    });
-    m.on('popupclose', () => {
-      disposeChart(chartId);
-    });
+      </div>`;
+    const openSlope = () =>
+      openMapPointModal({
+        id: `slope-${p.id}`,
+        title: p.name || p.id || '边坡监测点',
+        kind: '坡',
+        html,
+        onOpen: () => renderPopupSeries(chartId, p, { maxPts: 12 }),
+        onClose: () => disposeChart(chartId),
+      });
+    m.on('click', openSlope);
+    m._openPointModal = openSlope;
     markers.slope.set(p.id, m);
   });
 
@@ -526,14 +549,15 @@ export function renderSlopeMarkers(slopeData, metaPoints) {
     if (!m) {
       return;
     }
-    m.bindPopup(
-      `
-      <div class="popup-card">
-        <h4>${r.name || '雨量监测点'}</h4>
-        <p>当前 ${r.valueMm} mm · 累计 ${r.cumulativeMm} mm</p>
-      </div>`,
-      { maxWidth: 360, minWidth: 280 }
-    );
+    const openRain = () =>
+      openMapPointModal({
+        id: `rain-${r.id || 'YL-01'}`,
+        title: r.name || '雨量监测点',
+        kind: '雨',
+        html: `<div class="popup-card modal-card"><p>当前 ${r.valueMm} mm · 累计 ${r.cumulativeMm} mm</p></div>`,
+      });
+    m.on('click', openRain);
+    m._openPointModal = openRain;
     markers.slope.set(r.id || 'YL-01', m);
   }
 }
@@ -542,6 +566,8 @@ export function focusSlopePoint(id) {
   const m = markers.slope.get(id);
   if (m && map) {
     map.panTo(m.getLatLng());
-    m.openPopup();
+    if (typeof m._openPointModal === 'function') m._openPointModal();
   }
 }
+
+export { closeMapPointModal };
