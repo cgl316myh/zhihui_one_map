@@ -344,7 +344,7 @@ async function boot() {
   const zoom = mockData.slopePoints?.mapZoom ?? mockData.publicConfig?.mapZoom ?? 15;
   initMap(center, zoom);
 
-  let mapConfig = { defaultBasemap: 'esri-img', ...(mockData.publicConfig || {}) };
+  let mapConfig = { defaultBasemap: 'google-offline', ...(mockData.publicConfig || {}) };
   mapConfig = mergeMapConfig(mapConfig);
   try {
     initMapToolbar(mapConfig);

@@ -261,7 +261,7 @@ function bindBasemapSelect() {
   const select = document.getElementById('basemap-select');
   if (!select) return;
 
-  select.value = getBasemapId() || 'esri-img';
+  select.value = getBasemapId() || 'google-offline';
   select.addEventListener('change', () => {
     const next = select.value;
     const prev = getBasemapId();
@@ -350,23 +350,24 @@ export function initMapToolbar(mapConfig) {
   lastMapConfig = mapConfig || {};
   bindToolbarToggle();
 
-  let preferred = mapConfig?.defaultBasemap || 'esri-img';
+  let preferred = mapConfig?.defaultBasemap || 'google-offline';
   try {
     preferred = localStorage.getItem(BASEMAP_KEY) || preferred;
   } catch {
     /* ignore */
   }
   if (preferred === 'osm-hot' || preferred === 'amap-img') preferred = 'esri-img';
-  // 无 tk 时天地图不可用，回退
+  if (preferred === 'google-sat' || preferred === 'osm-street') preferred = 'google-offline';
+  // 无 tk 时天地图不可用，回退离线底图
   const hasTk = Boolean(String(mapConfig?.tiandituTk || '').trim());
   if (!hasTk && (preferred === 'tdt-vec' || preferred === 'tdt-img')) {
-    preferred = 'esri-img';
+    preferred = 'google-offline';
   }
 
   const result = setBasemap(preferred, mapConfig);
   if (!result.ok) {
-    setBasemap('esri-img', mapConfig);
-    preferred = 'esri-img';
+    setBasemap('google-offline', mapConfig);
+    preferred = 'google-offline';
   }
   syncBasemapZoomLabels();
   bindBasemapSelect();

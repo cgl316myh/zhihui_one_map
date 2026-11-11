@@ -8,26 +8,26 @@ import { apiPut } from '../api/client.js';
 const MAP_KEY = 'mine-one-map-map-config-v1';
 
 const HARDCODED_URLS = {
-  'google-sat': {
-    url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    subdomains: '0123',
-    attribution: 'Google',
-  },
-  'osm-street': {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    subdomains: 'abc',
-    attribution: '© OpenStreetMap',
+  'google-offline': {
+    url: '/tiles/{z}/{x}/{y}.png',
+    attribution: '航飞-离线',
+    label: '航飞-离线',
+    minZoom: 12,
+    maxZoom: 22,
+    maxNativeZoom: 22,
   },
   'esri-street': {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Esri',
+    label: 'ESRI 城市地图',
   },
   'esri-img': {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Esri',
+    label: 'ESRI 高清影像',
   },
-  'tdt-vec': { kind: 'tianditu', layer: 'vec', anno: 'cva' },
-  'tdt-img': { kind: 'tianditu', layer: 'img', anno: 'cia' },
+  'tdt-vec': { kind: 'tianditu', layer: 'vec', anno: 'cva', label: '天地图矢量' },
+  'tdt-img': { kind: 'tianditu', layer: 'img', anno: 'cia', label: '天地图影像' },
 };
 
 function clone(v) {
@@ -88,10 +88,10 @@ function enrichForAdmin(cfg) {
     const cur = out.basemaps[id] || {};
     out.basemaps[id] = {
       id,
-      label: cur.label || id,
-      minZoom: cur.minZoom ?? 3,
-      maxZoom: cur.maxZoom ?? 18,
-      maxNativeZoom: cur.maxNativeZoom ?? cur.maxZoom ?? 18,
+      label: cur.label || meta.label || id,
+      minZoom: cur.minZoom ?? meta.minZoom ?? 3,
+      maxZoom: cur.maxZoom ?? meta.maxZoom ?? 18,
+      maxNativeZoom: cur.maxNativeZoom ?? meta.maxNativeZoom ?? cur.maxZoom ?? meta.maxZoom ?? 18,
       enabled: cur.enabled !== false,
       urlTemplate: cur.urlTemplate || meta.url || '',
       subdomains: cur.subdomains || meta.subdomains || '',
@@ -101,11 +101,17 @@ function enrichForAdmin(cfg) {
       attribution: cur.attribution || meta.attribution || '',
     };
   });
+  // 去掉已下线底图，避免下拉/后台残留
+  delete out.basemaps['google-sat'];
+  delete out.basemaps['osm-street'];
   // 保留未知自定义源
   Object.keys(out.basemaps).forEach((id) => {
     if (!out.basemaps[id].id) out.basemaps[id].id = id;
     if (out.basemaps[id].enabled == null) out.basemaps[id].enabled = true;
   });
+  if (!out.defaultBasemap || out.defaultBasemap === 'google-sat' || out.defaultBasemap === 'osm-street') {
+    out.defaultBasemap = 'google-offline';
+  }
   return out;
 }
 
@@ -124,7 +130,7 @@ export function toPersistedMapConfig(adminCfg) {
     };
   });
   return {
-    defaultBasemap: adminCfg.defaultBasemap || 'esri-img',
+    defaultBasemap: adminCfg.defaultBasemap || 'google-offline',
     mapMinZoom: Number(adminCfg.mapMinZoom) || 3,
     tiandituTk: String(adminCfg.tiandituTk || ''),
     basemaps,

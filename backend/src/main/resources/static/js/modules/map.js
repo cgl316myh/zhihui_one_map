@@ -8,10 +8,8 @@ let mapConfig = {};
 
 /** 各底图默认最大切片等级（可被 map-config.json 覆盖） */
 const BASEMAP_ZOOM_DEFAULTS = {
-  'google-sat': { minZoom: 3, maxZoom: 20, maxNativeZoom: 20, label: '谷歌卫星影像' },
   // 离线瓦片：矿区 z12-z22，磁盘 D:/MineOneMap/tiles，由后端 /tiles/** 提供
-  'google-offline': { minZoom: 12, maxZoom: 22, maxNativeZoom: 22, label: '谷歌卫星影像（离线）' },
-  'osm-street': { minZoom: 3, maxZoom: 19, maxNativeZoom: 19, label: 'OSM 城市底图' },
+  'google-offline': { minZoom: 12, maxZoom: 22, maxNativeZoom: 22, label: '航飞-离线' },
   'esri-street': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: 'ESRI 城市地图' },
   'esri-img': { minZoom: 3, maxZoom: 19, maxNativeZoom: 19, label: 'ESRI 高清影像' },
   'tdt-vec': { minZoom: 3, maxZoom: 18, maxNativeZoom: 18, label: '天地图矢量' },
@@ -32,8 +30,9 @@ const markers = {
 };
 
 function normalizeBasemapId(id) {
-  // 高德底图已下线：旧配置/本地记忆回落到 ESRI 影像
+  // 已下线底图：旧配置/本地记忆回落
   if (id === 'osm-hot' || id === 'amap-img') return 'esri-img';
+  if (id === 'google-sat' || id === 'osm-street') return 'google-offline';
   return id;
 }
 
@@ -86,36 +85,13 @@ function createBasemapLayers(id) {
     maxNativeZoom: z.maxNativeZoom,
   };
 
-  if (id === 'osm-street') {
-    return {
-      zoom: z,
-      layers: [
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          ...common,
-          attribution: '© OpenStreetMap',
-        }),
-      ],
-    };
-  }
-  if (id === 'google-sat') {
-    return {
-      zoom: z,
-      layers: [
-        L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-          ...common,
-          subdomains: ['0', '1', '2', '3'],
-          attribution: 'Google',
-        }),
-      ],
-    };
-  }
   if (id === 'google-offline') {
     return {
       zoom: z,
       layers: [
         L.tileLayer('/tiles/{z}/{x}/{y}.png', {
           ...common,
-          attribution: 'Google 离线瓦片',
+          attribution: '航飞-离线',
         }),
       ],
     };

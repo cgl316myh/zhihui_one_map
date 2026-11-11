@@ -1,27 +1,14 @@
 {
-  "defaultBasemap": "esri-img",
+  "defaultBasemap": "google-offline",
   "mapMinZoom": 3,
   "tiandituTk": "2614f89248e121283410408772c240dc",
   "basemaps": {
-    "google-sat": {
-      "label": "谷歌卫星影像",
-      "minZoom": 3,
-      "maxZoom": 20,
-      "maxNativeZoom": 20,
-      "enabled": true
-    },
     "google-offline": {
-      "label": "谷歌卫星影像（离线）",
+      "label": "航飞-离线",
       "minZoom": 12,
       "maxZoom": 22,
       "maxNativeZoom": 22,
       "enabled": true
-    },
-    "osm-street": {
-      "label": "OSM 城市底图",
-      "minZoom": 3,
-      "maxZoom": 19,
-      "maxNativeZoom": 19
     },
     "amap-img": {
       "label": "高德影像底图",
