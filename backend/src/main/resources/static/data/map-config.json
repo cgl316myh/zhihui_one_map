@@ -12,9 +12,9 @@
     },
     "google-offline": {
       "label": "谷歌卫星影像（离线）",
-      "minZoom": 17,
-      "maxZoom": 19,
-      "maxNativeZoom": 19,
+      "minZoom": 12,
+      "maxZoom": 22,
+      "maxNativeZoom": 22,
       "enabled": true
     },
     "osm-street": {
