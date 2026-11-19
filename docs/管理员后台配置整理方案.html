@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理员后台配置整理方案（对照 Server99）</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e7eef6;
+      --muted: #93a4b5;
+      --line: #2b3948;
+      --accent: #3d9cf0;
+      --ok: #3ecf8e;
+      --warn: #e6b84d;
+      --danger: #ef6b6b;
+      --keep: #5b9fd4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #101820 0%, #0b1015 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; letter-spacing: 0.02em; }
+    h2 {
+      font-size: 1.2rem;
+      margin: 36px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      color: #d7e6f5;
+    }
+    h3 { font-size: 1.02rem; margin: 20px 0 8px; color: #c5d7ea; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    .lead { color: #b7c8d8; margin-bottom: 20px; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 10px 18px;
+      padding: 12px 14px; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 10px; margin-bottom: 24px;
+      font-size: 0.92rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600; vertical-align: middle;
+    }
+    .b-del { background: rgba(239,107,107,.18); color: var(--danger); }
+    .b-off { background: rgba(230,184,77,.16); color: var(--warn); }
+    .b-keep { background: rgba(62,207,142,.14); color: var(--ok); }
+    .b-fix { background: rgba(61,156,240,.16); color: var(--accent); }
+    .b-ask { background: rgba(147,164,181,.18); color: #c9d5e2; }
+    table {
+      width: 100%; border-collapse: collapse; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+      font-size: 0.92rem; margin: 10px 0 18px;
+    }
+    th, td {
+      text-align: left; padding: 10px 12px;
+      border-bottom: 1px solid var(--line); vertical-align: top;
+    }
+    th { background: #212b36; color: #cfe0f1; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    code, .mono {
+      font-family: ui-monospace, Consolas, "Courier New", monospace;
+      font-size: 0.86em; color: #b8d4f0;
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .kpi b { display: block; font-size: 1.35rem; color: #fff; margin-top: 4px; }
+    .kpi span { color: var(--muted); font-size: 0.85rem; }
+    ol.steps li { margin: 8px 0; }
+    .note {
+      border-left: 3px solid var(--accent); padding: 8px 12px;
+      background: rgba(61,156,240,.08); margin: 12px 0; color: #c5d8ea;
+    }
+    .warnbox {
+      border-left: 3px solid var(--warn); padding: 8px 12px;
+      background: rgba(230,184,77,.08); margin: 12px 0; color: #e8d7a8;
+    }
+    footer { margin-top: 40px; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>管理员后台 · 数据与配置整理方案</h1>
+    <p class="lead">对照 Server99 线上实况，梳理管理后台（<code>admin.html</code>）与库表/种子配置的冗余项。本文仅方案，不改库、不改代码，待指令后再执行。</p>
+
+    <div class="meta">
+      <span>对照环境：Server99（Tailscale / 生产）</span>
+      <span>盘点时间：2026-11-19</span>
+      <span>应用版本：约 1.3.12</span>
+      <span>文档路径：<code>docs/管理员后台配置整理方案.html</code></span>
+    </div>
+
+    <h2>1. 原则</h2>
+    <ul>
+      <li><strong>以 Server99 实况为准</strong>：线上正在用的接入（边坡云 BDLX、环境云 FT、ZLM 视频）优先保留。</li>
+      <li><strong>先藏后删</strong>：后台 UI 可先隐藏/禁用；库表与种子文件在确认无回滚需求后再物理删除。</li>
+      <li><strong>演示与空数据分离</strong>：无真实业务的演示载荷（如生产工段）不出现在地图，后台也不应再鼓励编辑。</li>
+      <li><strong>配置单一真相源</strong>：避免「库表 cfg_*」与「static/seed 旧 JSON」双轨并存造成改了后台大屏仍读旧文件。</li>
+      <li><strong>密钥不下文档明文</strong>：本方案不记录密码/Token 原文。</li>
+    </ul>
+
+    <h2>2. Server99 现状摘要</h2>
+    <div class="grid">
+      <div class="card kpi"><span>视频摄像头</span><b>11 路</b><span class="muted">ZLM 本机 :8080 · 已启用</span></div>
+      <div class="card kpi"><span>边坡设备</span><b>5</b><span class="muted">4 位移 + 1 雨量 · BDLX 定时拉取</span></div>
+      <div class="card kpi"><span>环境站点配置</span><b>6 行</b><span class="muted">其中 3 条禁用重复 + 3 条启用</span></div>
+      <div class="card kpi"><span>生产工段 mapSpots</span><b>0</b><span class="muted">仅残留演示 lines · 地图已不上点</span></div>
+    </div>
+
+    <h3>2.1 管理后台现有菜单</h3>
+    <table>
+      <thead>
+        <tr><th>面板</th><th>对应数据</th><th>Server99 使用情况</th><th>初判</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>概览</td>
+          <td>汇总 KPI</td>
+          <td>只读展示</td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>用户</td>
+          <td><code>sys_user</code>（admin / user）</td>
+          <td>2 账号在用</td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>阈值配置 + 报警显示</td>
+          <td><code>cfg_env_threshold</code>、<code>cfg_alert_display</code></td>
+          <td>阈值在用；报警显示当前 <code>enabled=false</code></td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>储量参数</td>
+          <td><code>cfg_reserves</code></td>
+          <td>已切 2025 年报口径（评估利用约 9677）</td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>字典管理</td>
+          <td><code>sys_dict_*</code>（4 类 / 15 项）</td>
+          <td>角色、点位状态、图层类型、报警级别</td>
+          <td><span class="badge b-fix">校准</span> 去掉无用的「生产」图层词条若地图不再展示</td>
+        </tr>
+        <tr>
+          <td>地图源与密钥</td>
+          <td><code>cfg_map</code> + 静态 <code>map-config.json</code></td>
+          <td>库中仍含已下线底图：<code>amap-img</code> / <code>google-sat</code> / <code>osm-street</code>；与大屏现行「航飞-离线」不一致</td>
+          <td><span class="badge b-fix">重点整理</span></td>
+        </tr>
+        <tr>
+          <td>CAD 矢量图层</td>
+          <td><code>cfg_cad_layers</code></td>
+          <td>2 层：矿界线 / 矿界点</td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>视频监控</td>
+          <td><code>cfg_video_platform</code>、<code>biz_video_camera</code></td>
+          <td>11 路海康子码流；CAM-01（.122）历史上 554 不通</td>
+          <td><span class="badge b-fix">校准</span></td>
+        </tr>
+        <tr>
+          <td>接入连接</td>
+          <td><code>cfg_sensor_bridge</code>、<code>cfg_bdlx_pull</code>、<code>cfg_ft_env_pull</code></td>
+          <td>BDLX / FT 环境云在用；MQTT 虽开启但曾订阅失败；HTTP 模式 <code>direct</code>；云中继空</td>
+          <td><span class="badge b-fix">精简</span></td>
+        </tr>
+        <tr>
+          <td>站点与策略</td>
+          <td><code>cfg_env_station</code>、<code>cfg_slope_device</code>、<code>cfg_sensor_ingest</code></td>
+          <td>环境站有 3 条禁用重复；边坡 5 台正常；演示推送已关</td>
+          <td><span class="badge b-fix">清理重复站</span></td>
+        </tr>
+        <tr>
+          <td>接入测试</td>
+          <td>测试推送 → <code>biz_env_latest</code></td>
+          <td><code>demo_push_enabled=false</code>；生产环境少用</td>
+          <td><span class="badge b-off">建议弱化/折叠</span></td>
+        </tr>
+        <tr>
+          <td>操作日志 / 权限说明</td>
+          <td><code>sys_audit_log</code> / 静态说明</td>
+          <td>审计 26 条；权限页为说明</td>
+          <td><span class="badge b-keep">保留</span></td>
+        </tr>
+        <tr>
+          <td>（无独立面板）生产工段</td>
+          <td><code>biz_production</code></td>
+          <td>种子演示 lines=2，mapSpots=0；大屏已不上生产点</td>
+          <td><span class="badge b-del">建议清空或归档</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.2 关键库表与后台关系（Server99）</h3>
+    <table>
+      <thead><tr><th>表</th><th>行数/状态</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>cfg_map</code></td><td>1</td><td>底图列表落后于前端代码，需与「航飞-离线 + ESRI + 天地图」对齐</td></tr>
+        <tr><td><code>cfg_env_threshold</code></td><td>1</td><td>昼夜阈值，保留</td></tr>
+        <tr><td><code>cfg_alert_display</code></td><td>1 · enabled=false</td><td>保留开关</td></tr>
+        <tr><td><code>cfg_reserves</code></td><td>1 · 2025 口径</td><td>保留</td></tr>
+        <tr><td><code>cfg_video_platform</code></td><td>1 · hikvision</td><td>保留</td></tr>
+        <tr><td><code>biz_video_camera</code></td><td>11</td><td>保留；单独处理 CAM-01 可达性</td></tr>
+        <tr><td><code>cfg_sensor_bridge</code></td><td>1 · mqtt=on, http=direct</td><td>云中继未用；TCP 关</td></tr>
+        <tr><td><code>cfg_sensor_ingest</code></td><td>enabled · demo 关 · 保留 3 月</td><td>保留策略；演示推送维持关闭</td></tr>
+        <tr><td><code>cfg_env_station</code></td><td>6（3 禁用重复）</td><td>清理 3 条 <code>26072811ZXZ-*</code> 禁用行</td></tr>
+        <tr><td><code>cfg_slope_device</code></td><td>5</td><td>与 BDLX 一致，保留</td></tr>
+        <tr><td><code>cfg_bdlx_pull</code> / <code>cfg_ft_env_pull</code></td><td>各 1 · 启用</td><td>核心接入，保留</td></tr>
+        <tr><td><code>cfg_cad_layers</code></td><td>2 layers</td><td>保留</td></tr>
+        <tr><td><code>biz_production</code></td><td>演示残留</td><td>建议清空 payload 或仅留空结构</td></tr>
+        <tr><td><code>cfg_cloud_pull_cursor</code></td><td>陈旧（约 2026-08）</td><td>非 cloud_relay 时可忽略/归档</td></tr>
+        <tr><td><code>cfg_sensor_threshold</code></td><td>列式旧表</td><td>与 <code>cfg_env_threshold</code> JSON 双轨，代码仍有读写映射 → <span class="badge b-ask">待确认是否可废弃</span></td></tr>
+        <tr><td><code>biz_map_point</code></td><td>5（4 位移 + 1 雨量）</td><td>保留</td></tr>
+      </tbody>
+    </table>
+
+    <div class="warnbox">
+      <strong>注意：</strong>Server99 的 <code>cfg_map.basemaps</code> 仍出现 <code>amap-img</code>、<code>google-sat</code>、<code>osm-street</code>，而大屏代码已将卫星/OSM 下线并默认「航飞-离线」。这是后台「改了不生效 / 选项多余」的主要来源之一。
+    </div>
+
+    <h2>3. 整理清单（按优先级）</h2>
+
+    <h3>P0 · 建议执行（低风险、收益明确）</h3>
+    <table>
+      <thead><tr><th>项</th><th>动作</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>地图源配置对齐</td>
+          <td>更新 Server99 <code>cfg_map</code>：默认 <code>google-offline</code>（航飞-离线）；仅保留 offline / esri-street / esri-img / tdt-vec / tdt-img；删除 amap / google-sat / osm</td>
+          <td>与已部署前端及 <code>static/data/map-config.json</code> 一致，去掉无效选项</td>
+        </tr>
+        <tr>
+          <td>环境站重复行</td>
+          <td>删除或永久禁用 <code>cfg_env_station</code> 中 id=<code>26072811ZXZ-01/02/03</code> 且 enabled=false 的 3 行；保留 ENV-01/02/03</td>
+          <td>与启用站 client_id 重复，后台列表噪音</td>
+        </tr>
+        <tr>
+          <td>生产演示数据</td>
+          <td>将 <code>biz_production</code> 置空结构（lines=[]，mapSpots=[]，可保留 processNote 空）；种子 <code>biz_production.json</code> 同步为空 mapSpots（已空）并弱化 lines</td>
+          <td>无真实产线；避免后台误改演示数据</td>
+        </tr>
+        <tr>
+          <td>种子/静态双轨</td>
+          <td>盘点并标注废弃：<code>seed/production.json</code>、<code>environment.json</code>、<code>reserves.json</code>、<code>env-thresholds.json</code>、<code>sensor-bridge-config.json</code>（若仅 mock.js 使用）</td>
+          <td>正式路径已是 API + <code>cfg_*</code>；旧 JSON 易造成「改错文件」</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>P1 · 建议精简后台 UI（不删库）</h3>
+    <table>
+      <thead><tr><th>项</th><th>动作</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>接入连接 · 云中继</td>
+          <td>UI 默认折叠/标注「未使用」；当前 mode=direct 且 cloud.baseUrl 空</td>
+          <td>减少误配；代码路径可保留兼容</td>
+        </tr>
+        <tr>
+          <td>接入连接 · TCP</td>
+          <td>隐藏或标注未启用（Server99 tcp.enabled=false）</td>
+          <td>现场未走 TCP 接入</td>
+        </tr>
+        <tr>
+          <td>接入测试 / 演示推送</td>
+          <td>生产后台折叠到「高级」；维持 demoPush=false</td>
+          <td>避免误开污染环境最新值</td>
+        </tr>
+        <tr>
+          <td>MQTT</td>
+          <td><span class="badge b-ask">待你确认</span>：若现场环境已全部走 FT 云拉取，可将 MQTT 默认关闭并在 UI 标注「备用」；若仍有设备直推 MQTT 则保留</td>
+          <td>历史上有 subscribe failed；需业务确认是否还有 MQTT 设备</td>
+        </tr>
+        <tr>
+          <td>字典 layer_type「生产工段」</td>
+          <td>若地图层不再展示 production，字典项可禁用</td>
+          <td>与地图层策略一致</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>P2 · 待确认后再动（有代码耦合）</h3>
+    <table>
+      <thead><tr><th>项</th><th>风险</th><th>建议</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>cfg_sensor_threshold</code> 列式表</td>
+          <td>Mapper 仍有 get/update；与 JSON 阈值可能不同步</td>
+          <td>先读代码调用链，确认无管理端入口后，再标废弃或做只读迁移</td>
+        </tr>
+        <tr>
+          <td><code>cfg_cloud_pull_cursor</code></td>
+          <td>cloud_relay 模式依赖</td>
+          <td>保持表结构；非该模式不在后台展示</td>
+        </tr>
+        <tr>
+          <td>CAM-01（192.168.2.122）</td>
+          <td>网络/设备不通会导致点播失败体验差</td>
+          <td>后台标记 offline 或 enabled=false，或修好 554 后再开</td>
+        </tr>
+        <tr>
+          <td>删除物理种子文件</td>
+          <td>mock / 空库初始化可能引用</td>
+          <td>执行阶段逐文件 grep 引用后再删</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. 建议「保留且校准」的配置（不要删）</h2>
+    <ul>
+      <li><strong>BDLX 边坡云</strong>：定时拉取、设备清单、点位与告警 —— 核心业务。</li>
+      <li><strong>FT 环境云</strong>：三站环境时序 —— 核心业务。</li>
+      <li><strong>视频平台 + 摄像头列表</strong>：ZLM + 海康子码流 —— 核心业务。</li>
+      <li><strong>储量 / 环境阈值 / 报警显示开关</strong>：大屏直接消费。</li>
+      <li><strong>CAD 矿界两层</strong>：已落地。</li>
+      <li><strong>用户与审计</strong>：运维必需。</li>
+      <li><strong>时序保留策略</strong>（3 个月）+ DB 备份联动：运维必需，不在「冗余」之列。</li>
+    </ul>
+
+    <h2>5. 建议执行步骤（等你下令后再做）</h2>
+    <ol class="steps">
+      <li><strong>备份</strong>：Server99 对相关 cfg/biz 表做一次 JSON/SQL 导出；本地提交前先备份。</li>
+      <li><strong>库内清理（P0）</strong>：更新 <code>cfg_map</code>；删环境站重复行；清空 <code>biz_production</code> 演示内容；按需标记 CAM-01。</li>
+      <li><strong>种子与静态对齐</strong>：<code>seed/cfg_map.json</code>、<code>static/data/map-config.json</code> 与库一致；标注或移除仅 mock 使用的旧 JSON。</li>
+      <li><strong>后台 UI 精简（P1）</strong>：折叠云中继 / TCP / 演示推送；字典项按需禁用。</li>
+      <li><strong>验证</strong>：管理端各页可打开保存；大屏底图切换、环境/边坡/视频/储量正常；生产图层仍不出现。</li>
+      <li><strong>发版</strong>：若有 UI/种子变更，再打 jar 部署 Server99；纯库清理可 WinRM 执行无需发版。</li>
+    </ol>
+
+    <div class="note">
+      推荐拆成两次指令：①「只清 Server99 库（P0）」→ 立即见效；②「改后台 UI + 种子并打包」→ 需发版。
+    </div>
+
+    <h2>6. 明确不在本次范围</h2>
+    <ul>
+      <li>不改摄像头密码、ZLM secret、数据库账号。</li>
+      <li>不删历史时序表（<code>ts_*</code>）数据。</li>
+      <li>不做 Vue 迁移或菜单大改版（仅减冗余配置）。</li>
+      <li>不在未确认前关闭 MQTT（需你拍板）。</li>
+    </ul>
+
+    <h2>7. 待你确认的问题</h2>
+    <ol>
+      <li>环境数据是否已 <strong>完全</strong> 依赖 FT 云拉取？若是，MQTT 可否在后台默认关闭并标为备用？</li>
+      <li>生产工段：仅清空数据，还是连大屏「生产」侧栏/导航入口一并隐藏？</li>
+      <li>CAM-01：标记离线，还是继续留在列表等待网络修复？</li>
+      <li>执行顺序：先只做 Server99 库清理，还是库 + 代码/UI 一起做？</li>
+    </ol>
+
+    <footer>
+      文档生成自对 Server99 库表与仓库 <code>backend/</code> 管理端的只读盘点。执行前请再次下达明确指令；未指令前不会改库或改代码。
+    </footer>
+  </div>
+</body>
+</html>

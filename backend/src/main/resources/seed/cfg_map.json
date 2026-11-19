@@ -13,12 +13,6 @@
       "maxNativeZoom": 22,
       "enabled": true
     },
-    "amap-img": {
-      "label": "高德影像底图",
-      "minZoom": 3,
-      "maxZoom": 18,
-      "maxNativeZoom": 18
-    },
     "esri-street": {
       "label": "ESRI 城市地图",
       "minZoom": 3,

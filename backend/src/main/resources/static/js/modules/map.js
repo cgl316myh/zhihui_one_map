@@ -428,32 +428,34 @@ export function renderVideoMarkers(video) {
   });
 }
 
+/** 是否有可上图的生产点位（无 mapSpots / 无有效坐标则不上图，不做演示兜底） */
+export function hasProductionMapSpots(prod) {
+  return (
+    Array.isArray(prod?.mapSpots) &&
+    prod.mapSpots.some(
+      (s) =>
+        s &&
+        Number.isFinite(Number(s.lat)) &&
+        Number.isFinite(Number(s.lng))
+    )
+  );
+}
+
 export function renderProductionMarkers(prod, slopePointsMeta) {
   const g = layerGroups.production;
   if (!g) return;
   g.clearLayers();
   markers.production.clear();
-  // 优先用 production.mapSpots（已按 slope-points 矿区校准）；否则相对矿区中心偏移
-  const center = slopePointsMeta?.mapCenter || [102.445768, 24.786112];
-  const spots =
-    Array.isArray(prod?.mapSpots) && prod.mapSpots.length
-      ? prod.mapSpots
-      : [
-          {
-            id: 'CRUSH',
-            name: '破碎工段',
-            lat: center[1] - 0.001,
-            lng: center[0] + 0.0006,
-            status: 'running',
-          },
-          {
-            id: 'SCREEN',
-            name: '筛分工段',
-            lat: center[1] - 0.0014,
-            lng: center[0] + 0.0012,
-            status: 'warn',
-          },
-        ];
+  // 仅当业务配置了 mapSpots 才上图；无数据不画、不发明演示点
+  const spots = hasProductionMapSpots(prod)
+    ? prod.mapSpots.filter(
+        (s) =>
+          s &&
+          Number.isFinite(Number(s.lat)) &&
+          Number.isFinite(Number(s.lng))
+      )
+    : [];
+  if (!spots.length) return;
   const lineStatus = {};
   (prod.lines || []).forEach((l) => {
     lineStatus[l.id] = l.status;

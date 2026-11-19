@@ -15,6 +15,7 @@ import {
   renderEnvironmentMarkers,
   renderVideoMarkers,
   renderProductionMarkers,
+  hasProductionMapSpots,
   renderSlopeMarkers,
   focusSlopePoint,
   invalidateMapSize,
@@ -379,7 +380,16 @@ async function boot() {
   renderVideoMarkers(mockData.video);
   renderProductionMarkers(mockData.production, mockData.slopePoints);
 
-  ['environment', 'slope', 'video', 'production'].forEach((k) => setLayerVisible(k, true));
+  const prodMapOn = hasProductionMapSpots(mockData.production);
+  const prodLayerInput = document.querySelector('[data-layer="production"]');
+  if (prodLayerInput) {
+    prodLayerInput.checked = prodMapOn;
+    prodLayerInput.disabled = !prodMapOn;
+    const lab = prodLayerInput.closest('label');
+    if (lab) lab.hidden = !prodMapOn;
+  }
+  ['environment', 'slope', 'video'].forEach((k) => setLayerVisible(k, true));
+  setLayerVisible('production', prodMapOn);
 
   try {
     await initCadLayers();

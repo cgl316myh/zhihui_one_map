@@ -31,22 +31,7 @@
       ]
     }
   ],
-  "mapSpots": [
-    {
-      "id": "CRUSH",
-      "name": "破碎工段",
-      "lng": 102.44635,
-      "lat": 24.78515,
-      "status": "running"
-    },
-    {
-      "id": "SCREEN",
-      "name": "筛分工段",
-      "lng": 102.44685,
-      "lat": 24.78575,
-      "status": "warn"
-    }
-  ],
+  "mapSpots": [],
   "processFlow": [
     { "id": "DIG", "name": "采掘", "bind": "CRUSH" },
     { "id": "HAUL", "name": "运输", "bind": "CRUSH" },

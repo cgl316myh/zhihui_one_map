@@ -125,12 +125,11 @@ function escapeHtml(s) {
 
 function formatStatusBrief(st) {
   if (!st) return '';
-  const mqtt = st.mqtt || {};
   const http = st.httpPush || {};
   const c = st.counts || {};
   return [
     `接收开关=${st.ingest?.enabled !== false}`,
-    `MQTT=${mqtt.connected ? '已连接' : '未连接'}${mqtt.error ? ` (${mqtt.error})` : ''}`,
+    `环境云=${st.ftenv?.lastPullAt ? `上次 ${st.ftenv.lastPullAt}` : '未拉取'}${st.ftenv?.error ? ` (${st.ftenv.error})` : ''}`,
     `HTTP次数=${http.count ?? 0}`,
     `meteo=${c.meteo ?? 0} gnss=${c.gnss ?? 0} rain=${c.rainfall ?? 0}`,
     `边坡云平台=${st.bdlx?.lastPullAt ? `上次 ${st.bdlx.lastPullAt}` : '未拉取'}${st.bdlx?.error ? ` (${st.bdlx.error})` : ''}`,
@@ -1396,6 +1395,9 @@ async function loadSlopeDevices() {
   return r.ok && Array.isArray(r.data) ? r.data : [];
 }
 
+/** 保存连接时强制关闭 MQTT（现场改走 FT 云拉取，后台不再展示 MQTT） */
+let _bridgeMqttKeep = { enabled: false };
+
 function collectBridgeForm(box) {
   const g = (name) => box.querySelector(`[name="${name}"]`);
   const num = (name, fallback) => {
@@ -1430,16 +1432,8 @@ function collectBridgeForm(box) {
       },
     },
     mqtt: {
-      enabled: g('mqtt-enabled')?.checked !== false,
-      host: (g('mqtt-host')?.value || '').trim(),
-      port: num('mqtt-port', 1883),
-      username: (g('mqtt-user')?.value || '').trim(),
-      password: g('mqtt-pass')?.value || '',
-      clientId: (g('mqtt-client')?.value || '').trim() || 'mine-onemap-api',
-      topics: parseMqttTopics(g('mqtt-topics')?.value),
-      topic: (g('mqtt-topic')?.value || '').trim(),
-      keepalive: Math.max(30, num('mqtt-keep', 60)),
-      reconnectDelaySec: Math.max(30, num('mqtt-reconn', 30)),
+      ...(_bridgeMqttKeep || {}),
+      enabled: false,
     },
   };
 }
@@ -1475,7 +1469,8 @@ async function loadFtEnvCfg() {
 async function renderSensorConnect() {
   const cfg = await loadBridgeCfg();
   const [bdlx, ftenv] = await Promise.all([loadBdlxCfg(), loadFtEnvCfg()]);
-  const mqttOn = cfg.mqtt?.enabled !== false;
+  // 现场环境改走 FT 云拉取：MQTT 强制关闭且不在后台展示；保存时写回 enabled=false
+  _bridgeMqttKeep = { ...(cfg.mqtt || {}), enabled: false };
   const httpOn = cfg.http?.enabled !== false;
   const tcpOn = Boolean(cfg.tcp?.enabled);
   const mode = cfg.http?.mode === 'cloud_relay' ? 'cloud_relay' : 'direct';
@@ -1490,7 +1485,7 @@ async function renderSensorConnect() {
       <div class="thresh-page-hd">
         <div>
           <h2>接入连接</h2>
-          <p class="muted">边坡云平台登录信息、MQTT / HTTP / TCP。站点映射请到「站点与策略」。</p>
+          <p class="muted">边坡云 / 环境云拉取、HTTP 接收。环境数据以 FT 云为准（MQTT 已关闭）。站点映射请到「站点与策略」。</p>
         </div>
         <div class="thresh-page-actions">
           <button type="button" class="btn" id="btn-bridge-save" ${staticDemo ? 'disabled' : ''}>保存连接</button>
@@ -1606,47 +1601,8 @@ async function renderSensorConnect() {
       </section>
 
       <div class="thresh-compare">
-        <section class="thresh-period-card ${mqttOn ? 'is-active' : ''}">
-          <header class="thresh-period-hd">
-            <div><h3>MQTT</h3><p>边坡 GNSS / 雨量</p></div>
-            <label class="map-enable" style="margin:0"><input type="checkbox" name="mqtt-enabled" ${mqttOn ? 'checked' : ''} /> 启用</label>
-          </header>
-          <div class="thresh-metric-list">
-            <article class="thresh-metric map-global-row">
-              <div class="thresh-metric-fields map-fields-2">
-                ${field('主机', `<input name="mqtt-host" value="${escapeHtml(cfg.mqtt?.host || '')}" />`)}
-                ${field('端口', `<input type="number" name="mqtt-port" value="${cfg.mqtt?.port ?? 1883}" />`)}
-              </div>
-            </article>
-            <article class="thresh-metric map-global-row">
-              <div class="thresh-metric-fields map-fields-2">
-                ${field('用户名', `<input name="mqtt-user" value="${escapeHtml(cfg.mqtt?.username || '')}" />`)}
-                ${field('密码', `<input type="password" name="mqtt-pass" value="${escapeHtml(cfg.mqtt?.password || '')}" />`)}
-              </div>
-            </article>
-            <article class="thresh-metric map-global-row">
-              <div class="thresh-metric-fields map-fields-2">
-                ${field('ClientId', `<input name="mqtt-client" value="${escapeHtml(cfg.mqtt?.clientId || '')}" />`)}
-                ${field('兼容单 Topic', `<input name="mqtt-topic" value="${escapeHtml(cfg.mqtt?.topic || '')}" placeholder="可空；多 Topic 优先用下方列表" />`)}
-              </div>
-            </article>
-            <article class="thresh-metric map-global-row">
-              <div class="thresh-metric-name"><strong>Topics</strong><span>每行一个，或逗号分隔</span></div>
-              <div class="thresh-metric-fields">
-                <textarea name="mqtt-topics" rows="3" style="width:100%;font-family:Consolas,monospace" placeholder="$iot/an20260811/gnss&#10;$iot/an20260811/YK">${escapeHtml(formatMqttTopics(cfg))}</textarea>
-              </div>
-            </article>
-            <article class="thresh-metric map-global-row">
-              <div class="thresh-metric-fields map-fields-2">
-                ${field('Keepalive', `<input type="number" name="mqtt-keep" value="${cfg.mqtt?.keepalive ?? 60}" /><i>秒</i>`)}
-                ${field('重连间隔', `<input type="number" name="mqtt-reconn" value="${cfg.mqtt?.reconnectDelaySec ?? 30}" /><i>秒</i>`)}
-              </div>
-            </article>
-          </div>
-        </section>
-
         <section class="thresh-period-card ${httpOn || tcpOn ? 'is-active' : ''}">
-          <header class="thresh-period-hd"><div><h3>HTTP / TCP</h3><p>环境推送与预留 TCP</p></div></header>
+          <header class="thresh-period-hd"><div><h3>HTTP / TCP</h3><p>环境推送与预留 TCP（MQTT 已关闭，不在此展示）</p></div></header>
           <div class="thresh-metric-list">
             <article class="thresh-metric map-global-row">
               <div class="thresh-metric-name">
