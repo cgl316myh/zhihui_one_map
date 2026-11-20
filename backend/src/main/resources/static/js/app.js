@@ -2,7 +2,6 @@ import { loadDashboardBundle } from './api/dashboard.js';
 import { apiGet } from './api/client.js';
 import {
   startSlopePolling,
-  getSlopeApiConfig,
   stopSlopePolling,
   configureSlopeApi,
 } from './api/slope.js';
@@ -28,15 +27,12 @@ import {
   renderSlopePanel,
   renderReserves,
   renderVideo,
-  setSlopePollStatus,
-  setEnvPollStatus,
 } from './modules/panels.js';
 import { buildAlertsFromMock } from './modules/alerts.js';
 import {
   initEnvThresholds,
   applyEnvThresholds,
   getEnvThresholds,
-  getActivePeriodKey,
 } from './modules/envThresholds.js';
 import {
   applySlopeEvaluation,
@@ -207,9 +203,6 @@ function refreshEnvironment() {
   selectedEnvId = renderEnvironment(mockData.environment, selectedEnvId);
   renderEnvironmentMarkers(mockData.environment);
   refreshAlerts();
-  const period = getActivePeriodKey() === 'day' ? '昼间' : '夜间';
-  const muteTip = isAlertsEnabled() ? '' : ' · 报警显示已关闭';
-  setEnvPollStatus(true, `${period}阈值生效${muteTip}`);
 }
 
 function refreshThresholdForm() {
@@ -290,20 +283,10 @@ async function syncAlertsEnabledFromServer() {
 
 function onSlopeData(data) {
   applySlope(data);
-  const cfg = getSlopeApiConfig();
-  let statusText;
-  if (data.unavailable) {
-    statusText = '边坡监测 · 网关不可用';
-  } else if (!data.live) {
-    statusText = `边坡监测 · 等待推送 · ${Math.round(cfg.intervalMs / 1000)}s`;
-  } else {
-    statusText = `边坡实时 · ${Math.round(cfg.intervalMs / 1000)}s 读取`;
-  }
-  setSlopePollStatus(Boolean(data.live), statusText);
 }
 
 function onSlopeError(err) {
-  setSlopePollStatus(false, `边坡刷新失败，保留上次数据 · ${err.message || err}`);
+  console.warn('[slope] 刷新失败，保留上次数据', err?.message || err);
 }
 
 async function boot() {

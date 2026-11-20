@@ -1,9 +1,10 @@
 /**
  * CAD 矢量图层：按 /api/cad-layers 清单懒加载 GeoJSON（静态 /data/cad/*）。
- * 矿界线加载后视野对齐其范围并外扩 30m；矿界点绿色 + 永久横排标签。
+ * 默认视野对齐矿界线矩形（外扩 30m）；地图右下角按钮可再次缩放到该范围。
+ * 矿界点绿色 + 永久横排标签。
  */
 import { apiGet } from '../api/client.js';
-import { getMap } from './map.js';
+import { getMap, setMineExtentHandler } from './map.js';
 
 const LS_KEY = 'mine-one-map-cad-layers-v1';
 const FIT_LAYER_ID = 'kuangjie_line';
@@ -19,6 +20,8 @@ const loaded = {};
 /** @type {Record<string, boolean>} */
 const visible = {};
 let didFitKuangjie = false;
+/** @type {L.LatLngBounds | null} */
+let mineBoundsPadded = null;
 
 function loadPrefs() {
   try {
@@ -51,15 +54,66 @@ function expandBoundsByMeters(bounds, meters) {
   );
 }
 
-function fitToKuangjieLine(gjLayer) {
-  if (didFitKuangjie) return;
+function cacheMineBoundsFromLayer(gjLayer) {
+  const raw = gjLayer?.getBounds?.();
+  if (!raw || !raw.isValid()) return null;
+  mineBoundsPadded = expandBoundsByMeters(raw, BOUNDS_PAD_METERS);
+  return mineBoundsPadded;
+}
+
+function fitToKuangjieLine(gjLayer, { animate = false, force = false } = {}) {
+  if (didFitKuangjie && !force) return;
   const map = getMap();
   if (!map || !gjLayer) return;
-  const raw = gjLayer.getBounds?.();
-  if (!raw || !raw.isValid()) return;
-  const padded = expandBoundsByMeters(raw, BOUNDS_PAD_METERS);
-  map.fitBounds(padded, { animate: false, maxZoom: 18 });
+  const padded = cacheMineBoundsFromLayer(gjLayer);
+  if (!padded || !padded.isValid()) return;
+  map.fitBounds(padded, { animate: Boolean(animate), maxZoom: 18 });
   didFitKuangjie = true;
+}
+
+/**
+ * 缩放到矿界矩形（外扩 30m）。按钮与默认视野共用。
+ * @param {{ animate?: boolean, force?: boolean, loadIfNeeded?: boolean }} [opts]
+ */
+export async function fitToMineBoundary(opts = {}) {
+  const { animate = true, force = true, loadIfNeeded = true } = opts;
+  const map = getMap();
+  if (!map) return false;
+
+  if (mineBoundsPadded?.isValid()) {
+    map.fitBounds(mineBoundsPadded, { animate: Boolean(animate), maxZoom: 18 });
+    didFitKuangjie = true;
+    return true;
+  }
+
+  const lineGroup = groups[FIT_LAYER_ID];
+  if (lineGroup) {
+    let fitted = false;
+    lineGroup.eachLayer((lyr) => {
+      if (fitted || !lyr.getBounds) return;
+      fitToKuangjieLine(lyr, { animate, force: true });
+      fitted = didFitKuangjie;
+    });
+    if (fitted) return true;
+  }
+
+  if (!loadIfNeeded) return false;
+  const layerMeta = catalog.find((l) => l.id === FIT_LAYER_ID);
+  if (!layerMeta?.url) return false;
+  try {
+    const data = await fetchGeoJson(layerMeta.url);
+    const tmp = L.geoJSON(data);
+    const raw = tmp.getBounds?.();
+    tmp.remove();
+    if (!raw || !raw.isValid()) return false;
+    mineBoundsPadded = expandBoundsByMeters(raw, BOUNDS_PAD_METERS);
+    map.fitBounds(mineBoundsPadded, { animate: Boolean(animate), maxZoom: 18 });
+    didFitKuangjie = true;
+    return true;
+  } catch (err) {
+    console.warn('[cad] fit mine boundary failed', err);
+    return false;
+  }
 }
 
 function styleFor(layerMeta, feature) {
@@ -187,7 +241,8 @@ async function ensureLoaded(layerMeta) {
   }
 
   if (id === FIT_LAYER_ID) {
-    fitToKuangjieLine(gj);
+    cacheMineBoundsFromLayer(gj);
+    fitToKuangjieLine(gj, { animate: false, force: false });
   }
 
   loaded[id] = true;
@@ -212,11 +267,13 @@ export async function setCadLayerVisible(id, on) {
     await ensureLoaded(layerMeta);
     const g = groups[id];
     if (g && !map.hasLayer(g)) g.addTo(map);
-    // 若线层后开，补一次视野
-    if (id === FIT_LAYER_ID && !didFitKuangjie) {
+    // 若线层后开，补一次默认视野并缓存范围
+    if (id === FIT_LAYER_ID) {
       const lineGroup = groups[id];
       lineGroup?.eachLayer((lyr) => {
-        if (lyr.getBounds) fitToKuangjieLine(lyr);
+        if (!lyr.getBounds) return;
+        cacheMineBoundsFromLayer(lyr);
+        if (!didFitKuangjie) fitToKuangjieLine(lyr, { animate: false, force: false });
       });
     }
   } catch (err) {
@@ -275,7 +332,7 @@ function mountToolbar(layers) {
 
 /**
  * 拉取清单并按 defaultOn / 本地偏好加载。
- * 优先加载矿界线以便先定视野。
+ * 优先加载矿界线；默认视野始终缩放到矿界矩形。
  */
 export async function initCadLayers() {
   const r = await apiGet('/api/cad-layers');
@@ -283,9 +340,13 @@ export async function initCadLayers() {
     console.warn('[cad] catalog failed', r.message);
     catalog = [];
     mountToolbar([]);
+    setMineExtentHandler(null);
     return [];
   }
   catalog = Array.isArray(r.data?.layers) ? r.data.layers : [];
+  setMineExtentHandler(() => {
+    fitToMineBoundary({ animate: true, force: true, loadIfNeeded: true });
+  });
   const prefs = loadPrefs();
 
   catalog.forEach((layer) => {
@@ -312,6 +373,11 @@ export async function initCadLayers() {
         console.warn('[cad] auto load failed', layer.id, e);
       }
     }
+  }
+
+  // 默认视图 = 矿界矩形（即使矿界线被本地偏好关掉，也拉范围并缩放）
+  if (!didFitKuangjie) {
+    await fitToMineBoundary({ animate: false, force: true, loadIfNeeded: true });
   }
   return catalog;
 }

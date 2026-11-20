@@ -6,6 +6,88 @@ let map = null;
 let baseLayerGroup = null;
 let currentBasemapId = 'esri-street';
 let mapConfig = {};
+/** @type {null | (() => void | Promise<void>)} */
+let mineExtentHandler = null;
+let zoomBarControl = null;
+
+/** 注册「缩放到矿界」按钮回调（由 cadLayers 在初始化后注入） */
+export function setMineExtentHandler(fn) {
+  mineExtentHandler = typeof fn === 'function' ? fn : null;
+}
+
+/** 矿界 + 放大 + 缩小：同一 leaflet-bar，无缝对齐、尺寸一致 */
+function addZoomBarWithMineExtent() {
+  if (!map || zoomBarControl) return;
+  const ZoomBar = L.Control.extend({
+    options: { position: 'bottomright' },
+    onAdd(m) {
+      const div = L.DomUtil.create(
+        'div',
+        'leaflet-bar leaflet-control leaflet-control-zoom leaflet-control-zoom-mine'
+      );
+      const extent = L.DomUtil.create('a', 'leaflet-control-mine-extent', div);
+      extent.href = '#';
+      extent.title = '缩放到矿界';
+      extent.setAttribute('role', 'button');
+      extent.setAttribute('aria-label', '缩放到矿界');
+      extent.innerHTML =
+        '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">' +
+        '<rect x="5" y="5" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M3 9V5h4M21 9V5h-4M3 15v4h4M21 15v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '</svg>';
+
+      const zoomIn = L.DomUtil.create('a', 'leaflet-control-zoom-in', div);
+      zoomIn.href = '#';
+      zoomIn.title = '放大';
+      zoomIn.setAttribute('role', 'button');
+      zoomIn.setAttribute('aria-label', '放大');
+      zoomIn.innerHTML = '<span aria-hidden="true">+</span>';
+
+      const zoomOut = L.DomUtil.create('a', 'leaflet-control-zoom-out', div);
+      zoomOut.href = '#';
+      zoomOut.title = '缩小';
+      zoomOut.setAttribute('role', 'button');
+      zoomOut.setAttribute('aria-label', '缩小');
+      zoomOut.innerHTML = '<span aria-hidden="true">&#x2212;</span>';
+
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.on(extent, 'click', L.DomEvent.stop).on(extent, 'click', () => {
+        if (mineExtentHandler) mineExtentHandler();
+      });
+      L.DomEvent.on(zoomIn, 'click', L.DomEvent.stop).on(zoomIn, 'click', () => {
+        m.zoomIn();
+      });
+      L.DomEvent.on(zoomOut, 'click', L.DomEvent.stop).on(zoomOut, 'click', () => {
+        m.zoomOut();
+      });
+
+      const syncDisabled = () => {
+        const z = m.getZoom();
+        const min = m.getMinZoom();
+        const max = m.getMaxZoom();
+        const set = (el, disabled) => {
+          if (disabled) L.DomUtil.addClass(el, 'leaflet-disabled');
+          else L.DomUtil.removeClass(el, 'leaflet-disabled');
+          el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        };
+        set(zoomIn, z >= max);
+        set(zoomOut, z <= min);
+      };
+      m.on('zoomend zoomlevelschange', syncDisabled);
+      syncDisabled();
+      this._syncDisabled = syncDisabled;
+      return div;
+    },
+    onRemove(m) {
+      if (this._syncDisabled) {
+        m.off('zoomend zoomlevelschange', this._syncDisabled);
+        this._syncDisabled = null;
+      }
+    },
+  });
+  zoomBarControl = new ZoomBar();
+  zoomBarControl.addTo(map);
+}
 
 /** 各底图默认最大切片等级（可被 map-config.json 覆盖） */
 const BASEMAP_ZOOM_DEFAULTS = {
@@ -258,7 +340,7 @@ export function initMap(center, zoom) {
     map.getPane('basemapPane').style.zIndex = 200;
   }
 
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  addZoomBarWithMineExtent();
 
   baseLayerGroup = L.layerGroup().addTo(map);
   // 默认高清卫星；工具条初始化时再按配置/本地记忆切换

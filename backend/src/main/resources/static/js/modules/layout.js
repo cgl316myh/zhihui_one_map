@@ -92,31 +92,47 @@ export function expandSidebar(side) {
   return true;
 }
 
-function isPanelInView(el) {
+/** 模块顶部是否已贴齐侧栏可视区顶部（仅露出底部不算「已在模块」） */
+function isPanelTopAligned(el) {
   if (!el) return false;
   const col = el.closest('.column');
   if (!col) {
     const r = el.getBoundingClientRect();
-    return r.width > 40 && r.height > 40;
+    return r.width > 40 && r.top >= 0 && r.top < 80;
   }
   if (col.classList.contains('left-col') && isSidebarCollapsed('left')) return false;
   if (col.classList.contains('right-col') && isSidebarCollapsed('right')) return false;
   const cr = col.getBoundingClientRect();
   const er = el.getBoundingClientRect();
   if (cr.width < 8) return false;
-  const visibleTop = Math.max(er.top, cr.top);
-  const visibleBottom = Math.min(er.bottom, cr.bottom);
-  return visibleBottom - visibleTop >= Math.min(48, er.height * 0.35);
+  // 顶部对齐容差；且模块至少露出一块内容
+  const topAligned = Math.abs(er.top - cr.top) <= 28;
+  const hasBody = er.bottom > cr.top + 40;
+  return topAligned && hasBody;
+}
+
+function scrollPanelToTop(el) {
+  if (!el) return;
+  const col = el.closest('.column');
+  if (col) {
+    const colTop = col.getBoundingClientRect().top;
+    const elTop = el.getBoundingClientRect().top;
+    const next = col.scrollTop + (elTop - colTop);
+    col.scrollTo({ top: Math.max(0, next), behavior: 'smooth' });
+    return;
+  }
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
- * 顶部菜单定位：收起则展开对应侧栏并滚到模块；已在视野内则标记 alreadyVisible。
+ * 顶部菜单定位：收起则展开对应侧栏并滚到模块顶部；
+ * 仅当模块顶部已对齐可视区时才算 alreadyVisible。
  * @returns {{ expanded: boolean, alreadyVisible: boolean, side: string }}
  */
 export function focusWorkspacePanel(sectionId) {
   const side = PANEL_SIDE[sectionId] || 'center';
   const el = document.getElementById(sectionId);
-  const alreadyVisible = isPanelInView(el);
+  const alreadyVisible = isPanelTopAligned(el);
   let expanded = false;
 
   if ((side === 'left' || side === 'right') && isSidebarCollapsed(side)) {
@@ -124,7 +140,7 @@ export function focusWorkspacePanel(sectionId) {
   }
 
   const scrollToPanel = () => {
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollPanelToTop(el);
     if (side === 'center') {
       invalidateMapSize();
     } else {

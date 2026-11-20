@@ -1541,6 +1541,23 @@ button.slope-item.active {
   transform: translate(-50%, 0);
 }
 
+/* 矿界 + +/-：同一 bar 内三键，尺寸与 Leaflet 默认一致、无缝对齐 */
+.leaflet-control-zoom-mine a.leaflet-control-mine-extent {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: #333;
+}
+.leaflet-control-zoom-mine a.leaflet-control-mine-extent:hover {
+  color: #0d5c61;
+}
+.leaflet-control-zoom-mine a.leaflet-control-mine-extent svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 /* CAD 矿界点永久标签（强制横排） */
 .leaflet-tooltip.cad-point-label {
   background: rgba(10, 24, 18, 0.82);

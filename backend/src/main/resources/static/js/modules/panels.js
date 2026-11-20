@@ -57,13 +57,6 @@ function resolveFlowNodeStatus(node, prod) {
   return 'normal';
 }
 
-export function setEnvPollStatus(ok, message) {
-  const el = document.getElementById('env-poll-status');
-  if (!el) return;
-  el.className = ok ? 'poll-ok' : 'poll-err';
-  el.textContent = message;
-}
-
 export function renderEnvironment(env, selectedId = null) {
   const box = document.getElementById('panel-environment');
   if (!box || !env) return null;
@@ -73,12 +66,6 @@ export function renderEnvironment(env, selectedId = null) {
     points.find((p) => p.status === 'warn' || p.status === 'alarm') ||
     points[0] ||
     null;
-
-  const liveTag = env.live
-    ? '<div class="poll-ok" style="margin-bottom:8px">实时接入 · MQTT/HTTP</div>'
-    : env.unavailable
-      ? '<div class="poll-fail" style="margin-bottom:8px">传感器网关不可用</div>'
-      : '<div class="metric-loc" style="margin-bottom:8px">等待传感器推送</div>';
 
   const cards = points.length
     ? points
@@ -109,7 +96,7 @@ export function renderEnvironment(env, selectedId = null) {
         .join('')
     : '<div class="metric-loc">暂无环境实时数据（网关未接入或尚无推送）</div>';
 
-  box.innerHTML = liveTag + cards;
+  box.innerHTML = cards;
 
   const cap = document.getElementById('env-chart-caption');
   if (cap) {
@@ -473,12 +460,6 @@ export function renderVideo(video) {
   });
 }
 
-export function setSlopePollStatus(ok, message) {
-  const el = document.getElementById('slope-poll-status');
-  if (!el) return;
-  el.className = ok ? 'poll-ok' : 'poll-err';
-  el.textContent = message;
-}
 
 function fmtNum(n) {
   if (n == null || Number.isNaN(Number(n))) return '—';
