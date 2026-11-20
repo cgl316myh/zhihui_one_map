@@ -396,10 +396,10 @@ export function renderSlopePanel(slopeData, selectedId, handlers = {}) {
 export function renderReserves(reserves) {
   const box = document.getElementById('panel-reserve-summary');
   if (!reserves) return;
-  const days = Number(reserves.remainingDays);
   const warnYears = Number(reserves.warningYears);
-  const yearsLeft =
-    Number.isFinite(days) && days >= 0 ? +(days / 365).toFixed(1) : null;
+  const yearsLeft = Number.isFinite(Number(reserves.serviceYears))
+    ? Number(reserves.serviceYears)
+    : null;
   const underWarn =
     yearsLeft != null && Number.isFinite(warnYears) && yearsLeft <= warnYears;
   const tip = underWarn

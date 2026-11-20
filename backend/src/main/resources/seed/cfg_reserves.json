@@ -4,6 +4,7 @@
   "dataBasisNote": "单位已由报告「千吨」换算为系统「万吨」（÷10）。2025 年开采量/动用量取自年报第 4.5 节及表 4-1；保有/可信储量为截止 2025-12-31 数。",
   "unit": "万吨",
   "warningYears": 3,
+  "serviceYearsManual": null,
   "assessedUtilizedReserve": 9677.26,
   "designRecoveryRate": 1,
   "miningRecoveryRate": 0.95,

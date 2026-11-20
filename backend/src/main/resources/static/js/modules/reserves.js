@@ -60,6 +60,17 @@ function buildNext(input) {
   next.mined = Math.max(0, Number(next.mined) || 0);
   next.avgDailyMined = Math.max(0, Number(next.avgDailyMined) || 0);
   next.warningYears = Math.max(0, Number(next.warningYears) || 0);
+  // 服务年限手动覆盖：空 / null 表示不覆盖，大屏用计算值
+  if (
+    next.serviceYearsManual === '' ||
+    next.serviceYearsManual === undefined ||
+    next.serviceYearsManual === null ||
+    !Number.isFinite(Number(next.serviceYearsManual))
+  ) {
+    next.serviceYearsManual = null;
+  } else {
+    next.serviceYearsManual = Math.max(0, Number(next.serviceYearsManual));
+  }
   next.unit = next.unit || '万吨';
 
   const derived = computeReservesDerived(next);
@@ -113,6 +124,19 @@ export function computeReservesDerived(raw) {
     remainingDays = Math.max(0, Math.round(remaining / avgDaily));
   }
 
+  const calculatedYears =
+    Number.isFinite(remainingDays) && remainingDays >= 0
+      ? +(remainingDays / 365).toFixed(1)
+      : null;
+  const manualRaw = state.serviceYearsManual;
+  const hasManual =
+    manualRaw !== null &&
+    manualRaw !== undefined &&
+    manualRaw !== '' &&
+    Number.isFinite(Number(manualRaw));
+  const serviceYearsManual = hasManual ? Math.max(0, +Number(manualRaw).toFixed(1)) : null;
+  const serviceYears = hasManual ? serviceYearsManual : calculatedYears;
+
   return {
     ...state,
     unit,
@@ -121,6 +145,10 @@ export function computeReservesDerived(raw) {
     miningRecoveryRate: miningRate,
     mined: +mined.toFixed(2),
     avgDailyMined: +avgDaily.toFixed(3),
+    serviceYearsManual,
+    serviceYears,
+    serviceYearsCalculated: calculatedYears,
+    serviceYearsSource: hasManual ? 'manual' : 'calculated',
     districts,
     recoverableReserve: recoverable,
     remaining,
@@ -133,6 +161,8 @@ export function computeReservesDerived(raw) {
       recoverable: '可采储量 = 评估利用资源储量 × 设计回采率 × 采矿回采率',
       district: '采区回采率 = 采区采出量 ÷ 采区动用储量',
       mine: '全矿回采率 = Σ(采区回采率 × 采区采出量) ÷ Σ(采区采出量)',
+      serviceYears:
+        '服务年限：后台填写则用填写值；否则 = 剩余可采 ÷ 日均采出 ÷ 365',
     },
   };
 }

@@ -702,12 +702,22 @@ function renderReservesAdmin() {
                   <input type="number" id="rsv-avg" step="0.001" min="0" value="${input.avgDailyMined ?? ''}" /><i>万吨/日</i>
                 </div>
               </label>
+              <label class="thresh-field"><span>服务年限（手填）</span>
+                <div class="thresh-input-wrap">
+                  <input type="number" id="rsv-service-years" step="0.1" min="0" value="${
+                    input.serviceYearsManual != null && input.serviceYearsManual !== ''
+                      ? input.serviceYearsManual
+                      : ''
+                  }" placeholder="空=按公式算" /><i>年</i>
+                </div>
+              </label>
               <label class="thresh-field"><span>服务年限预警</span>
                 <div class="thresh-input-wrap">
                   <input type="number" id="rsv-warn" step="0.1" min="0" value="${input.warningYears ?? ''}" /><i>年</i>
                 </div>
               </label>
             </div>
+            <p class="muted" style="padding:4px 12px 0;margin:0">服务年限：填写则大屏直接显示该值；留空则按「剩余可采 ÷ 日均采出 ÷ 365」计算。</p>
           </article>
         </div>
       </section>
@@ -761,6 +771,9 @@ function renderReservesAdmin() {
           <div class="kpi"><span>可采储量</span><b>${derived.recoverableReserve} ${derived.unit}</b></div>
           <div class="kpi"><span>剩余可采</span><b>${derived.remaining} ${derived.unit}</b></div>
           <div class="kpi"><span>全矿回采率</span><b>${derived.mineRecoveryRatePct}</b></div>
+          <div class="kpi"><span>服务年限</span><b>${derived.serviceYears ?? '—'}${
+            derived.serviceYearsSource === 'manual' ? '（手填）' : derived.serviceYears != null ? '（计算）' : ''
+          }</b></div>
           <div class="kpi"><span>预计天数</span><b>${derived.remainingDays}</b></div>
         </div>
       </section>
@@ -785,6 +798,7 @@ function renderReservesAdmin() {
         activatedReserve: Number(tr.querySelector('[data-f="activated"]')?.value) || 0,
       });
     });
+    const serviceYearsRaw = $('rsv-service-years')?.value;
     return {
       assessedUtilizedReserve: Number($('rsv-assessed')?.value) || 0,
       designRecoveryRate: Number($('rsv-design')?.value) || 0,
@@ -792,6 +806,10 @@ function renderReservesAdmin() {
       mined: Number($('rsv-mined')?.value) || 0,
       avgDailyMined: Number($('rsv-avg')?.value) || 0,
       warningYears: Number($('rsv-warn')?.value) || 0,
+      serviceYearsManual:
+        serviceYearsRaw === '' || serviceYearsRaw == null
+          ? null
+          : Number(serviceYearsRaw),
       unit: input.unit || '万吨',
       districts: districtsNext,
       daily: input.daily,
@@ -808,6 +826,9 @@ function renderReservesAdmin() {
       <div class="kpi"><span>可采储量</span><b>${preview.recoverableReserve} ${preview.unit}</b></div>
       <div class="kpi"><span>剩余可采</span><b>${preview.remaining} ${preview.unit}</b></div>
       <div class="kpi"><span>全矿回采率</span><b>${preview.mineRecoveryRatePct}</b></div>
+      <div class="kpi"><span>服务年限</span><b>${preview.serviceYears ?? '—'}${
+        preview.serviceYearsSource === 'manual' ? '（手填）' : preview.serviceYears != null ? '（计算）' : ''
+      }</b></div>
       <div class="kpi"><span>预计天数</span><b>${preview.remainingDays}</b></div>`;
     refreshRates();
   };
